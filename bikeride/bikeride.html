@@ -1,17 +1,46 @@
 <!DOCTYPE html>
 
 <html lang="en">
-    <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-        <link href="styles.css" rel="stylesheet">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script defer src="app.js" charset="utf-8"></script>
-        <title>Austin Bike Ride Planner</title>
-        <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972185.png"/>
-    </head>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Austin Bike Ride Planner helps you prepare for your bike rides with weather, tire pressure, and nutrition information.">
+    <title>Austin Bike Ride Planner</title>
+    <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972185.png" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <link href="styles.css" rel="stylesheet">
+    <script defer src="app.js" charset="utf-8"></script>
+</head>
 
 <body>
+    
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="./../index.html">Travis Pollard</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="resume.html">Resume</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://www.linkedin.com/in/travis-pollard" target="_blank">LinkedIn</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://medium.com/@travis_17385" target="_blank">Blog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="./bikeride/bikeride.html">Austin Bike Ride Planner</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
     <br>
     <div class="container">
         <div class="row">            
@@ -222,28 +251,12 @@
     <img src="images/horns.png" width="300px" class="img-fluid">
 </div>
 
-<!--
-<div class="container">
-    <div class="row">            
-        <div class="col-12 col-lg-12 text-center">
 
-            <p>Random Kanye quote:</p>
+
+<script>
+!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+</script>
             
-            <script>
-            !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-            </script>
-            
-            <div class="text-center">
-                <div id="quotes">
-                    
-                </div>
-            </div> 
-
-        </div>
-    </div>
-</div>
--->
-
 </body>
 
 </html>

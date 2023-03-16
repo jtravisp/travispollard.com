@@ -1,11 +1,12 @@
 body {
     background-color: #222;
     color: #f8f9fa;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Maven Pro', sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6 {
     color: #f8f9fa;
+    font-weight: 700;
 }
 
 .navbar {
@@ -50,4 +51,20 @@ h1, h2, h3, h4, h5, h6 {
 .footer {
     background-color: #343a40;
     color: #f8f9fa;
+}
+
+.profile-image {
+    border: 5px solid #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.certification-badge {
+    display: block;
+    margin: 0 auto;
+    max-width: 180px;
+    margin-bottom: 30px;
+}
+
+.profile-picture {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }

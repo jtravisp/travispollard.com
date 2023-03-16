@@ -7,6 +7,11 @@
     <title>Travis Pollard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./images/favicon-16x16.png">
+    <link rel="shortcut icon" href="./images/favicon.ico">
+    <link href="https://fonts.googleapis.com/css?family=Maven+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 </head>
 
 <body>
@@ -27,6 +32,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="https://medium.com/@travis_17385" target="_blank">Blog</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="./bikeride/bikeride.html">Austin Bike Ride Planner</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -34,17 +42,60 @@
 
     <section class="intro py-5">
         <div class="container">
-            <div class="row">
-                <div class="col-md-8">
-                    <h1>Hello, I'm Travis Pollard!</h1>
-                    <p>A passionate tech professional transitioning to a new career. Check out my work and get in touch!</p>
-                </div>
+            <div class="container text-center">
+                <h1 class="display-4 mt-4">Travis Pollard</h1>
+                <img src="./images/travis.jpg" alt="Travis Pollard" class="img-fluid profile-picture" style="max-width: 400px;">
+                <p class="lead">A passionate tech professional transitioning to a new career. Check out my work and get in touch!</p>
             </div>
         </div>
     </section>
 
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-md-4">
+                <img src="./images/CompTIA_A.png" alt="CompTIA A+ Certified" class="img-fluid certification-badge">
+            </div>
+            <div class="col-md-4">
+                <img src="./images/CompTIA_Network.png" alt="CompTIA Network+ Certified" class="img-fluid certification-badge">
+            </div>
+            <div class="col-md-4">
+                <img src="./images/CompTIA_Security.png" alt="CompTIA Security+ Certified" class="img-fluid certification-badge">
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script>
+        AOS.init();
+    </script>
+
+
 </body>
+
+<footer class="bg-dark py-3">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>Contact</h5>
+                <p>
+                    Email: travis@travispollard.com<br>
+                    Location: Austin, TX
+                </p>
+            </div>
+            <div class="col-md-4">
+                <h5>Connect</h5>
+                <p>
+                    <a href="https://www.linkedin.com/in/travis-pollard" target="_blank" class="text-white">LinkedIn</a><br>
+                    <a href="https://medium.com/@travis_17385" target="_blank" class="text-white">Medium Blog</a>
+                </p>
+            </div>
+            <div class="col-md-4 text-md-right">
+                <p>&copy; 2023 Travis Pollard. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
 
 </html>
