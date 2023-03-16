@@ -1,0 +1,53 @@
+body {
+    background-color: #222;
+    color: #f8f9fa;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #f8f9fa;
+}
+
+.navbar {
+    background-color: #343a40;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .navbar-brand,
+.navbar .nav-link {
+    color: #f8f9fa;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+    color: #adb5bd;
+}
+
+.resume {
+    line-height: 1.6;
+}
+
+.resume h2 {
+    border-bottom: 1px solid #6c757d;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.resume h3 {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.resume h4 {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.resume p {
+    margin-bottom: 1rem;
+}
+
+.footer {
+    background-color: #343a40;
+    color: #f8f9fa;
+}

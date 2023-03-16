@@ -1,0 +1,13 @@
+body, html {
+    background-color:aliceblue;
+}
+
+
+.title {
+    color: #2596be;
+    text-align: center;
+}
+
+#psi {
+    font-size: 36px;
+}

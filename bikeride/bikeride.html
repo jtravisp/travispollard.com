@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        <link href="styles.css" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script defer src="app.js" charset="utf-8"></script>
+        <title>Austin Bike Ride Planner</title>
+        <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972185.png"/>
+    </head>
+
+<body>
+    <br>
+    <div class="container">
+        <div class="row">            
+            <div class="col-7 col-lg-7 text-center mx-auto">
+                <img src="images/SeekPng.com_bicycle-icon-png_3099373.png" width="200px" class="img-fluid">            
+                    <h1>Austin Bike Ride Planner</h1>                
+                    <h5>Make sure you are ready for that weekend ride! What does the weather look like? How much air do you need in your tires? How much nutrition do you need to take along? Do you have all your gear?</h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather widget credit: weatherwidget.io-->
+    <a class="weatherwidget-io" href="https://forecast7.com/en/40d71n74d01/new-york/?unit=us" data-label_1="Austin" data-label_2="Weather" data-theme="original" >Austin Weather</a>
+    <br>
+
+    <!-- PSI and Nutrition Calculators -->
+    <div class="container">
+        <div class="row">            
+            <div class="col-12 col-lg-6">
+
+                <h2>Bike Tire PSI Calculator</h2>
+                <h5>*Only for 700cc road bike tires</h5> <br>
+
+                <form id="psi-form">
+                    <h3>Input rider weight:</h3>
+                        <input name="riderweight" id="riderweight" type="number" min="80" max="300" default="150" placeholder="Rider lbs">
+                    <br>
+
+                    <h3>Input bike weight:</h3>
+                        <input name="bikeweight" id="bikeweight" type="number" min="0" max="50" default="15" placeholder="Bike lbs">
+                    <br>
+
+                    <h3>Tire width in cc?</h3>
+                            <!-- TO DO, change width to radio buttons
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="tirewidth" value="23">
+                                <label class="form-check-label" for="23">23</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="tirewidth" value="25">
+                                <label class="form-check-label" for="23">25</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="tirewidth" value="28">
+                                <label class="form-check-label" for="23">28</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="tirewidth" value="30">
+                                <label class="form-check-label" for="23">30</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="tirewidth" value="32">
+                                <label class="form-check-label" for="23">32</label>
+                            </div>
+                            -->
+                                               
+                            <select id="tirewidth">
+                                <option id="23" type="number">23</option>
+                                <option id="25" type="number">25</option>
+                                <option id="28" type="number">28</option>
+                                <option id="30" type="number">30</option>
+                                <option id="32" type="number">32</option>
+                            </select>
+                       
+                    
+
+                    <h3>Using tubeless tires?</h3>
+                        <select id="tubeless">
+                            <option id="yes" value="true" selected="selected">Yes</option>
+                            <option id="no" value="false">No</option>
+                        </select>
+                    <br>
+                    <br>
+
+                    <button type="button" class="btn btn-primary" id="submit" onclick="psi()">Get suggested PSI</button>
+                </form>
+            
+                <div class="container" id="psi" style="font-size: 36px; font-style: italic;">
+                    <!-- return PSI here-->
+                </div>
+                <script src="psi.js"></script>
+
+            </div>
+        
+            <div class="col-12 col-lg-6">
+
+                <h2>Bike Ride Nutrition Calculator</h2>
+                <h5>Carbohydrates are the body’s primary energy source when cycling. If you don't plan your carb intake during longer rides, prepare to "bonk" before you get back home!</h5> <br>
+
+                <form id="psi-form">
+                    <h3>Cyclist weight:</h3>
+                        <input name="weight" id="weight" type="number" min="80" max="300" default="150" placeholder="Rider lbs">
+                    <br>
+                    <br>
+
+                    <button type="button" class="btn btn-primary" id="submit" onclick="carbs()">Get suggested carb intake</button>
+                </form>
+                <br>
+                <div class="container" id="carbs" style="font-size: 24px; font-style: italic;">
+                    <!-- return carbs here-->
+                </div>
+            
+                <script src="carbs.js"></script>
+
+            </div>
+        </div>  
+    </div>
+    
+    <br>
+    <br>
+
+    <!-- My Rides and Ride Checklist-->
+    <div class="container">
+        <div class="row">            
+            <div class="col-12 col-lg-6">
+                
+                    <h2>My Latest Rides</h2>
+                    <iframe height='454' width='300' frameborder='0' allowtransparency='true' scrolling='no' src='https://www.strava.com/athletes/542739/latest-rides/c56d3cc83420c1133797aec08669049d951dedec'></iframe>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <h2>Cycling Checklist</h2>
+                    <h4>Gear</h4>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Road Bike</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Helmet</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Two Water Bottles</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Under Seat Bag</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Lights</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Pump</label>
+                        </div>
+
+                    <h4>Clothing</h4>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Bib</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Jersey</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Socks</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Gloves</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Shoes</label>
+                        </div>
+
+                    <h4>Other Stuff</h4>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Sunglasses</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Bike Computer</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Heart Rate Monitor</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Food/Nutrition</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Cell Phone</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Road ID</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="flexCheckDefault">Drivers License/Credit Card</label>
+                        </div>                 
+            </div>
+         </div>
+    </div>
+    <br>
+    
+<div class="text-center">
+    <img src="images/skyline.png" class="img-fluid">
+
+    <img src="images/horns.png" width="300px" class="img-fluid">
+</div>
+
+<!--
+<div class="container">
+    <div class="row">            
+        <div class="col-12 col-lg-12 text-center">
+
+            <p>Random Kanye quote:</p>
+            
+            <script>
+            !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+            </script>
+            
+            <div class="text-center">
+                <div id="quotes">
+                    
+                </div>
+            </div> 
+
+        </div>
+    </div>
+</div>
+-->
+
+</body>
+
+</html>
+
