@@ -15,37 +15,20 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">Travis Pollard</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="resume.html">Resume</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://www.linkedin.com/in/travis-pollard" target="_blank">LinkedIn</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://medium.com/@travis_17385" target="_blank">Blog</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="./bikeride/bikeride.html">Austin Bike Ride Planner</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <div id="navbar-placeholder">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        </nav>
+    </div>
 
     <section class="intro py-5">
         <div class="container">
-            <div class="container text-center">
-                <h1 class="display-4 mt-4">Travis Pollard</h1>
-                <img src="./images/travis.jpg" alt="Travis Pollard" class="img-fluid profile-picture" style="max-width: 400px;">
-                <p class="lead">A passionate tech professional transitioning to a new career. Check out my work and get in touch!</p>
+            <div class="row align-items-center"> <!-- Add a row with align-items-center to vertically center the content -->
+                <div class="col-md-6 text-center text-md-left"> <!-- Use col-md-6 to take up half the width on medium screens and larger -->
+                    <p class="custom-lead">Hi, I'm Travis! I'm passionate about technology and education. I'm transitioning to a new career. Check out my work and get in touch!</p>
+                </div>
+                <div class="col-md-6 text-center"> <!-- Use col-md-6 to take up the other half of the width on medium screens and larger -->
+                    <img src="./images/travis.jpg" alt="Travis Pollard" class="img-fluid profile-picture" style="max-width: 400px;">
+                </div>
             </div>
         </div>
     </section>
@@ -71,6 +54,13 @@
         AOS.init();
     </script>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        $(function () {
+            $("#navbar-placeholder").load("navbar.html");
+        });
+    </script>
 
 </body>
 
