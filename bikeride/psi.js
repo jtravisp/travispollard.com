@@ -1,7 +1,7 @@
-var riderweight, bikeweight, tubeless, tirewidth ;
+
+var riderweight, bikeweight, tubeless, tirewidth;
 
 function psi() {
-
     riderweight = document.getElementById('riderweight').value;
     bikeweight = document.getElementById('bikeweight').value;
     tubeless = document.getElementById('tubeless').value;
@@ -9,70 +9,31 @@ function psi() {
 
     var totalweight = parseInt(riderweight) + parseInt(bikeweight);
     var baseline = 100;
-    var psi = 0;
+    var psiAdjustments = {
+        23: { light: -5, medium: 0, heavy: 5 },
+        25: { light: -20, medium: -15, heavy: -10 },
+        28: { light: -35, medium: -30, heavy: -25 },
+        30: { light: -40, medium: -35, heavy: -30 },
+        32: { light: -43, medium: -38, heavy: -33 }
+    };
 
-    // Shorten this code...
-    if (tirewidth == 23) {
-        if (totalweight < 180) {
-            psi = baseline - 5;
-        } else if (totalweight > 200) {
-            psi = baseline + 5;
-        } else {
-            psi = baseline;
-        }
-        if (tubeless == "true") {
-            psi -= 10;
-        }
-    } else if (tirewidth == 25) {
-        if (totalweight < 180) {
-            psi = baseline - 20;
-        } else if (totalweight > 200) {
-            psi = baseline - 10;
-        } else {
-            psi = baseline - 15;
-        }
-        if (tubeless == "true") {
-            psi -= 10;
-        }
-    } else if (tirewidth == 28) {
-        if (totalweight < 180) {
-            psi = baseline - 35;
-        } else if (totalweight > 200) {
-            psi = baseline - 25;
-        } else {
-            psi = baseline - 30;
-        }
-        if (tubeless == "true") {
-            psi -= 10;
-        }
-    } else if (tirewidth == 30) {
-        if (totalweight < 180) {
-            psi = baseline - 40;
-        } else if (totalweight > 200) {
-            psi = baseline - 30;
-        } else {
-            psi = baseline - 35;
-        }
-        if (tubeless == "true") {
-            psi -= 10;
-        }
-    } else if (tirewidth == 32) {
-        if (totalweight < 180) {
-            psi = baseline - 43;
-        } else if (totalweight > 200) {
-            psi = baseline - 33;
-        } else {
-            psi = baseline - 38;
-        }
-        if (tubeless == "true") {
-            psi -= 10;
-        }
+    var weightRange;
+    if (totalweight < 180) {
+        weightRange = 'light';
+    } else if (totalweight > 200) {
+        weightRange = 'heavy';
+    } else {
+        weightRange = 'medium';
+    }
+
+    var psi = baseline + (psiAdjustments[tirewidth][weightRange] || 0);
+
+    if (tubeless == "true") {
+        psi -= 10;
     }
 
     var message = "Your recommended tire PSI is " + psi + ".";
     document.getElementById("psi").innerHTML = message;
-
-    
 }
 
 
