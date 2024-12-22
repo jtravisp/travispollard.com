@@ -1,0 +1,31 @@
+bucket_name = "example-bucket.com" # Replace with your actual bucket name
+
+zone_name = "example.com" # Replace with your domain name
+
+mx_records = [
+  "1 ASPMX.L.GOOGLE.COM.",
+  "5 ALT1.ASPMX.L.GOOGLE.COM.",
+  "5 ALT2.ASPMX.L.GOOGLE.COM.",
+  "10 ALT3.ASPMX.L.GOOGLE.COM.",
+  "10 ALT4.ASPMX.L.GOOGLE.COM."
+]
+
+ns_records = [
+  "ns-000.awsdns-00.net.",
+  "ns-000.awsdns-00.com.",
+  "ns-000.awsdns-00.org.",
+  "ns-000.awsdns-00.co.uk."
+]
+
+soa_records = [
+  "ns-000.awsdns-00.net. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+]
+
+acm_validation_records = {
+  "_acm-validation-key.example.com."         = "_acm-validation-value.example.aws."
+  "_acm-validation-key.www.example.com."    = "_acm-validation-value.www.example.aws."
+}
+
+cloudfront_domain_name = "example.cloudfront.net." # Replace with your CloudFront distribution domain
+cloudfront_zone_id     = "Z2FDTNDATAQYW2"         # Default hosted zone ID for CloudFront
+
