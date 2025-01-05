@@ -1,34 +1,43 @@
 module "route53" {
   source = "./modules/route53"
 
-  zone_name              = "travispollard.com"
-  mx_records             = [
-    "1 ASPMX.L.GOOGLE.COM.",
-    "5 ALT1.ASPMX.L.GOOGLE.COM.",
-    "5 ALT2.ASPMX.L.GOOGLE.COM.",
-    "10 ALT3.ASPMX.L.GOOGLE.COM.",
-    "10 ALT4.ASPMX.L.GOOGLE.COM."
-  ]
-  ns_records             = [
-    "ns-851.awsdns-42.net.",
-    "ns-508.awsdns-63.com.",
-    "ns-1098.awsdns-09.org.",
-    "ns-1904.awsdns-46.co.uk."
-  ]
-  soa_records            = [
-    "ns-851.awsdns-42.net. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
-  ]
-  acm_validation_records = {
-    "_8fdbcf2b0bba69fe7492ca0b12715c73.travispollard.com." = "_23fa11eaaab161fedcab5e2ee1e04553.ghcgkbmxjw.acm-validations.aws."
-    "_749fc501ec7b72619edcb2401e5f79ff.www.travispollard.com." = "_6365829f25d8d352925eaf110ce202b8.ghcgkbmxjw.acm-validations.aws."
+  zone_name              = var.zone_name
+  mx_records             = var.mx_records
+  ns_records             = var.ns_records
+  soa_records            = var.soa_records
+
+ acm_validation_records = {
+    for dvo in module.acm.validation_options : dvo.domain_name => {
+      name  = dvo.resource_record_name
+      value = dvo.resource_record_value
+    }
   }
-  cloudfront_domain_name = "d3lnw7woce6vm9.cloudfront.net."
-  cloudfront_zone_id     = "Z0634909Z5QHPV3Q53RZ"
+
+  cloudfront_domain_name = module.cloudfront.cloudfront_domain_name
+  cloudfront_zone_id     = module.cloudfront.cloudfront_zone_id
 }
+
 
 module "s3" {
   source                  = "./modules/s3"
-  bucket_name             = "travispollard.com"
+  bucket_name             = var.zone_name
   region                  = "us-east-1"
   cloudfront_distribution_id = "E30OWLCN533D8K"
+}
+
+module "acm" {
+  source = "./modules/acm"
+
+  domain_name = var.zone_name
+  subject_alternative_names = var.subject_alternative_names
+  zone_id     = module.route53.zone_id
+}
+
+module "cloudfront" {
+  source = "./modules/cloudfront"
+
+  default_root_object = "index.html"
+  origin_domain_name  = "${module.s3.bucket_name}.s3-website-us-east-1.amazonaws.com"
+  origin_id           = "${module.s3.bucket_name}.s3-website-us-east-1.amazonaws.com"
+  acm_certificate_arn     = module.acm.certificate_arn
 }
