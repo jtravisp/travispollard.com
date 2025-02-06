@@ -21,3 +21,9 @@ variable "soa_records" {
 variable "subject_alternative_names" {
   type        = list(string)
 }
+
+variable "region" {
+  description = "The AWS region to deploy resources in"
+  type        = string
+  default     = "us-east-1"
+}

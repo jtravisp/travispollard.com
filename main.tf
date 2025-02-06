@@ -21,8 +21,8 @@ module "route53" {
 module "s3" {
   source                  = "./modules/s3"
   bucket_name             = var.zone_name
-  region                  = "us-east-1"
-  cloudfront_distribution_id = "E30OWLCN533D8K"
+  region                  = var.region
+  cloudfront_distribution_id = module.cloudfront.cloudfront_distribution_id
 }
 
 module "acm" {
