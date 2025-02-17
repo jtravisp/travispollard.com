@@ -11,4 +11,5 @@ phases:
 artifacts:
   files:
     - artifact.zip
+  discard-paths: no   
   name: BuildArtifact
