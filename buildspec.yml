@@ -4,12 +4,11 @@ phases:
   build:
     commands:
       - mkdir -p output
-      - cp -r www/* output/
-      - cd output
-      - zip -r ../artifact.zip .
-      - cd ..
+      - cp -r www/* output/  
+
 artifacts:
   files:
-    - artifact.zip
-  discard-paths: no   
+    - "**/*" 
+  discard-paths: no
+  base-directory: output
   name: BuildArtifact
