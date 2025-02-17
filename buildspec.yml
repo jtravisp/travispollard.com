@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - mkdir -p output
+      - cp -r www/* output/
+      - cd output
+      - zip -r ../artifact.zip . # Zip the output folder for deployment
+      - cd ..
+artifacts:
+  files:
+    - artifact.zip
+  discard-paths: no
