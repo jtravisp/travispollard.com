@@ -6,9 +6,9 @@ phases:
       - mkdir -p output
       - cp -r www/* output/
       - cd output
-      - zip -r ../artifact.zip . # Zip the output folder for deployment
+      - zip -r ../artifact.zip .
       - cd ..
 artifacts:
   files:
     - artifact.zip
-  discard-paths: no
+  name: BuildArtifact
