@@ -1,3 +1,21 @@
+# Node dependencies
+node_modules/
+
+# Output directory (from Next.js static export)
+out/
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+.next/
+*.log
+
+# OS-specific
+.DS_Store
+
 # Local .terraform directories
 **/.terraform/*
 

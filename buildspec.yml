@@ -1,14 +1,21 @@
 version: 0.2
 
 phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - cd frontend
+      - npm ci
+
   build:
     commands:
-      - mkdir -p output
-      - cp -r www/* output/  
+      - npm run build  # next.config.js must include `output: 'export'`
 
 artifacts:
+  base-directory: frontend/out  # This is where `next export` puts static site
   files:
-    - "**/*" 
+    - "**/*"
   discard-paths: no
-  base-directory: output
   name: BuildArtifact
+  
