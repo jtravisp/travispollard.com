@@ -8,31 +8,31 @@ export default function Techstack() {
           <li className="flex items-start gap-2">
             <span>💻</span>
             <span>
-              Built with <strong>Next.js</strong> and styled using <strong>Tailwind CSS + daisyUI</strong>
+              Built with <strong>Next.js</strong> and styled using <strong>Tailwind CSS</strong> and <strong>daisyUI</strong>
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span>🌐</span>
             <span>
-              Static site hosted via <strong>Amazon S3</strong> with <strong>CloudFront CDN</strong>
+              Deployed as a static site on <strong>Amazon S3</strong> with global delivery via <strong>CloudFront CDN</strong>
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span>🗺️</span>
             <span>
-              DNS managed in <strong>Route 53</strong> with a custom domain
+              Domain and DNS managed through <strong>Route 53</strong>
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span>🔗</span>
             <span>
-              CI/CD pipeline powered by <strong>CodePipeline</strong> and <strong>CodeBuild</strong>
+              CI/CD powered by <strong>AWS CodePipeline</strong> and <strong>CodeBuild</strong> for zero-touch deployments
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span>📦</span>
             <span>
-              Provisioned with <strong>Terraform</strong> for full Infrastructure as Code
+              Infrastructure provisioned in <strong>AWS</strong> with <strong>Terraform</strong>
             </span>
           </li>
         </ul>

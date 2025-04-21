@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: business --default; 
+  themes: business --default, nord, dracula, cupcake, corporate, synthwave, cyberpunk;
 }
 
 :root {
