@@ -49,9 +49,9 @@ export default function Resume() {
             "CompTIA Security+, Network+, A+",
             "edX CS50x & CS50p Certificates",
             "Google Data Analytics Professional Certificate",
+            "Finley R. Hamilton Outstanding Military Musician Award (2024)",
             "TAPPS Fine Arts Teacher of the Year (2023)",
-            "Peer Mentor Award, Army School of Music (2022)",
-            "Finley R. Hamilton Outstanding Military Musician Award (2024)"
+            "Peer Mentor Award, Army School of Music (2022)"            
           ].map((item, idx) => (
             <pre data-prefix=">" key={idx}><code>{item}</code></pre>
           ))}
@@ -63,16 +63,16 @@ export default function Resume() {
             <code># 💻 Technical Skills</code>
           </pre>
           <pre data-prefix=">">
-            <code>Python, Go, Powershell, SQL, HTML, CSS, JavaScript</code>
+            <code>Python, Go, Powershell, SQL, Git, JavaScript</code>
           </pre>
           <pre data-prefix=">">
-            <code>AWS, Azure, Terraform, AD, Entra, Google, M365, Okta</code>
+            <code>AWS, Azure, Terraform, AD, Entra ID, M365 Admin, Kandji, Okta</code>
           </pre>
           <pre data-prefix=">">
             <code>Linux, Windows, MacOS</code>
           </pre>
           <pre data-prefix=">">
-            <code>Proxmox, Docker, Apache, Wireguard, Pi-hole, NAS</code>
+            <code><strong>Homelab</strong>: Proxmox, Docker, Nginx, Wireguard VPN, Pi-hole, NAS, Cloudflare Tunnel</code>
           </pre>
         </div>
 
