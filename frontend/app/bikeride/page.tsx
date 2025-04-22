@@ -28,6 +28,7 @@ export default function BikeRidePlanner() {
             <ul className="flex flex-wrap gap-4 text-sm font-medium text-base-content">
               <li><Link href="/" className="link link-hover">Home</Link></li>
               <li><Link href="/resume" className="link link-hover">Resume</Link></li>
+              <li><Link href="/projects" className="link link-hover">Projects</Link></li>
               <li><a href="https://www.linkedin.com/in/travis-pollard" target="_blank" className="link link-hover">LinkedIn</a></li>
               <li><a href="https://medium.com/@travis_17385" target="_blank" className="link link-hover">Medium</a></li>
               <li><a href="/bikeride" className="link link-hover">Bike Ride Planner</a></li>
