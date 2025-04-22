@@ -1,6 +1,7 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
+import VisitorCounter from '@/components/VisitorCounter';
 import Link from 'next/link';
 import { Typewriter } from 'react-simple-typewriter';
 import Techstack from "./techstack";
@@ -72,6 +73,8 @@ export default function Home() {
         <footer className="footer p-6 bg-neutral text-neutral-content rounded-lg justify-center">
           <p>&copy; 2025 Travis Pollard — Austin, TX — travis@travispollard.com</p>
         </footer>
+
+        <VisitorCounter />
 
       </div>
     </main>
