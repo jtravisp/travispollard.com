@@ -7,10 +7,17 @@ phases:
     commands:
       - cd frontend
       - npm ci
+      - npx playwright install-deps
+      - npx playwright install
 
   build:
     commands:
       - npm run build  # next.config.js must include `output: 'export'`
+
+  post_build:
+    commands:
+      - echo "Running Playwright smoke tests..."
+      - npx playwright test
 
 artifacts:
   base-directory: frontend/out  # This is where `next export` puts static site
@@ -18,4 +25,3 @@ artifacts:
     - "**/*"
   discard-paths: no
   name: BuildArtifact
-  
