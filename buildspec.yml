@@ -7,7 +7,6 @@ phases:
     commands:
       - cd frontend
       - npm ci
-      - npx playwright install-deps
       - npx playwright install
 
   build:
