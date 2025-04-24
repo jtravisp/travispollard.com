@@ -43,6 +43,7 @@ export default function HeaderWithTheme() {
               <li><Link href="/resume" className="link link-hover">Resume</Link></li>
               <li><Link href="/projects" className="link link-hover">Projects</Link></li>
               <li><a href="https://www.linkedin.com/in/travis-pollard" target="_blank" className="link link-hover">LinkedIn</a></li>
+              <li><a href="https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o" target="_blank" className="link link-hover">dev.to</a></li>
               <li><a href="https://medium.com/@travis_17385" target="_blank" className="link link-hover">Medium</a></li>
               <li><Link href="/bikeride" className="link link-hover">Bike Ride Planner</Link></li>
             </ul>
