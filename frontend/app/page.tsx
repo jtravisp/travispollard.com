@@ -77,6 +77,9 @@ export default function Home() {
         <VisitorCounter />
 
       </div>
+
+      <Link href="/campout" className="hidden">Campout</Link>
+
     </main>
   );
 }
