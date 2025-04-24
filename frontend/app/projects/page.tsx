@@ -93,7 +93,7 @@ export default function Projects() {
             <code>travis@travispollard.com</code>
           </pre>
           <pre data-prefix=">" className="text-warning">
-            <code>Cloud Architect & DevOps Engineer</code>
+            <code>Cloud Architect</code>
           </pre>
           <pre data-prefix="$" className="text-success">
             <code>
