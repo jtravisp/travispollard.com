@@ -1,4 +1,6 @@
-export default function CampoutPage() {
+'use client';
+
+export default function Campout() {
   return (
     <main className="min-h-screen bg-base-100 text-base-content">
       <iframe
