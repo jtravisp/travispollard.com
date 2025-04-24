@@ -1,4 +1,6 @@
-'use client';
+export const metadata = {
+  title: "TL 411 – SFA Campout (April 2025)",
+};
 
 export default function Campout() {
   return (

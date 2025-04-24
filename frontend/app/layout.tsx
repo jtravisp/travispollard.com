@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Travis Pollard – Cloud Architect & DevOps Engineer',
+  title: 'Travis Pollard – Cloud Architect',
   description: 'Personal website and resume of Travis Pollard, an IT professional and DevOps engineer based in Austin, TX.',
   keywords: ['Travis Pollard', 'Cloud Architect', 'DevOps', 'AWS', 'Terraform', 'Next.js', 'IT Support Trainer', 'Resume'],
   authors: [{ name: 'Travis Pollard', url: 'https://www.travispollard.com' }],
