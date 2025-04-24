@@ -2,6 +2,7 @@
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { Typewriter } from 'react-simple-typewriter';
 
 export default function Resume() {
@@ -128,6 +129,9 @@ export default function Resume() {
           </motion.div>
         </div>
       </div>
+
+      <Link href="/campout" className="hidden" aria-hidden="true">Hidden Campout</Link>
+
     </main>
   );
 }
