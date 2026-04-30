@@ -28,3 +28,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Make mockup-code prefix lines flex so wrapped text aligns with content, not the gutter */
+.mockup-code pre[data-prefix] {
+  display: flex;
+  align-items: baseline;
+}
+.mockup-code pre[data-prefix] > code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}

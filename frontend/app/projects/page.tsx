@@ -85,7 +85,7 @@ export default function Projects() {
       <div className="max-w-5xl mx-auto px-4 py-10">
         <HeaderWithTheme />
 
-        <div className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono overflow-x-auto">
+        <div className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap">
           <pre data-prefix="$" className="text-info">
             <code>whoami</code>
           </pre>
@@ -113,7 +113,7 @@ export default function Projects() {
           {sections.map((section, index) => (
             <motion.div
               key={index}
-              className="mockup-code w-full max-w-5xl mx-auto text-left text-lg font-mono overflow-x-auto"
+              className="mockup-code w-full max-w-5xl mx-auto text-left text-lg font-mono [&_pre]:whitespace-pre-wrap"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
@@ -130,7 +130,7 @@ export default function Projects() {
           ))}
         </div>
 
-        <details className="mockup-code w-full max-w-5xl mx-auto text-left font-mono overflow-x-auto mt-10 cursor-pointer">
+        <details className="mockup-code w-full max-w-5xl mx-auto text-left font-mono [&_pre]:whitespace-pre-wrap mt-10 cursor-pointer">
           <summary className="px-4 py-2 text-sm text-info font-bold">nmap</summary>
           <pre data-prefix="$"><code>nmap travispollard.com</code></pre>
           <pre><code>Starting Nmap 7.95 ( https://nmap.org ) at 2025-04-22 23:59 CST</code></pre>

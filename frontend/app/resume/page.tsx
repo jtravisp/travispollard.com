@@ -40,7 +40,7 @@ export default function Resume() {
 
           {/* Certifications Section */}
           <motion.div
-            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono overflow-x-auto"
+            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
@@ -61,7 +61,7 @@ export default function Resume() {
 
           {/* Technical Skills Section */}
           <motion.div
-            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono overflow-x-auto"
+            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
@@ -85,7 +85,7 @@ export default function Resume() {
 
           {/* Work Experience Section */}
           <motion.div
-            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono overflow-x-auto"
+            className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
@@ -117,7 +117,7 @@ export default function Resume() {
 
           {/* Education Section */}
           <motion.div
-            className="mockup-code w-full max-w-5xl mx-auto text-left text-lg font-mono overflow-x-auto"
+            className="mockup-code w-full max-w-5xl mx-auto text-left text-lg font-mono [&_pre]:whitespace-pre-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
