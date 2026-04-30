@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: 'Travis Pollard – Cloud Architect',
-  description: 'Personal website and resume of Travis Pollard, an IT professional and cloud engineer based in Austin, TX.',
-  keywords: ['Travis Pollard', 'Cloud Architect', 'DevOps', 'AWS', 'Terraform', 'Next.js', 'IT Support Trainer', 'Resume'],
+  description: 'Personal website and resume of Travis Pollard, a cloud architect and technical lead based in Austin, TX. AWS certified, Terraform, Salesforce, DevOps.',
+  keywords: ['Travis Pollard', 'Cloud Architect', 'Technical Lead', 'DevOps', 'AWS', 'Terraform', 'Salesforce', 'Docker', 'Next.js', 'Resume'],
   authors: [{ name: 'Travis Pollard', url: 'https://www.travispollard.com' }],
   creator: 'Travis Pollard',
   openGraph: {
     title: 'Travis Pollard – Cloud Architect',
-    description: 'Resume of Travis Pollard, IT and Cloud Professional.',
+    description: 'Resume of Travis Pollard, Cloud Architect and Technical Lead.',
     url: 'https://www.travispollard.com',
     siteName: 'Travis Pollard Portfolio',
     type: 'website',

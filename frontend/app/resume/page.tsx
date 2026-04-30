@@ -49,14 +49,11 @@ export default function Resume() {
               <code># 🛡 Certifications & Recognitions</code>
             </pre>
             {[
+              "AWS Certified Developer - Associate",
               "AWS Certified Solutions Architect - Associate",
-              "Secret Level Clearance (Active)",
+              "Secret Level Clearance, Active",
               "CompTIA Security+, Network+, A+",
-              "edX CS50x & CS50p Certificates",
-              "Google Data Analytics Professional Certificate",
-              "Finley R. Hamilton Outstanding Military Musician Award (2024)",
-              "TAPPS Fine Arts Teacher of the Year (2023)",
-              "Peer Mentor Award, Army School of Music (2022)"
+              "edX Harvard CS50x Computer Science Certificate and CS50p Python Certificate",
             ].map((item, idx) => (
               <pre data-prefix=">" key={idx}><code>{item}</code></pre>
             ))}
@@ -73,16 +70,16 @@ export default function Resume() {
               <code># 💻 Technical Skills</code>
             </pre>
             <pre data-prefix=">">
-              <code>Python, Go, Powershell, SQL, Git, JavaScript</code>
+              <code><strong>Programming:</strong> Python, Go, Powershell, SQL</code>
             </pre>
             <pre data-prefix=">">
-              <code>AWS, Azure, Terraform, AD, Entra ID, M365 Admin, Kandji, Okta</code>
+              <code><strong>Cloud & Infrastructure:</strong> AWS, Azure, Terraform, Docker</code>
             </pre>
             <pre data-prefix=">">
-              <code>Linux, Windows, MacOS</code>
+              <code><strong>Platforms & Tools:</strong> Salesforce (Admin, Dev), Git, Jira, Okta, Active Directory / Entra ID, M365, Google Workspace, Connectwise Automate, Kandji, Netsuite</code>
             </pre>
             <pre data-prefix=">">
-              <code><strong>Homelab</strong>: Proxmox, Docker, Nginx, Wireguard VPN, Pi-hole, NAS, Cloudflare Tunnel</code>
+              <code><strong>Other:</strong> Agile Project Management, Process Automation, Technical Documentation, Stakeholder Communication</code>
             </pre>
           </motion.div>
 
@@ -97,16 +94,24 @@ export default function Resume() {
               <code># 🧑‍💼 Work Experience</code>
             </pre>
             <pre data-prefix=">">
-              <code>Nuvitek, Washington, DC - IT Support Trainer (2024-Present)</code>
+              <code>Nuvitek, Washington, DC — Technical Lead & IT Support Trainer (2024-Present)</code>
             </pre>
+            <pre data-prefix=" "><code>  • Expanded scope to serve as de facto PM, BA, and QA lead for multiple federal Salesforce apps following team reduction</code></pre>
+            <pre data-prefix=" "><code>  • Architected and containerized an internal LMS (Moodle) using a custom Docker image deployed to AWS ECS with Terraform</code></pre>
+            <pre data-prefix=" "><code>  • Led technical planning and execution of Salesforce Experience Cloud migration from .com to .gov domains</code></pre>
+            <pre data-prefix=" "><code>  • Authored Jira epics, stories, and acceptance criteria across multiple concurrent projects</code></pre>
+            <pre data-prefix=" "><code>  • Produced technical documentation and user guides for federal reporting applications</code></pre>
+            <pre data-prefix=" "><code>  • Performed Salesforce administration: user access audits, custom reports, bug troubleshooting, dev QA</code></pre>
             <pre data-prefix=">">
-              <code>US Gold Bureau, Leander, TX - IT Support and Systems Specialist (2023-2024)</code>
+              <code>United States Gold Bureau, Austin, TX — IT Support and Systems Specialist (2023-2024)</code>
             </pre>
+            <pre data-prefix=" "><code>  • Supported 200+ end users, implemented Apple MDM (Kandji), trained new IT staff, automated processes with PowerShell, Go, and Bash</code></pre>
             <pre data-prefix=">">
-              <code>TX Army National Guard, Austin, TX - SSG, Squad Leader (2007-Present)</code>
+              <code>Texas Army National Guard — SFC, Music Performance Team Leader (2007-Present)</code>
             </pre>
+            <pre data-prefix=" "><code>  • Supervise a platoon of 12 soldiers and lead performance team of 18 soldiers</code></pre>
             <pre data-prefix=">">
-              <code>Brentwood Christian School - Band Director / Fine Arts Chair / Theater Manager (2006-2023)</code>
+              <code>Brentwood Christian School — Band Director / Fine Arts Chair / Theater Manager (2006-2023)</code>
             </pre>
           </motion.div>
 
@@ -121,10 +126,10 @@ export default function Resume() {
               <code># 🎓 Education</code>
             </pre>
             <pre data-prefix=">">
-              <code>The University of Texas at Austin - M.M. in Music and Human Learning</code>
+              <code>The University of Texas at Austin — Master's in Music and Human Learning</code>
             </pre>
             <pre data-prefix=">">
-              <code>Tennessee Technological University - B.M. in Music Education</code>
+              <code>Tennessee Technological University — Bachelor's in Music Education</code>
             </pre>
           </motion.div>
         </div>
