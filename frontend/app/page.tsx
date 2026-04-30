@@ -71,7 +71,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="footer p-6 bg-neutral text-neutral-content rounded-lg justify-center">
-          <p>&copy; 2025 Travis Pollard — Austin, TX — travis@travispollard.com</p>
+          <p>&copy; 2026 Travis Pollard — Austin, TX — travis@travispollard.com</p>
         </footer>
 
         <VisitorCounter />
