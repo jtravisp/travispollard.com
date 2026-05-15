@@ -5,6 +5,12 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket = "travispollard.com-tf-state"
+    key    = "travispollard.com"
+    region = "us-west-2"
+  }
 }
 
 provider "aws" {
