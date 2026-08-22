@@ -3,7 +3,6 @@
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import VisitorCounter from '@/components/VisitorCounter';
 import Link from 'next/link';
-import { Typewriter } from 'react-simple-typewriter';
 import Techstack from "./techstack";
 
 export default function Home() {
@@ -24,34 +23,61 @@ export default function Home() {
               <code><a href="mailto:travis@travispollard.com" className="link">travis@travispollard.com</a></code>
             </pre>
             <pre data-prefix=">" className="text-warning">
-              <code>Cloud Architect</code>
-            </pre>
-            <pre data-prefix="$" className="text-success">
-              <code>
-              <Typewriter
-                  words={['sudo ./deploy.sh --region us-east-1 --project resume-site']}
-                  loop={1}
-                  typeSpeed={60}
-                  deleteSpeed={0}
-                  cursor
-                  cursorStyle="_"
-                />
-              </code>
+              <code>Cloud / DevOps Engineer</code>
             </pre>
           </div>
 
           <img
-            src="/images/travis.png"
+            src="/images/travis.webp"
             alt="Travis Pollard"
-            className="rounded-box shadow-lg max-w-[450px] h-auto"
+            width={900}
+            height={900}
+            className="rounded-box shadow-lg w-full max-w-[450px] h-auto"
           />
         </section>
 
-        <div className="flex justify-center mb-8">
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
           <Link href="/resume" className="btn btn-accent">
             View My Resume
           </Link>
+          <Link href="/projects" className="btn btn-primary">
+            See My Projects
+          </Link>
+          <a
+            href="/Travis%20Pollard%20Resume.pdf"
+            download
+            className="btn btn-secondary"
+          >
+            Download Resume (PDF)
+          </a>
         </div>
+
+        {/* Writing */}
+        <section className="w-full max-w-3xl mx-auto mb-16">
+          <h2 className="text-xl font-bold mb-4">Writing</h2>
+          <div className="flex flex-col gap-3">
+            <a
+              href="https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
+            >
+              <span className="font-semibold">
+                From S3 to CI/CD: My Cloud Resume Challenge Journey
+              </span>
+              <span className="text-sm opacity-70">dev.to</span>
+            </a>
+            <a
+              href="https://medium.com/@travis_17385"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
+            >
+              <span className="font-semibold">More posts on cloud, automation, and career change</span>
+              <span className="text-sm opacity-70">Medium</span>
+            </a>
+          </div>
+        </section>
 
         <section className="flex flex-col items-center gap-6 mb-16 text-center">
           <Techstack />
@@ -59,19 +85,23 @@ export default function Home() {
 
         {/* Skill Badges */}
         <section className="flex flex-wrap justify-center gap-8 mb-20">
-          {["awsCSA.png", "CompTIA_Security.png", "terraform.webp"].map((img) => (
+          {[
+            { src: '/images/AWS%20CSA.png', alt: 'AWS Certified Solutions Architect - Associate badge' },
+            { src: '/images/AWS%20Dev.png', alt: 'AWS Certified Developer - Associate badge' },
+            { src: '/images/terraform.webp', alt: 'HashiCorp Certified: Terraform Associate badge' },
+          ].map((badge) => (
             <img
-              key={img}
-              src={`/images/${img}`}
-              alt={img}
+              key={badge.src}
+              src={badge.src}
+              alt={badge.alt}
               className="mask mask-squircle w-[150px] h-auto shadow-md"
             />
           ))}
         </section>
 
         {/* Footer */}
-        <footer className="footer p-6 bg-neutral text-neutral-content rounded-lg justify-center">
-          <p>&copy; 2026 Travis Pollard — Austin, TX — travis@travispollard.com</p>
+        <footer className="footer footer-center p-6 bg-neutral text-neutral-content rounded-lg">
+          <p>&copy; 2026 Travis Pollard - Austin, TX - travis@travispollard.com</p>
         </footer>
 
         <VisitorCounter />
