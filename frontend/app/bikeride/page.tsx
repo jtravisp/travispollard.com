@@ -54,8 +54,8 @@ export default function BikeRidePlanner() {
               <input type="number" id="riderweight" placeholder="Rider lbs" className="input input-bordered w-full" />
               <input type="number" id="bikeweight" placeholder="Bike lbs" className="input input-bordered w-full" />
               <div>
-                <select id="tirewidth" className="select select-bordered w-full mt-1" aria-label="Tire Width (700c)">
-                  <option disabled selected>Choose Tire Width</option>
+                <select id="tirewidth" className="select select-bordered w-full mt-1" aria-label="Tire Width (700c)" defaultValue="">
+                  <option disabled value="">Choose Tire Width</option>
                   {[23, 25, 28, 30, 32].map(width => (
                     <option key={width} value={width}>{width}</option>
                   ))}

@@ -13,25 +13,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Travis Pollard – Cloud Architect',
-  description: 'Personal website and resume of Travis Pollard, a cloud architect and technical lead based in Austin, TX. AWS certified, Terraform, Salesforce, DevOps.',
-  keywords: ['Travis Pollard', 'Cloud Architect', 'Technical Lead', 'DevOps', 'AWS', 'Terraform', 'Salesforce', 'Docker', 'Next.js', 'Resume'],
+  title: 'Travis Pollard - Cloud / DevOps Engineer',
+  description: 'Personal website and resume of Travis Pollard, a cloud and DevOps engineer based in Austin, TX. AWS certified, Terraform, active Secret clearance.',
+  keywords: ['Travis Pollard', 'Cloud Engineer', 'DevOps Engineer', 'Platform Engineer', 'DevOps', 'AWS', 'Terraform', 'Salesforce', 'Docker', 'Next.js', 'Resume'],
   authors: [{ name: 'Travis Pollard', url: 'https://www.travispollard.com' }],
   creator: 'Travis Pollard',
   openGraph: {
-    title: 'Travis Pollard – Cloud Architect',
-    description: 'Resume of Travis Pollard, Cloud Architect and Technical Lead.',
+    title: 'Travis Pollard - Cloud / DevOps Engineer',
+    description: 'Resume of Travis Pollard, Cloud and DevOps Engineer.',
     url: 'https://www.travispollard.com',
     siteName: 'Travis Pollard Portfolio',
     type: 'website',
     images: [
       {
-        url: 'https://www.travispollard.com/images/travis.png',
+        url: 'https://www.travispollard.com/images/og-card.png',
         width: 1200,
         height: 630,
-        alt: 'Travis Pollard Headshot',
+        alt: 'Travis Pollard - Cloud / DevOps Engineer',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Travis Pollard - Cloud / DevOps Engineer',
+    description: 'Cloud and DevOps engineer in Austin, TX. AWS certified, Terraform, CI/CD.',
+    images: ['https://www.travispollard.com/images/og-card.png'],
   },
 }
 

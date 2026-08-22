@@ -1,6 +1,6 @@
 export const metadata = {
-    title: "TL 411 – Lake Brownwood Campout (Fall 2025)",
-    description: "TL 411 – Lake Brownwood Campout (Fall 2025)",
+    title: "TL 411 - Lake Brownwood Campout (Fall 2025)",
+    description: "TL 411 - Lake Brownwood Campout (Fall 2025)",
   };
   
   export default function CampoutLayout({
