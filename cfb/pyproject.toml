@@ -5,6 +5,12 @@ description = "College football forecast pipeline: collectors, parsers, crosswal
 requires-python = ">=3.12"
 dependencies = ["pydantic>=2.7", "httpx>=0.27"]
 
+# Registered now that cli.py exists. It was deliberately absent until this point:
+# an entry point pointing at a missing module breaks `uv sync` itself, so the
+# script could not be declared before the module it names.
+[project.scripts]
+cfb = "cfb.cli:run"
+
 # S3SnapshotStore only. Kept out of the base dependencies so the offline suite --
 # which is every test that runs without CFB_INTEGRATION=1 -- installs neither
 # boto3 nor botocore. storage.py imports it inside the constructor to match.
