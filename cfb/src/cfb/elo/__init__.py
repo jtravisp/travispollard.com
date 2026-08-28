@@ -184,6 +184,15 @@ class EloState(BaseModel):
     #: replay that agrees on every rating but not on this has applied something
     #: twice in a way that cancelled out, which no rating comparison would show.
     games_applied: int = Field(ge=0)
+    #: The kickoff of the last game folded in, or ``None`` when none has been.
+    #:
+    #: This is what makes the state say *when* it is as of, and it is load-bearing
+    #: rather than descriptive: ``cfb.replay.advance`` uses it to select the games
+    #: it has not already applied. Without it an incremental chain has no way to
+    #: know where it stopped, and a game postponed out of an already-written week
+    #: is either skipped forever or applied in the wrong order -- both of which put
+    #: the chain permanently out of step with a rebuild.
+    through_kickoff: datetime | None = None
     ratings: Ratings
 
 

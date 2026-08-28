@@ -10,6 +10,13 @@
 
 ---
 
+> **Phase 1 is tracked in `PHASE-1.md`.** This file is Phase 0 only, and the status block below
+> has not been re-run since 2026-08-28: it reports 536 tests against an actual 695, and
+> "Uncommitted: nothing" predates three sessions of Phase 1 work. **The §1–§7 item marks are still
+> accurate** — the collector has not changed. Two Phase 0 items remain open and both are repeated
+> at the bottom of `PHASE-1.md`, because they gate the "one Saturday end to end" that Phase 1 is
+> done when.
+
 ## Where this stands (2026-08-28)
 
 Every module SPEC §1 plans except the crosswalk now exists, both sources have been fetched for
@@ -73,7 +80,8 @@ src/cfb/  __init__.py  calendar.py  cli.py  errors.py  logging.py  manifest.py  
 ```
 
 Absent: `crosswalk/` (both `__init__.py` and `bootstrap.py`), which is §6 and blocks step 5 of
-§4.3. `pyproject.toml` now registers the `cfb` console script; it was deliberately absent until
+§4.3. *(Both landed later — see `PHASE-1.md`, which also lists the `elo/` and `replay.py` modules
+Phase 1 has since added.)* `pyproject.toml` now registers the `cfb` console script; it was deliberately absent until
 `cli.py` existed, because an entry point naming a missing module breaks `uv sync` itself.
 
 The exception hierarchy is no longer the illustration it was. `errors.py` declares twelve and ten
@@ -83,7 +91,8 @@ are now raised somewhere: `ParseError` (26 sites), `WeekResolutionError` (8), `F
 `StaleSourceError` and `CallBudgetExceeded`.
 
 One is still declared and unused: `UnmappedTeamError` belongs to `crosswalk/`, which does not
-exist. Expected.
+exist. Expected. *(Closed: `crosswalk/` landed in `4fdb7a7` and the error is raised in six places.
+Phase 1 has since added five more errors — see SPEC-phase1 §9.1.)*
 
 `ValidationError` was the other, and it is now used. §9 specifies it as the one that "wraps
 pydantic" and nothing wrapped anything, so a model failure escaped as `pydantic_core.ValidationError`

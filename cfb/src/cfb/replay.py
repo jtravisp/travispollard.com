@@ -25,15 +25,41 @@ weather is filed under the week it was scheduled in and played after games in th
 following one (SPEC-phase1 5.1) -- and ``tests/test_replay.py`` fails if the sort
 is dropped.
 
-**Nothing here reads ``elo/`` to compute a rating.** ``replay`` takes the store
-and produces ratings from ``raw/`` alone; ``verify`` is a separate call that
-loads the stored object afterwards and compares. Folding the two together would
-make it possible for a stored value to leak into the rebuild, which would leave
-the check comparing a number against itself.
+**Nothing in ``replay`` reads ``elo/``.** It takes the store and produces ratings
+from ``raw/`` alone; ``verify`` is a separate call that loads the stored object
+afterwards and compares. Folding the two together would make it possible for a
+stored value to leak into the rebuild, which would leave the check comparing a
+number against itself.
+
+## Two ways to reach the same ratings, and that is the point
+
+``advance`` is the other one. It is what the Sunday run of SPEC-phase1 8 calls:
+take last week's stored state, apply the games it has not seen yet, write the
+result. Incremental, and it never folds more than one week's worth of arithmetic.
+
+It is not cheaper in *reads* -- both walk every week's newest ``/games`` capture,
+because a game postponed out of its week can appear under any of them. The
+difference that matters is the accumulation path, not the I/O.
+
+``replay`` and ``advance`` must agree, and **they must not agree by construction.**
+A writer implemented as ``replay() -> write`` would make SPEC-phase1 11 step 5
+compare a replay against a replay, which verifies nothing at all -- the exact
+tautology §3.5's "a cache, not a source of truth" is written to rule out. So the
+two accumulate differently on purpose:
+
+    replay    seed, then every completed game of the season in kickoff order
+    advance   last week's stored ratings, then this week's completed games
+
+They share the rules that must not drift -- which games count, what order they go
+in, which snapshot the HFA comes from -- through ``_applied_games``, and nothing
+else. When they disagree it is because the accumulated state missed something the
+raw data has: a week whose scoring run never ran, a score corrected after the
+fact, a game postponed into a week whose state was already written. Every one of
+those is a stale cache, and a red run is the correct response to it.
 """
 
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -44,8 +70,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from cfb.collectors.sagarin import decode_page
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo import SCHEMA_VERSION, EloState, Game, Ratings, state_prefix, update
+from cfb.elo import SCHEMA_VERSION, EloState, Game, Ratings, update
 from cfb.elo.seed import seed
+from cfb.elo.state import StoredState, load_state, newest_state_key, previous_state
 from cfb.errors import ReplayError, StateMismatchError
 from cfb.models import Manifest, SagarinSnapshot, validating
 from cfb.parsers.sagarin_predictions import parse_predictions
@@ -57,7 +84,20 @@ from cfb.parsers.sagarin_ratings import (
 )
 from cfb.storage import SnapshotStore
 
-__all__ = ["HFA_COLUMN", "Replay", "load_state", "newest_state_key", "replay", "verify"]
+__all__ = [
+    "HFA_COLUMN",
+    "Advance",
+    "Replay",
+    "advance",
+    # Re-exported from `cfb.elo.state`, which owns them. They are named here
+    # because reading a state to check a rebuild is a replay concern, and a caller
+    # doing that should not have to know which module holds the reader.
+    "load_state",
+    "newest_state_key",
+    "replay",
+    "seed_state",
+    "verify",
+]
 
 #: SPEC-phase1 3.3. The margin-oriented column, matching the one SPEC-phase0 4.4
 #: says to benchmark forecasts against. Read from the snapshot, never a constant.
@@ -165,6 +205,11 @@ class Replay:
     def games_applied(self) -> int:
         return len(self.applied)
 
+    @property
+    def through_kickoff(self) -> datetime | None:
+        """The kickoff of the last game applied. ``applied`` is in kickoff order."""
+        return self.applied[-1].kickoff if self.applied else None
+
     def as_state(self, *, generated_at: datetime) -> EloState:
         """The state document this rebuild would write (SPEC-phase1 3.5).
 
@@ -179,6 +224,7 @@ class Replay:
             generated_at=generated_at,
             seeded_from=self.seeded_from,
             games_applied=self.games_applied,
+            through_kickoff=self.through_kickoff,
             ratings=dict(self.ratings),
         )
 
@@ -208,43 +254,14 @@ def replay(
     ratings = seed(_snapshot(store, seed_manifest), resolver)
     hfa_manifests = _hfa_manifests(manifests)
 
-    games, games_keys = _completed_games(store, season, through_week)
-
-    applied: list[_Applied] = []
-    for raw_game, games_key in games:
-        hfa_manifest = _hfa_for(hfa_manifests, raw_game, season)
-        applied.append(
-            _Applied(
-                game=Game(
-                    cfbd_game_id=raw_game.id,
-                    # Canonical ids, never vendor names, and an unmapped one raises
-                    # here exactly as it does in the collector (SPEC-phase0 6.4).
-                    home=resolver.from_cfbd(raw_game.home_team),
-                    away=resolver.from_cfbd(raw_game.away_team),
-                    home_points=raw_game.home_points,
-                    away_points=raw_game.away_points,
-                    neutral_site=raw_game.neutral_site,
-                    kickoff=raw_game.start_date,
-                ),
-                kickoff=raw_game.start_date,
-                partition=raw_game.partition,
-                order=raw_game.order,
-                hfa=hfa_manifest.hfa[HFA_COLUMN],
-                games_key=games_key,
-                hfa_key=hfa_manifest.snapshot_key,
-            )
-        )
-
-    # The sort, and the reason this module exists as more than a loop. Elo is
-    # path-dependent, `/games` does not return kickoff order, and an out-of-order
-    # replay is wrong in a way that looks exactly like a correct one.
-    #
-    # The tie-break is cosmetic rather than load-bearing: two games kicking off at
-    # the same instant cannot share a team, and `update` reads and writes only the
-    # two teams named in its game, so simultaneous games commute exactly -- in
-    # floating point too, not merely in principle. It is here so that the sequence
-    # a run applied is reproducible when someone comes to read it.
-    applied.sort(key=lambda entry: (entry.kickoff, entry.game.cfbd_game_id))
+    cutoff = _cutoff(through_week)
+    applied, games_keys = _applied_games(
+        store,
+        season=season,
+        resolver=resolver,
+        hfa_manifests=hfa_manifests,
+        keep=lambda raw_game: cutoff is None or raw_game.order <= cutoff,
+    )
 
     for entry in applied:
         ratings = update(ratings, entry.game, hfa=entry.hfa)
@@ -263,25 +280,201 @@ def replay(
     )
 
 
-def newest_state_key(store: SnapshotStore, *, season: int, week: str) -> str | None:
-    """The most recent stored state for one season-week, or ``None`` if there is none.
+def seed_state(
+    *,
+    store: SnapshotStore,
+    season: int,
+    now: datetime,
+    crosswalk: Crosswalk | None = None,
+    crosswalk_dir: Path | None = None,
+) -> EloState:
+    """Build the season's opening state from the preseason page. Does not write it.
 
-    ``None`` is an ordinary answer. SPEC-phase1 8 has the Sunday scoring run write
-    these and nothing orders a replay after it, so a replay before the first
-    scored week finds an empty prefix -- and treating that as a failure would turn
-    the season's opening weeks red for the absence of a cache.
+    SPEC-phase1 9's ``cfb elo seed``. The result is the ``week=preseason`` state:
+    266 teams, no games applied, naming the snapshot it came from.
+
+    §3.2's "refuses in-season" is enforced twice over on this path, and neither is
+    redundant. ``_seed_manifest`` will only return a manifest whose ``page_state``
+    is ``preseason``, so an in-season page cannot reach ``seed()`` from here at
+    all; ``seed()`` raises ``SeedStateError`` on one anyway, because it is also
+    called from places that have not selected the snapshot.
     """
-    keys = store.list_keys(state_prefix(season=season, week=week))
-    # Lexicographic ascending, and the stamps are fixed-width UTC, so the last is
-    # the newest. Write-once means the earlier ones stay; the newest is the one a
-    # publish would have read.
-    return keys[-1] if keys else None
+    manifests = store.list_manifests(f"raw/sagarin/season={season}/")
+    seed_manifest = _seed_manifest(manifests, season)
+    ratings = seed(
+        _snapshot(store, seed_manifest),
+        crosswalk or load_crosswalk(season, data_dir=crosswalk_dir),
+    )
+    return EloState(
+        schema_version=SCHEMA_VERSION,
+        season=season,
+        week="preseason",
+        generated_at=now,
+        seeded_from=seed_manifest.snapshot_key,
+        games_applied=0,
+        through_kickoff=None,
+        ratings=ratings,
+    )
 
 
-def load_state(store: SnapshotStore, key: str) -> EloState:
-    """One stored state document, validated at the boundary."""
-    with validating(f"elo state at {key}"):
-        return EloState.model_validate_json(store.get_bytes(key))
+@dataclass(frozen=True)
+class Advance:
+    """One week folded onto the previous state, and what it was folded onto."""
+
+    state: EloState
+    #: The state this started from. Named because a wrong answer here is almost
+    #: always a wrong predecessor rather than wrong arithmetic.
+    previous: StoredState
+    applied: tuple[_Applied, ...]
+    games_keys: tuple[str, ...]
+
+    @property
+    def games_applied(self) -> int:
+        """This week's games. ``state.games_applied`` is the season running total."""
+        return len(self.applied)
+
+
+def advance(
+    *,
+    store: SnapshotStore,
+    season: int,
+    week: str,
+    now: datetime,
+    crosswalk: Crosswalk | None = None,
+    crosswalk_dir: Path | None = None,
+) -> Advance:
+    """Apply one week's completed games to the previous state. Does not write it.
+
+    The incremental path of SPEC-phase1 3.5 and the Elo half of SPEC-phase1 8's
+    Sunday run. It folds one week's games onto ratings it did not compute, which is
+    why it is not the thing that can be trusted on its own -- ``replay`` is the
+    check on it, and the two only mean something because they accumulate
+    differently.
+
+    **It starts from the nearest earlier state, not from week minus one.** A week
+    whose run never happened leaves a hole, and refusing to proceed would make one
+    missed Sunday block every Sunday after it. Building on the older state is the
+    answer that keeps the pipeline moving *and* stays detectable: the result is
+    missing a week of games, so it disagrees with a rebuild, and step 5 says so.
+
+    **A game postponed out of an already-written week heals on the next run.**
+    Week 1's state is written the Sunday after week 1, before a week 1 game played
+    the following Thursday exists. Week 2's advance picks it up anyway: it is a
+    week 1 game, so it passes the season cut, and its kickoff is after week 1's
+    cutoff, so it passes the freshness cut -- and it sorts into kickoff order with
+    week 2's games rather than ahead of them. Week 1's own state stays stale, which
+    is honest, and ``cfb elo replay --through-week 01`` will say so.
+    """
+    resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
+
+    previous = previous_state(store, season=season, week=week)
+    if previous is None:
+        raise ReplayError(
+            f"no stored Elo state before week {week!r} of season {season}, so there is "
+            f"nothing to advance from. Seed the season first: "
+            f"uv run cfb elo seed --season {season}"
+        )
+
+    # Two bounds, and both are necessary. `order <= target` says how far into the
+    # season this state runs; `kickoff > previous` says which of those games the
+    # previous state has not already absorbed. Together they make each advance the
+    # next contiguous block of the season *in kickoff order*, so the chain composes
+    # to exactly the sequence `replay` produces in one pass.
+    #
+    # Selecting on the week alone cannot do that. A week 1 game postponed past week
+    # 2 would be applied in week 1's batch -- before week 2's games -- while a
+    # replay sorts it after them, and Elo is path-dependent, so the two would
+    # disagree permanently with no re-run able to reconcile them.
+    target = _cutoff(week)
+    since = previous.state.through_kickoff
+    applied, games_keys = _applied_games(
+        store,
+        season=season,
+        resolver=resolver,
+        hfa_manifests=_hfa_manifests(store.list_manifests(f"raw/sagarin/season={season}/")),
+        keep=lambda raw_game: (
+            raw_game.order <= target and (since is None or raw_game.start_date > since)
+        ),
+    )
+
+    ratings = dict(previous.state.ratings)
+    for entry in applied:
+        ratings = update(ratings, entry.game, hfa=entry.hfa)
+
+    return Advance(
+        state=EloState(
+            schema_version=SCHEMA_VERSION,
+            season=season,
+            week=week,
+            generated_at=now,
+            # Carried forward rather than re-derived. Every state in a season names
+            # the one page the season was seeded from, and a chain whose seed
+            # changed halfway is a chain that cannot be replayed.
+            seeded_from=previous.state.seeded_from,
+            games_applied=previous.state.games_applied + len(applied),
+            # Carried forward when nothing was applied: a week that was entirely
+            # postponed leaves the ratings and the cutoff exactly where they were.
+            through_kickoff=applied[-1].kickoff if applied else since,
+            ratings=ratings,
+        ),
+        previous=previous,
+        applied=tuple(applied),
+        games_keys=tuple(games_keys),
+    )
+
+
+def _applied_games(
+    store: SnapshotStore,
+    *,
+    season: int,
+    resolver: Crosswalk,
+    hfa_manifests: list[Manifest],
+    keep: Callable[[_RawGame], bool],
+) -> tuple[list[_Applied], list[str]]:
+    """Every completed game ``keep`` accepts, resolved and in kickoff order.
+
+    The one place ``replay`` and ``advance`` share, and it holds exactly the rules
+    that must never differ between them: which captures count, how names resolve,
+    where the HFA comes from, and the order. They differ only in ``keep`` -- a
+    season-to-date cut for one, a single week for the other -- so a change to any
+    of those rules cannot reach one path without the other.
+    """
+    games, games_keys = _completed_games(store, season, keep)
+
+    applied = [
+        _Applied(
+            game=Game(
+                cfbd_game_id=raw_game.id,
+                # Canonical ids, never vendor names, and an unmapped one raises
+                # here exactly as it does in the collector (SPEC-phase0 6.4).
+                home=resolver.from_cfbd(raw_game.home_team),
+                away=resolver.from_cfbd(raw_game.away_team),
+                home_points=raw_game.home_points,
+                away_points=raw_game.away_points,
+                neutral_site=raw_game.neutral_site,
+                kickoff=raw_game.start_date,
+            ),
+            kickoff=raw_game.start_date,
+            partition=raw_game.partition,
+            order=raw_game.order,
+            hfa=(hfa := _hfa_for(hfa_manifests, raw_game, season)).hfa[HFA_COLUMN],
+            games_key=games_key,
+            hfa_key=hfa.snapshot_key,
+        )
+        for raw_game, games_key in games
+    ]
+
+    # The sort, and the reason this module exists as more than a loop. Elo is
+    # path-dependent, `/games` does not return kickoff order, and an out-of-order
+    # fold is wrong in a way that looks exactly like a correct one.
+    #
+    # The tie-break is cosmetic rather than load-bearing: two games kicking off at
+    # the same instant cannot share a team, and `update` reads and writes only the
+    # two teams named in its game, so simultaneous games commute exactly -- in
+    # floating point too, not merely in principle. It is here so that the sequence
+    # a run applied is reproducible when someone comes to read it.
+    applied.sort(key=lambda entry: (entry.kickoff, entry.game.cfbd_game_id))
+    return applied, games_keys
 
 
 def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
@@ -311,6 +504,12 @@ def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
         )
 
     problems = list(_rating_differences(rebuilt.ratings, stored.ratings))
+    if stored.through_kickoff != rebuilt.through_kickoff:
+        problems.insert(
+            0,
+            f"through_kickoff: stored {stored.through_kickoff}, replayed "
+            f"{rebuilt.through_kickoff}",
+        )
     if stored.games_applied != rebuilt.games_applied:
         problems.insert(
             0,
@@ -445,7 +644,7 @@ def _hfa_for(manifests: list[Manifest], game: _RawGame, season: int) -> Manifest
 
 
 def _completed_games(
-    store: SnapshotStore, season: int, through_week: str | None
+    store: SnapshotStore, season: int, keep: Callable[[_RawGame], bool]
 ) -> tuple[list[tuple[_RawGame, str]], list[str]]:
     """Every completed game in ``raw/cfbd/`` for the season, at most once each.
 
@@ -459,7 +658,6 @@ def _completed_games(
     weather appears under both the week it was scheduled in and the week it was
     played in (SPEC-phase1 5.1).
     """
-    cutoff = _cutoff(through_week)
     seen: set[int] = set()
     found: list[tuple[_RawGame, str]] = []
     read_keys: list[str] = []
@@ -476,7 +674,7 @@ def _completed_games(
                     f"{key} is filed under season {season} and holds game {raw_game.id} "
                     f"from season {raw_game.season}"
                 )
-            if cutoff is not None and raw_game.order > cutoff:
+            if not keep(raw_game):
                 continue
             if raw_game.is_partially_scored:
                 raise ReplayError(
@@ -532,7 +730,12 @@ def _rows(data: bytes, key: str) -> Iterable[_RawGame]:
 
 
 def _cutoff(through_week: str | None) -> tuple[int, int] | None:
-    """``--through-week`` as a sortable position, or ``None`` for the whole season."""
+    """A partition value as a sortable position, or ``None`` for the whole season.
+
+    Serves both callers: ``replay`` compares game positions against it with ``<=``
+    and ``advance`` with ``==``, so the same validation rejects a bad week for
+    both rather than each restating it.
+    """
     if through_week is None:
         return None
     if through_week == "postseason":

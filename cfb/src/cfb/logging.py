@@ -27,6 +27,7 @@ from typing import Any
 __all__ = [
     "EVENT_CFBD_CALL",
     "EVENT_ELO_REPLAY",
+    "EVENT_ELO_STATE",
     "EVENT_ELO_VERIFY",
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
@@ -49,6 +50,8 @@ EVENT_FRESHNESS = "freshness"
 EVENT_CFBD_CALL = "cfbd_call"
 #: One per season rebuilt from raw/ (SPEC-phase1 3.5), carrying what it read.
 EVENT_ELO_REPLAY = "elo_replay"
+#: One per Elo state object written (SPEC-phase1 3.5), seed or weekly advance.
+EVENT_ELO_STATE = "elo_state"
 #: The SPEC-phase1 11 step 5 comparison: does the rebuild reproduce the stored
 #: state. A pass here is the evidence that the stored object is a cache.
 EVENT_ELO_VERIFY = "elo_verify"

@@ -36,9 +36,10 @@ from urllib.parse import urlparse
 from cfb.calendar import in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
-from cfb.errors import CfbError, WeekResolutionError
+from cfb.errors import CfbError, SeedStateError, WeekResolutionError
 from cfb.logging import (
     EVENT_ELO_REPLAY,
+    EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
     EVENT_SNAPSHOT_WRITTEN,
     REASON_NO_COMPLETED_WEEK,
@@ -138,6 +139,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_store(elo_replay)
 
+    elo_seed = elo_actions.add_parser(
+        "seed", help="write the season's opening state from the preseason page"
+    )
+    elo_seed.add_argument("--season", type=int, required=True)
+    elo_seed.add_argument(
+        "--force",
+        action="store_true",
+        help="re-seed a season that already has later states, e.g. after a parser fix",
+    )
+    _add_store(elo_seed)
+
+    # Not in SPEC-phase1 9's list. §8 gives the Elo update to the Sunday
+    # `cfb score` run, which is §5 and does not exist yet -- and until something
+    # writes a week state, `elo replay` has nothing to check and step 5 of §11
+    # verifies nothing. `cfb score` will call the same `advance()` when it lands.
+    elo_advance = elo_actions.add_parser(
+        "advance", help="apply one week's results to the previous state"
+    )
+    elo_advance.add_argument("--season", type=int, required=True)
+    elo_advance.add_argument("--week", metavar="N", required=True)
+    _add_store(elo_advance)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -182,7 +205,7 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
     if args.command == "crosswalk":
         return _crosswalk_bootstrap(args)
     if args.command == "elo":
-        return _elo_replay(args)
+        return _elo(args, moment=moment)
     return _replay(args)
 
 
@@ -326,6 +349,91 @@ def _replay(args) -> int:
     return 0
 
 
+def _elo(args, *, moment: datetime) -> int:
+    if args.action == "seed":
+        return _elo_seed(args, moment=moment)
+    if args.action == "advance":
+        return _elo_advance(args, moment=moment)
+    return _elo_replay(args)
+
+
+def _elo_seed(args, *, moment: datetime) -> int:
+    """SPEC-phase1 9's `cfb elo seed`: the season's opening state, written once.
+
+    **Refuses a season that already has later states**, which is what §9's
+    "refuses in-season" means at this level. §3.2's refusal is about the *page* and
+    is enforced in `seed()`; it cannot fire here, because the seed snapshot is
+    selected by `page_state == "preseason"` and an in-season page is never a
+    candidate. The failure this guard catches is the other one: re-seeding a season
+    that is under way. Re-seeding is not destructive on its own -- week states are
+    separate objects and `advance` builds on the nearest earlier one, not on the
+    seed -- but a second preseason state that nothing rebuilt the chain from is a
+    season whose states no longer share an origin, and `--force` is there for the
+    case where that is deliberate.
+    """
+    from cfb.elo.state import season_states, write_state
+    from cfb.replay import seed_state
+
+    store = _store(args.store)
+
+    existing = [
+        stored for stored in season_states(store, season=args.season)
+        if stored.state.week != "preseason"
+    ]
+    if existing and not args.force:
+        raise SeedStateError(
+            f"season {args.season} already has {len(existing)} Elo state"
+            f"{'' if len(existing) == 1 else 's'} past the preseason, the latest at "
+            f"{existing[-1].key}. Re-seeding leaves those built on the old seed, so the "
+            f"season would no longer share one origin. Pass --force if that is intended, "
+            f"then rebuild the chain with `cfb elo advance` from week 01 forward"
+        )
+
+    state = seed_state(store=store, season=args.season, now=moment)
+    key = write_state(store, state)
+
+    log(
+        EVENT_ELO_STATE,
+        season=state.season,
+        week=state.week,
+        result=RESULT_OK,
+        key=key,
+        teams=len(state.ratings),
+        seeded_from=state.seeded_from,
+    )
+    return 0
+
+
+def _elo_advance(args, *, moment: datetime) -> int:
+    """One week's results folded onto the previous state, and written.
+
+    The Elo half of SPEC-phase1 8's Sunday run, ahead of the `cfb score` command
+    that will own it. Writing zero games is a legitimate outcome and still writes a
+    state -- a week that was entirely postponed, or a run that fires before any
+    result has landed, both leave the ratings unchanged and both should leave a
+    state at that week so the next advance has something to build on.
+    """
+    from cfb.elo.state import write_state
+    from cfb.replay import advance
+
+    week = _week_partition(args.week, flag="--week")
+    advanced = advance(store=(store := _store(args.store)), season=args.season,
+                       week=week, now=moment)
+    key = write_state(store, advanced.state)
+
+    log(
+        EVENT_ELO_STATE,
+        season=advanced.state.season,
+        week=advanced.state.week,
+        result=RESULT_OK,
+        key=key,
+        games=advanced.games_applied,
+        season_games=advanced.state.games_applied,
+        previous=advanced.previous.key,
+    )
+    return 0
+
+
 def _elo_replay(args) -> int:
     """SPEC-phase1 11 step 5: rebuild the season from ``raw/`` and check the cache.
 
@@ -408,19 +516,25 @@ def _crosswalk_bootstrap(args) -> int:
 
 
 def _through_week(args) -> str | None:
-    """``--through-week`` as a partition value (SPEC-phase0 3.2).
+    """``--through-week`` as a partition value, or ``None`` for the whole season."""
+    if args.through_week is None:
+        return None
+    return _week_partition(args.through_week, flag="--through-week")
+
+
+def _week_partition(raw: str, *, flag: str) -> str:
+    """A typed week as a partition value (SPEC-phase0 3.2).
 
     Accepts ``4`` and ``04`` and normalises both, because the value the user types
     is a week number and the value it becomes is a literal S3 path segment. SPEC
     11 step 5 writes it zero-padded and a person at a terminal will not.
     """
-    raw = args.through_week
-    if raw is None or raw == "postseason":
+    if raw == "postseason":
         return raw
     if raw.isdigit() and 1 <= int(raw) <= 15:
         return f"{int(raw):02d}"
     build_parser().error(
-        f"--through-week must be 1-15 or 'postseason' (SPEC-phase0 3.2), got {raw!r}"
+        f"{flag} must be 1-15 or 'postseason' (SPEC-phase0 3.2), got {raw!r}"
     )
 
 
