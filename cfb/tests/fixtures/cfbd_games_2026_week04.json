@@ -1,0 +1,53 @@
+[
+  {
+    "id": 401752101,
+    "season": 2026,
+    "week": 4,
+    "seasonType": "regular",
+    "startDate": "2026-09-19T16:00:00.000Z",
+    "neutralSite": false,
+    "conferenceGame": true,
+    "homeId": 194,
+    "homeTeam": "Ohio State",
+    "homeConference": "Big Ten",
+    "homePoints": 31,
+    "awayId": 130,
+    "awayTeam": "Michigan",
+    "awayConference": "Big Ten",
+    "awayPoints": 24
+  },
+  {
+    "id": 401752102,
+    "season": 2026,
+    "week": 4,
+    "seasonType": "regular",
+    "startDate": "2026-09-19T19:30:00.000Z",
+    "neutralSite": false,
+    "conferenceGame": true,
+    "homeId": 30,
+    "homeTeam": "USC",
+    "homeConference": "Big Ten",
+    "homePoints": 17,
+    "awayId": 26,
+    "awayTeam": "UCLA",
+    "awayConference": "Big Ten",
+    "awayPoints": 20
+  },
+  {
+    "id": 401752103,
+    "season": 2026,
+    "week": 4,
+    "seasonType": "regular",
+    "startDate": "2026-09-19T23:00:00.000Z",
+    "neutralSite": true,
+    "conferenceGame": false,
+    "homeId": 2116,
+    "homeTeam": "UCF",
+    "homeConference": "Big 12",
+    "homePoints": null,
+    "awayId": 245,
+    "awayTeam": "Texas A&M",
+    "awayConference": "SEC",
+    "awayPoints": null
+  }
+]
