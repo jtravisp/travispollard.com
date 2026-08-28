@@ -39,7 +39,7 @@ import json
 from pathlib import Path
 from typing import Protocol
 
-from cfb.errors import SnapshotExistsError, SnapshotNotFoundError
+from cfb.errors import SnapshotExistsError, SnapshotNotFoundError, optional_import
 from cfb.models import Manifest, validating
 
 __all__ = [
@@ -201,15 +201,25 @@ class S3SnapshotStore:
     boto3 is imported here rather than at module scope so the offline suite can
     import this module -- and the two stores above -- without the dependency
     installed. It is an optional extra: ``uv sync --extra s3``.
+
+    That import is wrapped, because this is where a missing extra actually
+    reaches a person. Unwrapped it raised ``ModuleNotFoundError`` from inside this
+    constructor, nine frames deep, naming neither the extra nor the fix -- and a
+    bare ``uv sync`` prunes the extra, so it is easy to hit repeatedly.
     """
 
     def __init__(self, bucket: str, region: str) -> None:
-        import boto3
+        with optional_import("boto3", extra="s3", needed_for="the S3 snapshot store"):
+            import boto3
 
         self._bucket = bucket
         self._client = boto3.client("s3", region_name=region)
 
     def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        # Not wrapped, and the others below are not either: reaching any method on
+        # this class means `__init__` already imported boto3, and botocore is
+        # boto3's own dependency. A guard here would be for a state pip cannot
+        # produce.
         from botocore.exceptions import ClientError
 
         try:

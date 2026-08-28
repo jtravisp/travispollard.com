@@ -739,11 +739,22 @@ class UnmappedTeamError(CfbError): ...
 class WeekResolutionError(CfbError): ...
 class StaleSourceError(CfbError): ...
 class CallBudgetExceeded(CfbError): ...
+class MissingDependencyError(CfbError): ...  # an optional extra is not installed
 ```
 
 Any `CfbError` → exit 1, message to stderr, workflow red. There is no exit code meaning "partially ok".
 Nothing catches these to log-and-continue; a validation failure demoted to a warning is the exact failure
 mode this project exists to prevent.
+
+**`MissingDependencyError` is the one environment fault in the list**, and it is in the list because this
+clause does not carve out failures that are the operator's fault rather than the data's. `boto3` is an
+optional extra (§10), so a bare `uv sync` prunes it and every S3-backed command then fails — at the store
+constructor, or on the first CFBD request when the SSM credential read happens. Unwrapped that arrived as
+a `ModuleNotFoundError` nine frames deep, which is not a `CfbError`, misses the exit-1 clause entirely,
+and names neither the extra nor the command that fixes it. `errors.optional_import` wraps every optional
+import site and the message leads with `uv sync --extra s3`.
+
+Phase 1 adds five more classes; SPEC-phase1 §9.1 lists them.
 
 Logging is structured key=value to stdout —
 `event=snapshot_written source=sagarin season=2026 week=04 key=raw/… bytes=184320 sha256=9f2c…` — so an

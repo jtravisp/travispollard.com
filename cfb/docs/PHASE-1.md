@@ -228,6 +228,20 @@ silently added:
 
 ## Found this session
 
+- **A bare `uv sync` prunes boto3, and every S3-backed command then died with a raw
+  `ModuleNotFoundError`** from inside `S3SnapshotStore.__init__` — no traceback contract, no mention of
+  the extra, no fix named. Both optional-import sites (`S3SnapshotStore.__init__` and
+  `cfbd.ssm_secret`) now go through `errors.optional_import` and raise `MissingDependencyError`, which
+  is a `CfbError` and so gets SPEC-phase0 §9's exit 1 with a message and no traceback. The sync command
+  is `uv sync --extra s3`, now stated in `cfb/CLAUDE.md`.
+  - The SSM site had **never** been covered. There was no prior `CredentialError` or anything like it;
+    `grep` finds the name nowhere in the repo, so nothing had landed for that path at all.
+  - The two `botocore` imports in `storage.py` are deliberately left unwrapped: reaching them means
+    `__init__` already imported boto3, and botocore is boto3's own dependency, so a guard would be for a
+    state pip cannot produce.
+
+## Also found this session
+
 - **`elo/` was not writable by the publisher role.** The Terraform policy granted `raw/*` and
   `cfb/data/*` and nothing else, so `cfb elo seed` and `cfb elo advance` would have failed with
   `AccessDenied` on the first scheduled Sunday. Nothing was broken in production because both have

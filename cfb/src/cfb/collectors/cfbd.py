@@ -40,7 +40,7 @@ from urllib.parse import quote
 
 import httpx
 
-from cfb.errors import CallBudgetExceeded, FetchError
+from cfb.errors import CallBudgetExceeded, FetchError, optional_import
 from cfb.logging import EVENT_CFBD_CALL, EVENT_HTTP_ERROR, log
 from cfb.manifest import manifest_key, snapshot_key
 from cfb.models import Manifest, validating
@@ -110,8 +110,15 @@ def ssm_secret(parameter: str = SSM_PARAMETER, *, region: str = REGION) -> str:
 
     boto3 is imported here, not at module scope, so the offline suite imports this
     module without the optional dependency (``uv sync --extra s3``).
+
+    The import is wrapped for the same reason the store's is. This one fails later
+    and worse: not when the CLI resolves a store, but on the *first CFBD request
+    of a run*, after the calendar loaded and the week resolved -- so an unwrapped
+    ``ModuleNotFoundError`` here looks like a failure of the fetch rather than of
+    the environment.
     """
-    import boto3
+    with optional_import("boto3", extra="s3", needed_for="reading the CFBD key from SSM"):
+        import boto3
 
     client = boto3.client("ssm", region_name=region)
     return client.get_parameter(Name=parameter, WithDecryption=True)["Parameter"]["Value"]

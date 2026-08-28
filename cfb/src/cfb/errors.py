@@ -3,11 +3,63 @@
 Every failure in this package raises. Nothing here is caught to log-and-continue:
 a validation failure demoted to a warning is the exact failure mode the project
 exists to prevent. Any ``CfbError`` reaching the CLI is exit 1 and a red workflow.
+
+Almost every error below is a *data* fault -- a page that changed shape, a name
+nothing maps, a result the model has no answer for. ``MissingDependencyError`` is
+the one environment fault, and it is here for the same reason the others are:
+SPEC 9 promises a message and no traceback, and it does not carve out the
+failures that are the operator's fault rather than the data's.
 """
+
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 
 class CfbError(Exception):
     """Base for every error this package raises."""
+
+
+class MissingDependencyError(CfbError):
+    """An optional dependency is not installed.
+
+    ``boto3`` is an extra (``uv sync --extra s3``) so the offline test suite --
+    which is every test that runs without ``CFB_INTEGRATION=1`` -- installs
+    neither it nor botocore. The cost of that choice is this failure, and a bare
+    ``uv sync`` prunes the extra and causes it.
+
+    **The traceback was the problem, not the error.** Unwrapped, a missing boto3
+    surfaced as a ``ModuleNotFoundError`` nine frames inside
+    ``S3SnapshotStore.__init__`` -- technically accurate, and it named neither the
+    extra nor the command that fixes it. Both call sites already said "uv sync
+    --extra s3" in a docstring, which is exactly the wrong place: the person who
+    needs it is at a terminal watching a stack trace, not reading the source.
+    """
+
+
+@contextmanager
+def optional_import(module: str, *, extra: str, needed_for: str) -> Iterator[None]:
+    """Turn an ``ImportError`` inside this block into a ``MissingDependencyError``.
+
+    The same shape as ``models.validating``, and for the same reason: an exception
+    from outside this package is not a ``CfbError``, so it misses the CLI's exit-1
+    clause entirely and arrives as a traceback -- the one form SPEC 9 says a
+    failure never takes.
+
+    ``needed_for`` is not decoration. The two sites that use this fail at
+    different moments -- one when a store is built, one on the first CFBD request
+    of a run -- and "boto3 is not installed" alone does not tell anyone which
+    command they were part-way through.
+    """
+    try:
+        yield
+    except ImportError as exc:
+        raise MissingDependencyError(
+            f"{module} is not installed, so {needed_for} cannot run.\n\n"
+            f"    uv sync --extra {extra}\n\n"
+            f"{module} is an optional extra, so the offline test suite installs neither it "
+            f"nor its dependencies. A bare `uv sync` prunes it, which is the usual cause of "
+            f"this. Original error: {exc}"
+        ) from exc
 
 
 class FetchError(CfbError):
