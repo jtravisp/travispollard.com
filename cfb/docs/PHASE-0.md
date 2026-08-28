@@ -12,45 +12,70 @@
 
 ## Where this stands (2026-08-28)
 
-The Sagarin page is fully parsed and the package is importable. Nothing is fetched, stored, or scheduled yet — every line below that touches the network or S3 is still open.
+The Sagarin path is complete in code, end to end: pinned-HTTP fetch, snapshot, both parsers,
+manifest, freshness check. The CFBD budgeted client is written. **Nothing has run against the
+network or against AWS**, so none of it is verified against anything but fixtures, and the two
+gaps that keep it that way are an unwritten `cli.py` and an unapplied Terraform stack.
 
 | | |
 |---|---|
-| Tests | 64 passing (26 ratings, 30 predictions, 8 snapshot-model), `ruff check` clean |
-| Landed | `2fa6833..ec5e0a4` — scaffolding + both parsers + models + Terraform fixes |
-| Next | `storage.py`, the `SnapshotStore` seam (SPEC §2.3) — everything downstream needs it to stay offline in tests |
-| Blocked on a human | the CFBD calendar and the crosswalk — see the bottom of this file |
+| Tests | 299 passing, 16 skipped, no collection errors; `ruff check .` clean |
+| Landed | `2fa6833..e918907` — scaffolding, both parsers, models, storage, calendar, key construction, the Sagarin collector and fetcher, freshness, `logging.py` |
+| Uncommitted | the CFBD client and its 42 tests, the §4.1/§5.3 ladder change, extra freshness coverage. Counted in the 299 above; not yet in a commit |
+| Next | `cli.py` (SPEC §8). Nothing in this project can be run end to end today — the fetcher exists and no command drives it |
+| Blocked on a human | an in-season Sagarin capture, the CFBD calendar, the crosswalk — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
 | Command | Result |
 |---|---|
-| `uv run pytest` | `64 passed in 0.25s` |
-| `uv run pytest tests/test_sagarin_parser.py -v` | 26 passed, one per §2 item below |
+| `uv run pytest` | `299 passed, 16 skipped in 1.67s` |
 | `uv run ruff check .` | `All checks passed!` |
-| `terraform -chdir=terraform validate` | `Success! The configuration is valid.` — Terraform 1.15.3, aws 5.100.0 |
+| `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
 
-Every `[x]` below is backed by one of those four. Nothing here has been applied to AWS or run
+Every `[x]` below is backed by one of those three. Nothing here has been applied to AWS or run
 against the network, so every `[~]` and `[ ]` stays that way regardless of how complete the code
-reads.
+reads — a module with exhaustive offline tests and no live run is `[~]`, not `[x]`.
+
+Where the 299 sit:
+
+| File | Tests | Covers |
+|---|---|---|
+| `test_storage.py` | 48 | the `SnapshotStore` contract, over three stores (16 skip without AWS) |
+| `test_sagarin_fetch.py` | 46 | SPEC §4.1, via `httpx.MockTransport` |
+| `test_cfbd.py` | 42 | SPEC §5.1 and §5.3 — budget, both retry ladders |
+| `test_manifest.py` | 42 | key construction, SPEC §2.1 and §3.2 |
+| `test_sagarin_parser.py` | 40 | the ratings table and the date stamp |
+| `test_calendar.py` | 34 | season/week resolution, SPEC §3 |
+| `test_sagarin_predictions.py` | 30 | the predictions block |
+| `test_freshness.py` | 22 | SPEC §4.6, skip paths in full |
+| `test_models.py` | 11 | the `SagarinSnapshot` validators |
 
 ### How much of SPEC §1 exists
 
-Three of the nine planned modules under `src/cfb/`, plus the two parsers:
+Everything except the CLI and the crosswalk:
 
 ```
-src/cfb/__init__.py  errors.py  models.py  parsers/{sagarin_ratings,sagarin_predictions}.py
+src/cfb/  __init__.py  calendar.py  errors.py  logging.py  manifest.py  models.py  storage.py
+          collectors/{sagarin,cfbd}.py         parsers/{sagarin_ratings,sagarin_predictions}.py
 ```
 
-Absent: `cli.py`, `calendar.py`, `storage.py`, `manifest.py`, `logging.py`, `collectors/`
-(both), `crosswalk/` (both). Everything still open in §3, §4, §5 and §7 lives in one of those.
+Absent: `cli.py`, and `crosswalk/` (both `__init__.py` and `bootstrap.py`). The CLI is what makes
+§8 and every "run it for real" item reachable; the crosswalk is §6 and blocks step 5 of §4.3.
 
-The exception hierarchy is the sharpest illustration: `errors.py` declares nine exceptions and
-only two are ever raised — `ParseError` (23 sites) and `DuplicateRankError` (3). `FetchError`,
-`EncodingError`, `ValidationError`, `UnmappedTeamError`, `WeekResolutionError`,
-`StaleSourceError` and `CallBudgetExceeded` are declared and unused, because each belongs to a
-module that has not been written. That is intended — §9 landed as one piece — but it means the
-hierarchy is not evidence that the behaviour behind it exists.
+The exception hierarchy is no longer the illustration it was. `errors.py` declares twelve and ten
+are now raised somewhere: `ParseError` (26 sites), `WeekResolutionError` (8), `FetchError` (7),
+`SnapshotExistsError` and `SnapshotNotFoundError` (6 between them, through the `_exists` /
+`_missing` factories), `DuplicateRankError` (3), and one each for `EncodingError`,
+`StaleSourceError` and `CallBudgetExceeded`.
+
+Two are still declared and unused, and they are unused for different reasons:
+
+- `UnmappedTeamError` belongs to `crosswalk/`, which does not exist. Expected.
+- `ValidationError` is specified in §9 as the one that "wraps pydantic", and nothing wraps
+  anything — pydantic's own `ValidationError` propagates from every model boundary instead. That
+  is a real gap between §9 and the code, not a module waiting to be written, and it should either
+  be used or dropped from the hierarchy.
 
 ---
 
@@ -98,7 +123,7 @@ Added since:
 - [x] `tests/test_sagarin_predictions.py` — 30 tests. The predictions block is printed **twice**
       (regular, then EXPERIMENTAL), the same duplication trap as section 3. Verified live rather
       than assumed: a whole-page match returns 106 games where the answer is 53
-- [x] `tests/test_models.py` — 8 tests over the `SagarinSnapshot` validators. They duplicate
+- [x] `tests/test_models.py` — 11 tests over the `SagarinSnapshot` validators. They duplicate
       checks the parsers already make, which is the point (SPEC §4.7 "defence in depth"), but an
       untested defence is not a defence
 
@@ -117,17 +142,31 @@ Still open in this section:
 
 ## 3. Sagarin collector
 
-- [ ] Fetch with scheme pinned to HTTP, no upgrade
-  - `collectors/sagarin.py` now exists, but `fetch` is an injected zero-argument callable with no
-    default: the CLI is meant to pass the pinned-HTTP fetcher of SPEC §4.1 and that fetcher has not
-    been written. `httpx` is not a dependency yet. `fetch_sagarin` is therefore complete as a seam
-    and not yet runnable in production
+- [~] Fetch with scheme pinned to HTTP, no upgrade
+  - Written. `fetch_page()` in `collectors/sagarin.py`: URL pinned, `follow_redirects=False`, 30s
+    connect and read, retry on timeout / connection error / 5xx and never on 4xx or 3xx.
+    `fetch_sagarin`'s `fetch` argument now defaults to it, so the seam survives for tests and
+    production gets a real fetcher. `httpx` is a base dependency
+  - 46 tests in `tests/test_sagarin_fetch.py` drive it through `httpx.MockTransport`, which sits
+    below the client so the redirect policy, the timeout and the request count are observed rather
+    than stubbed. Every 3xx to HTTPS raises with exactly one request issued — the https branch of
+    the handler answers a plausible 200 on purpose, so a fetcher that followed it would return
+    those bytes instead of raising
+  - `[~]` and not `[x]` for one reason: **it has never issued a real request.** The scheme pin
+    exists because sagarin.com 302s HTTPS down to HTTP, and no test in this repo has ever seen
+    that 302. Everything asserted about it is asserted against a transport we wrote
 - [x] Encoding sniff, raise on failure — `decode_page()` in `collectors/sagarin.py`. SPEC §4.2
       order (`utf-8`, `cp1252`, `latin-1`), first candidate that decodes **and** contains both
       markers wins, `EncodingError` when none qualifies. The golden capture resolves to `utf-8`
       because it happens to be pure ASCII, exactly as SPEC §4.7 predicts
-- [ ] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
-  - Blocked twice over: `storage.py` does not exist, and the bucket in §6 has never been applied
+- [~] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
+  - The code is complete and the ordering is the tested part: `fetch_sagarin` writes bytes at step
+    2 of SPEC §4.3, before anything parses them, and the §3.3 suite asserts the bytes survive a
+    resolution failure rather than merely that the run went red
+  - Still `[~]` because the bucket in §6 has never been applied. `MemorySnapshotStore` and
+    `FileSnapshotStore` are exercised on every run; `S3SnapshotStore` is only reached with
+    `CFB_INTEGRATION=1` and `CFB_TEST_BUCKET` set, which is the 16 skips in every count on this
+    page. No object has ever been written to the real bucket, because there is no real bucket
   - [x] `tests/test_storage.py` — the `SnapshotStore` contract, 16 assertions parametrized over
         three stores. Verified 2026-08-28 against a throwaway implementation written outside the
         repo and deleted immediately: **32 passed, 16 skipped** (memory and file run; the S3
@@ -178,12 +217,22 @@ Still open in this section:
 - [x] Parse the `Predictions_with_Totals_and_Moneylines` section — `parsers/sagarin_predictions.py`.
       First block only. The `@` marks the nominal home team; a row marking neither side or both
       raises, because a misread `@` silently inverts a prediction
-- [ ] Freshness check: internal date stamp advanced since last snapshot
-  - Blocked three ways, and the last one is not a code problem: it needs `storage.py` to have a
-    previous snapshot to compare against, it needs the in-season fixture from §2 to have a stamp
-    at all, and on the preseason page there is nothing to advance — so per the skill the check
-    must be *skipped*, not merely passed, until the first in-season page lands. Whatever gets
-    written here needs a test for the skip path, which the current fixture can supply
+- [~] Freshness check: internal date stamp advanced since last snapshot
+  - Written. `check_freshness()` in `collectors/sagarin.py`, 22 tests in `tests/test_freshness.py`.
+    Two of the three original blockers are gone: `storage.py` exists, and the skip paths turned out
+    to be the testable half all along
+  - **The skip paths are covered in full, and they are the ones that fail silently.** A skip that
+    should have been a raise is byte-identical to a healthy run from outside the process — same
+    exit code, same green workflow, nothing written — so each one logs a machine-readable reason
+    and the tests assert on it. Covered: no prior-date manifest, a null stamp on either side,
+    same-day manifests ignored, off-season, an unreadable calendar, and the day-with-no-fetch case
+    where a naive reading of §4.6 compares the newest snapshot against itself and raises a **false**
+    stale alert
+  - Still `[~]` because the comparison itself — stamp advanced, stamp unchanged — runs against a
+    synthetic in-season page: the golden capture with its title line rewritten, so an in-season
+    title sits over preseason data. That drives a real stamp through the real parser into a real
+    manifest, which is all §4.6 reads, and it is not evidence about the real stamp format. Those
+    two assertions are marked PROVISIONAL in the test file and close when §2's capture lands
 
 **Deviation from SPEC §4.5 to note:** `GamePrediction` carries seven fields, not the five the spec
 lists. The additions are `rank` (the row's only stable identity, and rank is the join key
@@ -244,27 +293,16 @@ to the fixture.
 - Step 5 of SPEC §4.3, crosswalk resolution. `crosswalk/` does not exist. `unmapped` is therefore
   omitted from **both** manifest writes rather than written as `[]`; an empty list would claim
   every name resolved, which is a stronger statement than "nothing checked"
-- Step 7, the freshness check. `in_season` exists to gate it but nothing calls it yet
-- `http_status` is hardcoded to `200`. Defensible — SPEC §4.1 makes any non-2xx a `FetchError`
-  inside the fetcher, so bytes reaching `fetch_sagarin` are by construction a 200 — but it means
-  the field records an inference rather than an observation. If the fetch seam ever returns
-  `(status, bytes)` instead of `bytes`, this should become the real value
-- `hfa` is written with **five** keys (`strong_recent` included) because `parse_hfa` captures all
-  five columns the page prints. SPEC §2.2's example manifest names four. Not a bug — §4.7 already
-  documents the five-vs-four gap — but §2.2's example is now narrower than what the code writes,
-  and one of the two should move
+- `http_status` is written as `200` without a status line ever being read. Defensible — SPEC §4.1
+  makes any non-2xx a `FetchError` inside the fetcher, so bytes reaching `fetch_sagarin` are by
+  construction a 200 — but the field records an inference from control flow rather than an
+  observation. That is now stated in SPEC §2.2 rather than only here, along with the fix: widen
+  the seam to return the response instead of bytes. The CFBD collector writes the same field the
+  same way, for the same reason
 
-**Signatures the tests propose, none of which SPEC pins.** These are the decision to make before
-implementing, and changing them means changing the tests:
-
-- SPEC §3.1 writes `load_calendar(season)`, `resolve(now)`, `in_season(now)`. None can be pointed
-  at a fixture, so each grew one keyword argument: `data_dir=` on the loader, `calendar=` on the
-  other two
-- SPEC §1 assigns "key construction" to `manifest.py` but names no functions. The tests assume
-  `snapshot_key(source=, season=, week=, fetched_at=, resource=None)` and `manifest_key(key)`
-- SPEC §8 gives the CLI surface and §4.3 the order of operations, but no collector signature that
-  runs without a network or a bucket. The tests assume
-  `fetch_sagarin(store=, now=, fetch=, data_dir=)`, with `fetch` a zero-argument callable
+Two entries that used to sit here have closed. **Step 7, the freshness check**, is written and
+tested — see the item above. **The `hfa` five-vs-four gap** is gone: SPEC §2.2's example manifest
+now names all five columns `parse_hfa` captures, and §4.7's back-reference went with it.
 
 **A design decision the tests encode, derived rather than stated.** `resolve()` does not raise on a
 date it cannot place; it returns `WeekRef(week="unknown", how="unknown")`. SPEC §2.2 types
@@ -272,12 +310,6 @@ date it cannot place; it returns `WeekRef(week="unknown", how="unknown")`. SPEC 
 raised instead of returning. `load_calendar` still raises `WeekResolutionError` on a missing or
 malformed file, and the collector still owes the non-zero exit — after the write. This is the one
 documented departure from "validation failures raise", and §3.3 carves it out explicitly.
-
-**Left underspecified on purpose.** `in_season` is "preseason start .. postseason end" (SPEC §3.1),
-but nothing defines preseason start — the CFBD calendar's first entry is week 1's first game, not
-a preseason boundary. The tests assert the unambiguous half (true during the regular season and
-the postseason, false in the offseason and the month after) and do not invent a threshold for the
-preseason edge. That boundary needs a decision before `in_season` is written.
 
 ## 4. CFBD collector
 
@@ -323,27 +355,30 @@ preseason edge. That boundary needs a decision before `in_season` is written.
 
 ---
 
-## What blocks §3, the next section with open work
+## What closes the remaining §3 items
 
-In dependency order. The first two are startable now; the third is the only real wait.
+Every §3 item is now written. Three are `[~]` rather than `[x]`, and each is waiting on a *run*
+rather than on more code — which is a different kind of open than this list used to describe.
+`storage.py`, the previous entry here, landed and is gone from it.
 
-1. **`storage.py` — the `SnapshotStore` protocol (SPEC §2.3, lines 136-145).** Nothing else in §3
-   can be written first: "write raw bytes before parsing" is the project's immutability rule, so
-   the store is upstream of the fetch, not downstream of it. It is also the only one of these
-   that needs no AWS and no new fixture — `MemorySnapshotStore` keeps the collector tests offline,
-   which `cfb/CLAUDE.md` requires. Write this next.
-2. **An in-season capture, by hand, the first weekend games are played.** Gates the freshness
-   check above, and until it exists two already-shipped code paths stay unverified against real
-   bytes: the date formats in `parse_page_date_stamp` are a guess, and the `"in-season"` branch of
-   `parse_page_state` has never seen a page that takes it. Previously logged here as a four-week
-   clock dependency, which was wrong — see §2. One page carries both parsers' input (SPEC §4.7:
-   the predictions block is on the same file, printed twice, 53 games each), so a single capture
-   unblocks the ratings and the predictions side together.
-3. **`terraform apply`, root stack before `cfb/`.** The data bucket, the OIDC publisher role and
-   the SSM parameters are all written and all unapplied. The order is forced: `cfb/terraform`
-   reads `/travispollard/cdn/` parameters that the root stack's `cfb-wiring.tf` publishes, so the
-   root applies first or the cfb data source resolves nothing. Until this happens the S3 write in
-   §3 can be unit-tested but never run for real, and §7's scheduled job has no role to assume.
+1. **`cli.py` — the `cfb` entrypoint (SPEC §8).** The one item startable right now with no
+   dependency on anything or anyone. Nothing in this project can be run end to end today: the
+   fetcher, the collector, the freshness check and the CFBD client all exist and no command drives
+   any of them. It also gates the two `[~]` items below in practice — `cfb fetch sagarin --store
+   file://./local-snapshots` needs no AWS and no key, and would turn the first of them `[x]` in a
+   single run. `pyproject.toml` still registers no console script, deliberately: an entry point to
+   a missing module breaks the install.
+2. **An in-season capture, by hand, once the first weekend's games are played.** Still the only
+   real wait, and the gate is the title line rather than a week number — the page becomes usable
+   the moment it drops `STARTING`. It closes four things at once: the date formats in
+   `parse_page_date_stamp`, the `"in-season"` branch of `parse_page_state`, the two PROVISIONAL
+   assertions in `test_freshness.py`, and — only maybe — the PREDICTOR column question in the
+   deviation note above, which needs the specific rows checked rather than the file merely
+   existing.
+3. **`terraform apply`, root stack before `cfb/`.** Unchanged, and the order is still forced:
+   `cfb/terraform` reads `/travispollard/cdn/` parameters that the root stack's `cfb-wiring.tf`
+   publishes. Until this happens the S3 write stays unit-tested and never run, the 16 skipped
+   tests stay skipped, and §7's scheduled job has no role to assume.
 
 §4 and §5 are blocked on the two human items below, not on §3.
 
