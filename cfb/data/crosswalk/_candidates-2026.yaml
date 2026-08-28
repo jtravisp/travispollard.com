@@ -17,7 +17,7 @@
 #     0.35  'Cal Poly'  id=13  fcs
 #     0.33  'Grambling'  id=2755  fcs
 albany-ny:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UAlbany"
   cfbd_id:
   sagarin: "Albany-NY"
   division: # FBS or FCS
@@ -28,7 +28,7 @@ albany-ny:
 #     0.49  'Mississippi Valley State'  id=2400  fcs
 #     0.43  'South Carolina State'  id=2569  fcs
 appalachian-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "App State"
   cfbd_id:
   sagarin: "Appalachian State"
   division: # FBS or FCS
@@ -39,7 +39,7 @@ appalachian-state:
 #     0.32  'North Carolina Central'  id=2428  fcs
 #     0.30  'North Carolina A&T'  id=2448  fcs
 ark-pine-bluff:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Arkansas-Pine Bluff"
   cfbd_id:
   sagarin: "Ark.-Pine Bluff"
   division: # FBS or FCS
@@ -50,7 +50,7 @@ ark-pine-bluff:
 #     0.42  'App State'  id=2026  fbs
 #     0.42  'Army'  id=349  fbs
 army-west-point:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Army"
   cfbd_id:
   sagarin: "Army West Point"
   division: # FBS or FCS
@@ -61,7 +61,7 @@ army-west-point:
 #     0.40  'Nicholls'  id=2447  fcs
 #     0.38  'UL Monroe'  id=2433  fbs
 cal-poly-slo:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Cal Poly"
   cfbd_id:
   sagarin: "Cal Poly-SLO"
   division: # FBS or FCS
@@ -72,7 +72,7 @@ cal-poly-slo:
 #     0.33  'North Carolina Central'  id=2428  fcs
 #     0.32  'Southeast Missouri State'  id=2546  fcs
 central-florida-ucf:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UCF"
   cfbd_id:
   sagarin: "Central Florida(UCF)"
   division: # FBS or FCS
@@ -83,7 +83,7 @@ central-florida-ucf:
 #     0.40  'Stonehill'  id=284  fcs
 #     0.33  'McNeese'  id=2377  fcs
 connecticut:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UConn"
   cfbd_id:
   sagarin: "Connecticut"
   division: # FBS or FCS
@@ -94,7 +94,7 @@ connecticut:
 #     0.35  'Long Island University'  id=2341  fcs
 #     0.35  'North Carolina Central'  id=2428  fcs
 fla-international:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Florida International"
   cfbd_id:
   sagarin: "Fla. International"
   division: # FBS or FCS
@@ -105,7 +105,7 @@ fla-international:
 #     0.57  'South Carolina State'  id=2569  fcs
 #     0.55  'San José State'  id=23  fbs
 grambling-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Grambling"
   cfbd_id:
   sagarin: "Grambling State"
   division: # FBS or FCS
@@ -116,7 +116,7 @@ grambling-state:
 #     0.36  'San José State'  id=23  fbs
 #     0.36  'South Carolina State'  id=2569  fcs
 liu-post:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Long Island University"
   cfbd_id:
   sagarin: "LIU Post"
   division: # FBS or FCS
@@ -127,7 +127,7 @@ liu-post:
 #     0.37  'Southeast Missouri State'  id=2546  fcs
 #     0.36  'San José State'  id=23  fbs
 louisiana-lafayette:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Louisiana"
   cfbd_id:
   sagarin: "Louisiana-Lafayette"
   division: # FBS or FCS
@@ -138,7 +138,7 @@ louisiana-lafayette:
 #     0.44  'Florida International'  id=2229  fbs
 #     0.38  'Long Island University'  id=2341  fcs
 louisianamonroe-ulm:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UL Monroe"
   cfbd_id:
   sagarin: "LouisianaMonroe(ULM)"
   division: # FBS or FCS
@@ -149,7 +149,7 @@ louisianamonroe-ulm:
 #     0.55  'App State'  id=2026  fbs
 #     0.48  'South Carolina State'  id=2569  fcs
 mcneese-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "McNeese"
   cfbd_id:
   sagarin: "McNeese State"
   division: # FBS or FCS
@@ -160,7 +160,7 @@ mcneese-state:
 #     0.41  'Florida International'  id=2229  fbs
 #     0.32  'Southeast Missouri State'  id=2546  fcs
 miami-florida:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Miami"
   cfbd_id:
   sagarin: "Miami-Florida"
   division: # FBS or FCS
@@ -171,7 +171,7 @@ miami-florida:
 #     0.44  'Monmouth'  id=2405  fcs
 #     0.38  'Sam Houston'  id=2534  fbs
 miami-ohio:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Miami (OH)"
   cfbd_id:
   sagarin: "Miami-Ohio"
   division: # FBS or FCS
@@ -182,7 +182,7 @@ miami-ohio:
 #     0.50  'San José State'  id=23  fbs
 #     0.48  'Southeast Missouri State'  id=2546  fcs
 miss-valley-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Mississippi Valley State"
   cfbd_id:
   sagarin: "Miss. Valley State"
   division: # FBS or FCS
@@ -193,7 +193,7 @@ miss-valley-state:
 #     0.38  'Miami'  id=2390  fbs
 #     0.34  'Southeast Missouri State'  id=2546  fcs
 mississippi:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Ole Miss"
   cfbd_id:
   sagarin: "Mississippi"
   division: # FBS or FCS
@@ -204,7 +204,7 @@ mississippi:
 #     0.40  'UL Monroe'  id=2433  fbs
 #     0.38  'UConn'  id=41  fbs
 monmouth-nj:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Monmouth"
   cfbd_id:
   sagarin: "Monmouth-NJ"
   division: # FBS or FCS
@@ -215,7 +215,7 @@ monmouth-nj:
 #     0.40  'San José State'  id=23  fbs
 #     0.31  'South Carolina State'  id=2569  fcs
 nc-a-t:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "North Carolina A&T"
   cfbd_id:
   sagarin: "NC A&T"
   division: # FBS or FCS
@@ -226,7 +226,7 @@ nc-a-t:
 #     0.36  'North Carolina A&T'  id=2448  fcs
 #     0.33  'Cal Poly'  id=13  fcs
 nc-central:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "North Carolina Central"
   cfbd_id:
   sagarin: "NC Central"
   division: # FBS or FCS
@@ -237,7 +237,7 @@ nc-central:
 #     0.53  'South Carolina State'  id=2569  fcs
 #     0.52  'App State'  id=2026  fbs
 nicholls-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Nicholls"
   cfbd_id:
   sagarin: "Nicholls State"
   division: # FBS or FCS
@@ -248,7 +248,7 @@ nicholls-state:
 #     0.36  'Nicholls'  id=2447  fcs
 #     0.36  'Southern'  id=2582  fcs
 presbyterian-college:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Presbyterian"
   cfbd_id:
   sagarin: "Presbyterian College"
   division: # FBS or FCS
@@ -259,7 +259,7 @@ presbyterian-college:
 #     0.57  'South Carolina State'  id=2569  fcs
 #     0.44  'Mississippi Valley State'  id=2400  fcs
 sc-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "South Carolina State"
   cfbd_id:
   sagarin: "SC State"
   division: # FBS or FCS
@@ -270,7 +270,7 @@ sc-state:
 #     0.58  'San José State'  id=23  fbs
 #     0.54  'Mississippi Valley State'  id=2400  fcs
 se-missouri-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Southeast Missouri State"
   cfbd_id:
   sagarin: "SE Missouri State"
   division: # FBS or FCS
@@ -281,7 +281,7 @@ se-missouri-state:
 #     0.65  'South Carolina State'  id=2569  fcs
 #     0.59  'Southeast Missouri State'  id=2546  fcs
 sam-houston-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Sam Houston"
   cfbd_id:
   sagarin: "Sam Houston State"
   division: # FBS or FCS
@@ -292,7 +292,7 @@ sam-houston-state:
 #     0.53  'South Carolina State'  id=2569  fcs
 #     0.53  'Southeast Missouri State'  id=2546  fcs
 san-jose-state:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "San José State"
   cfbd_id:
   sagarin: "San Jose State"
   division: # FBS or FCS
@@ -303,7 +303,7 @@ san-jose-state:
 #     0.54  'North Carolina A&T'  id=2448  fcs
 #     0.49  'North Carolina Central'  id=2428  fcs
 southern-california:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "USC"
   cfbd_id:
   sagarin: "Southern California"
   division: # FBS or FCS
@@ -314,7 +314,7 @@ southern-california:
 #     0.45  'Sam Houston'  id=2534  fbs
 #     0.43  'Presbyterian'  id=2506  fcs
 southern-u:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Southern"
   cfbd_id:
   sagarin: "Southern U."
   division: # FBS or FCS
@@ -325,7 +325,7 @@ southern-u:
 #     0.36  'Southern'  id=2582  fcs
 #     0.32  'Miami'  id=2390  fbs
 st-thomas-mn:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "St. Thomas (MN)"
   cfbd_id:
   sagarin: "St. Thomas-Mn."
   division: # FBS or FCS
@@ -336,7 +336,7 @@ st-thomas-mn:
 #     0.40  'Nicholls'  id=2447  fcs
 #     0.36  'North Carolina Central'  id=2428  fcs
 stonehill-college:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "Stonehill"
   cfbd_id:
   sagarin: "Stonehill College"
   division: # FBS or FCS
@@ -347,7 +347,7 @@ stonehill-college:
 #     0.35  'McNeese'  id=2377  fcs
 #     0.32  'Stonehill'  id=284  fcs
 tennessee-martin:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UT Martin"
   cfbd_id:
   sagarin: "Tennessee-Martin"
   division: # FBS or FCS
@@ -358,7 +358,7 @@ tennessee-martin:
 #     0.40  'UT Rio Grande Valley'  id=292  fcs
 #     0.31  'Monmouth'  id=2405  fcs
 utrgv:
-  cfbd: # one of the above, or a name neither list guessed
+  cfbd: "UT Rio Grande Valley"
   cfbd_id:
   sagarin: "UTRGV"
   division: # FBS or FCS

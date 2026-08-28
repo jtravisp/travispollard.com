@@ -3,9 +3,11 @@
 # canonical_id: project-owned slug, stable forever, vendor-neutral. A vendor
 # renaming a team rewrites one line here rather than every historical row.
 #
-# The 234 entries below matched exactly on name and were written by
-# `cfb crosswalk bootstrap`. Everything else is in _candidates-2026.yaml and is
-# a human decision -- similarity scoring orders that list and never decides it.
+# 266 entries: all 266 teams Sagarin rates, 138 FBS and 128 FCS.
+# 234 matched exactly on name via `cfb crosswalk bootstrap`; the other 32 were
+# decided by hand from _candidates-2026.yaml. cfbd_id and division on those 32
+# were filled from tests/fixtures/rosters/cfbd-2026.json by exact name lookup,
+# which is also what test_crosswalk.py cross-checks them against.
 #
 # Conference is deliberately absent: it is time-varying and belongs in each
 # snapshot's parsed output, not in a mapping that a played season freezes.
@@ -40,11 +42,21 @@ alabama-state:
   cfbd_id: 2011
   division: FCS
   sagarin: Alabama State
+albany-ny:
+  cfbd: UAlbany
+  cfbd_id: 399
+  division: FCS
+  sagarin: Albany-NY
 alcorn-state:
   cfbd: Alcorn State
   cfbd_id: 2016
   division: FCS
   sagarin: Alcorn State
+appalachian-state:
+  cfbd: App State
+  cfbd_id: 2026
+  division: FBS
+  sagarin: Appalachian State
 arizona:
   cfbd: Arizona
   cfbd_id: 12
@@ -55,6 +67,11 @@ arizona-state:
   cfbd_id: 9
   division: FBS
   sagarin: Arizona State
+ark-pine-bluff:
+  cfbd: Arkansas-Pine Bluff
+  cfbd_id: 2029
+  division: FCS
+  sagarin: Ark.-Pine Bluff
 arkansas:
   cfbd: Arkansas
   cfbd_id: 8
@@ -65,6 +82,11 @@ arkansas-state:
   cfbd_id: 2032
   division: FBS
   sagarin: Arkansas State
+army-west-point:
+  cfbd: Army
+  cfbd_id: 349
+  division: FBS
+  sagarin: Army West Point
 auburn:
   cfbd: Auburn
   cfbd_id: 2
@@ -135,6 +157,11 @@ byu:
   cfbd_id: 252
   division: FBS
   sagarin: BYU
+cal-poly-slo:
+  cfbd: Cal Poly
+  cfbd_id: 13
+  division: FCS
+  sagarin: Cal Poly-SLO
 california:
   cfbd: California
   cfbd_id: 25
@@ -155,6 +182,11 @@ central-connecticut:
   cfbd_id: 2115
   division: FCS
   sagarin: Central Connecticut
+central-florida-ucf:
+  cfbd: UCF
+  cfbd_id: 2116
+  division: FBS
+  sagarin: Central Florida(UCF)
 central-michigan:
   cfbd: Central Michigan
   cfbd_id: 2117
@@ -215,6 +247,11 @@ columbia:
   cfbd_id: 171
   division: FCS
   sagarin: Columbia
+connecticut:
+  cfbd: UConn
+  cfbd_id: 41
+  division: FBS
+  sagarin: Connecticut
 cornell:
   cfbd: Cornell
   cfbd_id: 172
@@ -300,6 +337,11 @@ elon:
   cfbd_id: 2210
   division: FCS
   sagarin: Elon
+fla-international:
+  cfbd: Florida International
+  cfbd_id: 2229
+  division: FBS
+  sagarin: Fla. International
 florida:
   cfbd: Florida
   cfbd_id: 57
@@ -365,6 +407,11 @@ georgia-tech:
   cfbd_id: 59
   division: FBS
   sagarin: Georgia Tech
+grambling-state:
+  cfbd: Grambling
+  cfbd_id: 2755
+  division: FCS
+  sagarin: Grambling State
 hampton:
   cfbd: Hampton
   cfbd_id: 2261
@@ -510,11 +557,26 @@ lindenwood:
   cfbd_id: 2815
   division: FCS
   sagarin: Lindenwood
+liu-post:
+  cfbd: Long Island University
+  cfbd_id: 2341
+  division: FCS
+  sagarin: LIU Post
+louisiana-lafayette:
+  cfbd: Louisiana
+  cfbd_id: 309
+  division: FBS
+  sagarin: Louisiana-Lafayette
 louisiana-tech:
   cfbd: Louisiana Tech
   cfbd_id: 2348
   division: FBS
   sagarin: Louisiana Tech
+louisianamonroe-ulm:
+  cfbd: UL Monroe
+  cfbd_id: 2433
+  division: FBS
+  sagarin: LouisianaMonroe(ULM)
 louisville:
   cfbd: Louisville
   cfbd_id: 97
@@ -550,6 +612,11 @@ massachusetts:
   cfbd_id: 113
   division: FBS
   sagarin: Massachusetts
+mcneese-state:
+  cfbd: McNeese
+  cfbd_id: 2377
+  division: FCS
+  sagarin: McNeese State
 memphis:
   cfbd: Memphis
   cfbd_id: 235
@@ -570,6 +637,16 @@ merrimack:
   cfbd_id: 2771
   division: FCS
   sagarin: Merrimack
+miami-florida:
+  cfbd: Miami
+  cfbd_id: 2390
+  division: FBS
+  sagarin: Miami-Florida
+miami-ohio:
+  cfbd: Miami (OH)
+  cfbd_id: 193
+  division: FBS
+  sagarin: Miami-Ohio
 michigan:
   cfbd: Michigan
   cfbd_id: 130
@@ -590,6 +667,16 @@ minnesota:
   cfbd_id: 135
   division: FBS
   sagarin: Minnesota
+miss-valley-state:
+  cfbd: Mississippi Valley State
+  cfbd_id: 2400
+  division: FCS
+  sagarin: Miss. Valley State
+mississippi:
+  cfbd: Ole Miss
+  cfbd_id: 145
+  division: FBS
+  sagarin: Mississippi
 mississippi-state:
   cfbd: Mississippi State
   cfbd_id: 344
@@ -605,6 +692,11 @@ missouri-state:
   cfbd_id: 2623
   division: FBS
   sagarin: Missouri State
+monmouth-nj:
+  cfbd: Monmouth
+  cfbd_id: 2405
+  division: FCS
+  sagarin: Monmouth-NJ
 montana:
   cfbd: Montana
   cfbd_id: 149
@@ -635,6 +727,16 @@ navy:
   cfbd_id: 2426
   division: FBS
   sagarin: Navy
+nc-a-t:
+  cfbd: North Carolina A&T
+  cfbd_id: 2448
+  division: FCS
+  sagarin: NC A&T
+nc-central:
+  cfbd: North Carolina Central
+  cfbd_id: 2428
+  division: FCS
+  sagarin: NC Central
 nc-state:
   cfbd: NC State
   cfbd_id: 152
@@ -670,6 +772,11 @@ new-mexico-state:
   cfbd_id: 166
   division: FBS
   sagarin: New Mexico State
+nicholls-state:
+  cfbd: Nicholls
+  cfbd_id: 2447
+  division: FCS
+  sagarin: Nicholls State
 norfolk-state:
   cfbd: Norfolk State
   cfbd_id: 2450
@@ -795,6 +902,11 @@ prairie-view-a-m:
   cfbd_id: 2504
   division: FCS
   sagarin: Prairie View A&M
+presbyterian-college:
+  cfbd: Presbyterian
+  cfbd_id: 2506
+  division: FCS
+  sagarin: Presbyterian College
 princeton:
   cfbd: Princeton
   cfbd_id: 163
@@ -840,6 +952,11 @@ sacred-heart:
   cfbd_id: 2529
   division: FCS
   sagarin: Sacred Heart
+sam-houston-state:
+  cfbd: Sam Houston
+  cfbd_id: 2534
+  division: FBS
+  sagarin: Sam Houston State
 samford:
   cfbd: Samford
   cfbd_id: 2535
@@ -855,11 +972,26 @@ san-diego-state:
   cfbd_id: 21
   division: FBS
   sagarin: San Diego State
+san-jose-state:
+  cfbd: San José State
+  cfbd_id: 23
+  division: FBS
+  sagarin: San Jose State
+sc-state:
+  cfbd: South Carolina State
+  cfbd_id: 2569
+  division: FCS
+  sagarin: SC State
 se-louisiana:
   cfbd: SE Louisiana
   cfbd_id: 2545
   division: FCS
   sagarin: SE Louisiana
+se-missouri-state:
+  cfbd: Southeast Missouri State
+  cfbd_id: 2546
+  division: FCS
+  sagarin: SE Missouri State
 smu:
   cfbd: SMU
   cfbd_id: 2567
@@ -890,6 +1022,11 @@ south-florida:
   cfbd_id: 58
   division: FBS
   sagarin: South Florida
+southern-california:
+  cfbd: USC
+  cfbd_id: 30
+  division: FBS
+  sagarin: Southern California
 southern-illinois:
   cfbd: Southern Illinois
   cfbd_id: 79
@@ -900,11 +1037,21 @@ southern-miss:
   cfbd_id: 2572
   division: FBS
   sagarin: Southern Miss
+southern-u:
+  cfbd: Southern
+  cfbd_id: 2582
+  division: FCS
+  sagarin: Southern U.
 southern-utah:
   cfbd: Southern Utah
   cfbd_id: 253
   division: FCS
   sagarin: Southern Utah
+st-thomas-mn:
+  cfbd: St. Thomas (MN)
+  cfbd_id: 2900
+  division: FCS
+  sagarin: St. Thomas-Mn.
 stanford:
   cfbd: Stanford
   cfbd_id: 24
@@ -920,6 +1067,11 @@ stetson:
   cfbd_id: 56
   division: FCS
   sagarin: Stetson
+stonehill-college:
+  cfbd: Stonehill
+  cfbd_id: 284
+  division: FCS
+  sagarin: Stonehill College
 stony-brook:
   cfbd: Stony Brook
   cfbd_id: 2619
@@ -950,6 +1102,11 @@ tennessee:
   cfbd_id: 2633
   division: FBS
   sagarin: Tennessee
+tennessee-martin:
+  cfbd: UT Martin
+  cfbd_id: 2630
+  division: FCS
+  sagarin: Tennessee-Martin
 tennessee-state:
   cfbd: Tennessee State
   cfbd_id: 2634
@@ -1055,6 +1212,11 @@ utep:
   cfbd_id: 2638
   division: FBS
   sagarin: UTEP
+utrgv:
+  cfbd: UT Rio Grande Valley
+  cfbd_id: 292
+  division: FCS
+  sagarin: UTRGV
 utsa:
   cfbd: UTSA
   cfbd_id: 2636
