@@ -37,7 +37,7 @@ store resolution runs for real in every test below.
 
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -387,6 +387,151 @@ class TestFetchCfbd:
         assert "/week=season/teams/" in snapshot.as_posix()
 
 
+class TestFetchCfbdWeekDefaulting:
+    """SPEC 5.2's "N is the week that just completed", worked out by the CLI.
+
+    SPEC 11 says the workflow calls the same command a human calls. A
+    `--week ${{ ... }}` expression in YAML would be week arithmetic living where
+    nothing tests it, while `calendar.py` already knows -- so the default belongs
+    here and the workflow passes no week at all.
+    """
+
+    @pytest.mark.parametrize("week", [1, 3, 9, 15])
+    def test_no_week_flag_uses_the_completed_week(
+        self, store_url, store_root, data_dir, week
+    ):
+        """The moment is derived from the calendar, not written down.
+
+        A literal date resolves to different weeks on the two calendars -- the
+        synthetic fixture's windows are kickoffs and the real ones are week
+        boundaries -- so a hardcoded Tuesday asserts the fixture rather than the
+        defaulting. An hour after week N closes is week N on any calendar.
+        """
+        code = run(
+            ["fetch", "cfbd", "--resource", "games", "--season", "2026",
+             "--store", store_url],
+            now=_after_week(data_dir, week),
+            fetch=_json_response(b'[{"id": 1}]'),
+        )
+
+        assert code == 0
+        [snapshot] = snapshots(store_root)
+        assert f"/week={week:02d}/games/" in snapshot.as_posix()
+
+    def test_an_explicit_week_still_wins(self, store_url, store_root, data_dir):
+        """Backfill is the whole reason this stays overridable.
+
+        CFBD history is backfillable (SPEC 5.3), so re-pulling an older week is
+        an ordinary thing to do and must not require editing the calendar.
+        """
+        code = run(
+            ["fetch", "cfbd", "--resource", "games", "--week", "9", "--season", "2026",
+             "--store", store_url],
+            now=TUESDAY_W4,
+            fetch=_json_response(b'[{"id": 1}]'),
+        )
+
+        assert code == 0
+        [snapshot] = snapshots(store_root)
+        assert "/week=09/games/" in snapshot.as_posix()
+
+    def test_season_level_resources_are_unaffected(self, store_url, store_root, data_dir):
+        """`teams` and `calendar` are not week-scoped and must not acquire a week."""
+        code = run(
+            ["fetch", "cfbd", "--resource", "teams", "--season", "2026", "--store", store_url],
+            now=TUESDAY_W4,
+            fetch=_json_response(b'[{"school": "Ohio State"}]'),
+        )
+
+        assert code == 0
+        [snapshot] = snapshots(store_root)
+        assert "/week=season/teams/" in snapshot.as_posix()
+
+    def test_no_completed_week_exits_zero_and_says_why(
+        self, store_url, store_root, data_dir, capsys
+    ):
+        """The first Sundays of the season, and the reason this is not an error.
+
+        No week has completed yet, so there is nothing to pull. Raising would
+        turn the season's first Sundays red for a reason that is not a fault,
+        and an alert that cries wolf twice before it ever means anything is an
+        alert nobody reads by October.
+
+        The fetch callable raises if it is reached, so this also proves no CFBD
+        request is issued -- the budget of SPEC 5.1 is not spent finding out.
+        """
+        opens = _calendar_opens(data_dir)
+        code = run(
+            ["fetch", "cfbd", "--resource", "games", "--season", "2026", "--store", store_url],
+            now=opens + timedelta(hours=1),
+            fetch=_raiser(AssertionError("called CFBD with no completed week")),
+        )
+
+        assert code == 0
+        assert "reason=no_completed_week" in capsys.readouterr().out
+        assert not store_root.exists() or written(store_root) == []
+
+    def test_an_explicit_week_overrides_even_then(self, store_url, store_root, data_dir):
+        """The escape hatch has to work on exactly the day the default declines."""
+        opens = _calendar_opens(data_dir)
+        code = run(
+            ["fetch", "cfbd", "--resource", "games", "--week", "1", "--season", "2026",
+             "--store", store_url],
+            now=opens + timedelta(hours=1),
+            fetch=_json_response(b'[{"id": 1}]'),
+        )
+
+        assert code == 0
+        assert "/week=01/games/" in snapshots(store_root)[0].as_posix()
+
+
+class TestFetchCfbdOffSeasonGuard:
+    """SPEC 11: both collect workflows gate on `in_season`. This one did not."""
+
+    def test_off_season_exits_zero_without_fetching(
+        self, store_url, store_root, data_dir, capsys
+    ):
+        code = run(
+            ["fetch", "cfbd", "--resource", "teams", "--season", "2026", "--store", store_url],
+            now=IN_MAY,
+            fetch=_raiser(AssertionError("called CFBD off-season")),
+        )
+
+        assert code == 0
+        assert "reason=not_in_season" in capsys.readouterr().out
+        assert not store_root.exists() or written(store_root) == []
+
+    def test_force_bypasses_it(self, store_url, store_root, data_dir):
+        code = run(
+            ["fetch", "cfbd", "--resource", "teams", "--season", "2026",
+             "--store", store_url, "--force"],
+            now=IN_MAY,
+            fetch=_json_response(b'[{"school": "Ohio State"}]'),
+        )
+
+        assert code == 0
+        assert len(snapshots(store_root)) == 1
+
+    def test_the_guard_runs_before_the_week_default(
+        self, store_url, store_root, data_dir, capsys
+    ):
+        """Order matters: off-season there is also no completed week.
+
+        Both conditions are true in May, and only one of them is the reason. A
+        run that reported `no_completed_week` in the off-season would send
+        whoever reads it looking at the calendar for a bug that is not there.
+        """
+        run(
+            ["fetch", "cfbd", "--resource", "games", "--season", "2026", "--store", store_url],
+            now=IN_MAY,
+            fetch=_raiser(AssertionError("called CFBD off-season")),
+        )
+
+        out = capsys.readouterr().out
+        assert "reason=not_in_season" in out
+        assert "reason=no_completed_week" not in out
+
+
 class TestCheckFreshness:
     def test_it_exits_zero_when_there_is_nothing_to_compare(
         self, store_url, data_dir, page, capsys
@@ -524,6 +669,22 @@ class TestTheCommandSurface:
         with pytest.raises(SystemExit) as excinfo:
             run([])
         assert excinfo.value.code == 2
+
+
+def _after_week(data_dir: Path, week: int) -> datetime:
+    """One hour after regular ``week`` closes on whichever calendar is installed."""
+    from cfb.calendar import load_calendar
+
+    calendar = load_calendar(2026, data_dir=data_dir)
+    entry = next(e for e in calendar.entries if not e.is_postseason and e.week == week)
+    return entry.last_game_start + timedelta(hours=1)
+
+
+def _calendar_opens(data_dir: Path) -> datetime:
+    """The moment the calendar under test opens, so tests do not hardcode a date."""
+    from cfb.calendar import load_calendar
+
+    return load_calendar(2026, data_dir=data_dir).opens
 
 
 def _raiser(exc):

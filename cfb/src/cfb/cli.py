@@ -31,11 +31,18 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from cfb.calendar import in_season, load_calendar
+from cfb.calendar import in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
 from cfb.errors import CfbError, WeekResolutionError
-from cfb.logging import EVENT_SNAPSHOT_WRITTEN, RESULT_OK, RESULT_SKIP, log
+from cfb.logging import (
+    EVENT_SNAPSHOT_WRITTEN,
+    REASON_NO_COMPLETED_WEEK,
+    REASON_NOT_IN_SEASON,
+    RESULT_OK,
+    RESULT_SKIP,
+    log,
+)
 from cfb.models import SagarinSnapshot, validating
 from cfb.parsers.sagarin_predictions import parse_predictions
 from cfb.parsers.sagarin_ratings import (
@@ -77,8 +84,17 @@ def build_parser() -> argparse.ArgumentParser:
     cfbd = sources.add_parser("cfbd", help="one CFBD resource")
     _add_store(cfbd)
     cfbd.add_argument("--resource", choices=RESOURCES, required=True)
-    cfbd.add_argument("--week", type=int, help="required for games and lines")
+    cfbd.add_argument(
+        "--week",
+        type=int,
+        help="games and lines only; defaults to the week that just completed",
+    )
     cfbd.add_argument("--season", type=int)
+    cfbd.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
 
     freshness = commands.add_parser(
         "check-freshness", help="has the source's own date stamp advanced"
@@ -136,7 +152,12 @@ def _fetch_sagarin(args, *, moment: datetime, fetch) -> int:
         # SPEC 11: the collect workflows exit 0 immediately when out of season.
         # That is the entire off-season story -- no runs to mute, no suppression
         # state, no false alarms from February to August.
-        log(EVENT_SNAPSHOT_WRITTEN, source="sagarin", result=RESULT_SKIP, reason="not_in_season")
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="sagarin",
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
         return 0
 
     store = _store(args.store)
@@ -158,8 +179,43 @@ def _fetch_sagarin(args, *, moment: datetime, fetch) -> int:
 
 
 def _fetch_cfbd(args, *, moment: datetime, fetch) -> int:
+    # Loaded once and used for both gates below. Unlike `fetch sagarin`, a
+    # calendar that will not load is fatal here rather than something to proceed
+    # past: SPEC 3.3's "never lose the capture" is about a page that exists only
+    # today, and CFBD history is backfillable. There is nothing to save by
+    # guessing, and a guessed week misfiles real games permanently.
+    calendar = load_calendar(_season_of(moment), data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        # SPEC 11, and it runs before the week default on purpose. Off-season
+        # both conditions are true and only one of them is the reason; reporting
+        # "no completed week" in May would send whoever reads it to the calendar
+        # looking for a bug that is not there.
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="cfbd",
+            resource=args.resource,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
     season = args.season or _season_of(moment)
-    week = "season" if args.resource in ("teams", "calendar") else _week_arg(args)
+    week = _cfbd_week(args, calendar=calendar, moment=moment)
+    if week is None:
+        # No regular week has finished yet -- normal on the season's first
+        # Sundays (SPEC 5.2). Exit 0: raising would turn those Sundays red before
+        # anything had gone wrong, and an alert that is wrong twice before it is
+        # ever right is one nobody reads by October. Nothing was requested, so
+        # the budget of SPEC 5.1 is untouched.
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="cfbd",
+            resource=args.resource,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
 
     # SPEC 5.5. Building the fetcher touches nothing -- the key is read from SSM on
     # the first request -- so `cfb --help` and a usage error still need no
@@ -255,9 +311,22 @@ def _store(url: str):
     build_parser().error(f"--store must be s3:// or file://, got {url!r}")
 
 
+def _cfbd_week(args, *, calendar, moment: datetime) -> str | None:
+    """The ``week=`` partition for this pull, or ``None`` if nothing has completed.
+
+    An explicit ``--week`` always wins. CFBD history is backfillable (SPEC 5.3),
+    so re-pulling an older week is ordinary and must not require editing the
+    committed calendar to do it.
+    """
+    if args.resource in ("teams", "calendar"):
+        # Season-level resources are not week-scoped (SPEC 3.2's `season`).
+        return "season"
+    if args.week is not None:
+        return _week_arg(args)
+    return last_completed_week(moment, calendar=calendar)
+
+
 def _week_arg(args) -> str:
-    if args.week is None:
-        build_parser().error(f"--week is required for --resource {args.resource}")
     if not 1 <= args.week <= 15:
         build_parser().error(f"--week must be 1-15 (SPEC 3.2), got {args.week}")
     # The partition value, zero-padded: it reaches S3 as a literal path segment

@@ -23,7 +23,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.errors import WeekResolutionError
 
-__all__ = ["Calendar", "CalendarEntry", "WeekRef", "in_season", "load_calendar", "resolve"]
+__all__ = [
+    "Calendar",
+    "CalendarEntry",
+    "WeekRef",
+    "in_season",
+    "last_completed_week",
+    "load_calendar",
+    "resolve",
+]
 
 #: How far before the first calendar entry ``in_season`` opens (SPEC 3.1).
 #:
@@ -165,6 +173,40 @@ def resolve(now: datetime, *, calendar: Calendar) -> WeekRef:
     # "offseason" would be a guess dressed as an answer, and a snapshot filed
     # under a confidently wrong partition is never re-partitioned (SPEC 3.3).
     return WeekRef(season=calendar.season, week="unknown", how="unknown")
+
+
+def last_completed_week(now: datetime, *, calendar: Calendar) -> str | None:
+    """The regular week that has finished as of ``now``, or ``None`` if none has.
+
+    SPEC 5.2's "N is the week that just completed". It lives here rather than in
+    the workflow because SPEC 11 has the workflow call the same command a human
+    calls -- a ``--week`` expression in YAML would be calendar arithmetic in the
+    one place nothing tests it.
+
+    **``None`` is a normal answer, not a failure.** On the real calendar week 1
+    runs 2026-08-29 to 2026-09-08, so no week has completed on any Sunday before
+    September 13. A caller that treated that as an error would turn the season's
+    first two Sundays red before the pipeline had done anything wrong, and an
+    alert that cries wolf twice before it ever means something is an alert nobody
+    reads in October.
+
+    A week counts as complete once ``now`` is strictly past its end. At exactly
+    ``last_game_start`` the last game has kicked off and has not finished.
+
+    Postseason is excluded, so from December onward this keeps answering ``15``.
+    That is the honest answer rather than a good one: nothing here knows how to
+    express a bowl slate as a CFBD week number, and inventing one would file real
+    games under a wrong partition. Re-pulling week 15 is redundant, not wrong --
+    SPEC 5.4 already says every invocation fetches for real.
+    """
+    completed = [
+        entry
+        for entry in calendar.entries
+        if not entry.is_postseason and entry.last_game_start < now
+    ]
+    if not completed:
+        return None
+    return _partition(max(completed, key=lambda entry: entry.last_game_start))
 
 
 def in_season(now: datetime, *, calendar: Calendar) -> bool:

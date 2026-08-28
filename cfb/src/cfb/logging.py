@@ -30,6 +30,7 @@ __all__ = [
     "EVENT_HTTP_ERROR",
     "EVENT_SNAPSHOT_WRITTEN",
     "REASON_NOT_IN_SEASON",
+    "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
     "RESULT_OK",
@@ -61,6 +62,9 @@ REASON_NO_PRIOR_MANIFEST = "no_prior_manifest"
 REASON_NO_PAGE_DATE_STAMP = "no_page_date_stamp"
 #: Out of season. Sagarin does not update from roughly February through August.
 REASON_NOT_IN_SEASON = "not_in_season"
+#: No regular week has finished yet (SPEC 5.2). Normal on the season's first
+#: Sundays, and a skip rather than an error for exactly that reason.
+REASON_NO_COMPLETED_WEEK = "no_completed_week"
 
 
 def log(event: str, **fields: Any) -> None:
