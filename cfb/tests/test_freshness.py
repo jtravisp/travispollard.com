@@ -47,7 +47,7 @@ from pathlib import Path
 import pytest
 
 from cfb.collectors.sagarin import SOURCE_URL, check_freshness, fetch_sagarin
-from cfb.errors import StaleSourceError
+from cfb.errors import StaleSourceError, WeekResolutionError
 from cfb.logging import (
     EVENT_FRESHNESS,
     REASON_NO_PAGE_DATE_STAMP,
@@ -144,6 +144,23 @@ def seed(store, *, fetched_at: datetime, stamp: date | None, week: str) -> Manif
     )
     store.put_json(manifest_key(key), manifest.model_dump(mode="json"))
     return manifest
+
+
+class ExplodingStore:
+    """A store that fails any access.
+
+    Used by the two tests about the gates in front of the comparison. Both are
+    claims that ``check_freshness`` stops *before* reading anything, and the only
+    way to state that is a store which turns a read into a failure.
+    """
+
+    def _boom(self, *args, **kwargs):
+        raise AssertionError(
+            "check_freshness touched the store before clearing its gates; SPEC 4.6 "
+            "settles in_season and the calendar before any comparison happens"
+        )
+
+    put_bytes = put_json = get_bytes = list_manifests = _boom
 
 
 def logged(capsys) -> dict[str, str]:
@@ -274,6 +291,61 @@ class TestWhichManifestIsCompared:
         with pytest.raises(StaleSourceError):
             check_freshness(store=store, source="sagarin", now=TUESDAY_W4, data_dir=calendar_dir)
 
+    def test_a_day_with_no_fetch_does_not_compare_the_newest_against_itself(
+        self, store, calendar_dir, capsys
+    ):
+        """The false-alert path, and the reason it is the worst failure this check has.
+
+        ``check-freshness`` is a separate command from ``fetch`` (SPEC 8), and the
+        workflow runs it after a fetch -- but nothing enforces that, and a re-run
+        of just the check on a later day is an ordinary thing to do. Then the
+        newest snapshot is itself older than today, and "the newest manifest whose
+        fetched_at date is strictly earlier than today" selects that same
+        snapshot. It is trivially equal to itself, the stamps match, and the check
+        reports a stale source on a source that is fine.
+
+        A missed alert costs one week of noticing late. A false alert costs the
+        alert: a check that cries wolf on a healthy source is a check whose red
+        runs get waved through, and then the real stale week goes past unread too.
+
+        So the prior must be the newest manifest that is strictly earlier by date
+        **and is not the current snapshot**. Here yesterday's stamp advanced over
+        last week's, which is a healthy source, and the log has to show it
+        compared against last week rather than against yesterday.
+        """
+        seed(store, fetched_at=TUESDAY_W3, stamp=date(2026, 9, 14), week="03")
+        seed(store, fetched_at=at(2026, 9, 21, 12), stamp=date(2026, 9, 21), week="04")
+
+        check_freshness(
+            store=store, source="sagarin", now=TUESDAY_W4, data_dir=calendar_dir
+        )  # must not raise
+
+        log = logged(capsys)
+        assert log["result"] == RESULT_OK
+        assert log["stamp"] == "2026-09-21"
+        # Naming the prior is what separates "compared correctly" from "compared
+        # against itself and happened to see an advance".
+        assert log["prior_stamp"] == "2026-09-14"
+
+    def test_a_day_with_no_fetch_still_reports_a_genuinely_stale_source(
+        self, store, calendar_dir
+    ):
+        """The mirror, and the reason the fix above cannot be "skip when nothing was fetched today".
+
+        Same shape -- newest snapshot from yesterday, nothing today -- but the
+        stamp has not moved since last week. That is a real stale source and it
+        must still be reported. An implementation that dodged the false alert by
+        declining to compare whenever the newest snapshot is not from today would
+        pass the test above and silently stop alerting for good.
+        """
+        seed(store, fetched_at=TUESDAY_W3, stamp=date(2026, 9, 14), week="03")
+        seed(store, fetched_at=at(2026, 9, 21, 12), stamp=date(2026, 9, 14), week="04")
+
+        with pytest.raises(StaleSourceError) as exc:
+            check_freshness(store=store, source="sagarin", now=TUESDAY_W4, data_dir=calendar_dir)
+
+        assert str(exc.value).count("2026-09-14") >= 2
+
     def test_the_newest_of_several_prior_dates_wins(self, store, calendar_dir):
         """Not merely "some earlier manifest" -- the newest one.
 
@@ -303,16 +375,6 @@ class TestTheOffSeasonGuard:
         off-season is how alerting dies. The store refuses every call, so this
         fails if the guard is anywhere later than first.
         """
-
-        class ExplodingStore:
-            def _boom(self, *args, **kwargs):
-                raise AssertionError(
-                    "check_freshness touched the store off-season; SPEC 4.6 gates on "
-                    "in_season before any comparison happens"
-                )
-
-            put_bytes = put_json = get_bytes = list_manifests = _boom
-
         check_freshness(
             store=ExplodingStore(),
             source="sagarin",
@@ -323,6 +385,84 @@ class TestTheOffSeasonGuard:
         log = logged(capsys)
         assert log["result"] == RESULT_SKIP
         assert log["reason"] == REASON_OFF_SEASON
+
+
+class TestTheCalendarMustLoad:
+    """A calendar that will not load raises. It does not fall through.
+
+    ``in_season`` is the gate in front of everything else here, and it is the one
+    gate that cannot fail open *or* closed safely. Falling through to the
+    comparison means possibly alerting all through the off-season, which is how
+    alerting dies. Skipping quietly means the freshness check stops running and
+    nothing says so -- the same silent-disable this whole file exists to prevent,
+    reached by a different route.
+
+    So not knowing whether it is February is itself the failure. The calendar is a
+    committed artifact (SPEC 3.1); a run that cannot read it has a real problem
+    and the run going red is the correct report of that problem.
+    """
+
+    def test_a_missing_calendar_raises(self, tmp_path):
+        empty = tmp_path / "no-calendar"
+        empty.mkdir()
+
+        with pytest.raises(WeekResolutionError):
+            check_freshness(
+                store=ExplodingStore(), source="sagarin", now=TUESDAY_W4, data_dir=empty
+            )
+
+    @pytest.mark.parametrize(
+        ("label", "content"),
+        [
+            ("malformed json", b"{not json"),
+            ("valid json, wrong shape", b'{"weeks": []}'),
+            ("empty calendar", b"[]"),
+        ],
+        ids=["malformed", "wrong_shape", "empty"],
+    )
+    def test_an_unreadable_calendar_raises(self, tmp_path, label, content):
+        """Every way SPEC 3.1 says a calendar can fail to load ends in the same place."""
+        root = tmp_path / "calendar"
+        root.mkdir()
+        (root / "2026.json").write_bytes(content)
+
+        with pytest.raises(WeekResolutionError):
+            check_freshness(
+                store=ExplodingStore(), source="sagarin", now=TUESDAY_W4, data_dir=root
+            )
+
+    def test_the_store_is_never_read_when_the_calendar_will_not_load(self, tmp_path):
+        """``ExplodingStore`` is the assertion: the raise comes from the gate.
+
+        An implementation that read the manifests first and only then discovered
+        it could not place the date would reach a comparison it has no business
+        making, and on an off-season date would raise ``StaleSourceError`` --
+        the right exit code attached to entirely the wrong diagnosis.
+        """
+        empty = tmp_path / "no-calendar"
+        empty.mkdir()
+
+        with pytest.raises(WeekResolutionError):
+            check_freshness(
+                store=ExplodingStore(),
+                source="sagarin",
+                now=at(2027, 5, 15, 12),
+                data_dir=empty,
+            )
+
+    def test_it_does_not_degrade_to_a_logged_skip(self, tmp_path, capsys):
+        """The failure mode worth naming: a skip here would be indistinguishable
+        from the three legitimate ones, and would disable the check for good.
+        """
+        empty = tmp_path / "no-calendar"
+        empty.mkdir()
+
+        with pytest.raises(WeekResolutionError):
+            check_freshness(
+                store=ExplodingStore(), source="sagarin", now=TUESDAY_W4, data_dir=empty
+            )
+
+        assert EVENT not in capsys.readouterr().out
 
 
 class TestTheComparisonItself:
