@@ -127,6 +127,31 @@ class SagarinSnapshot(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def state_and_stamp_agree(self) -> "SagarinSnapshot":
+        """An in-season page with no date stamp is contradicting itself.
+
+        ``page_date_stamp`` is nullable for one reason: the preseason page has no
+        stamp at all (SPEC 4.7). That nullability is also the quietest hole in the
+        project, because SPEC 4.6 skips the freshness comparison on a null -- so
+        any path that produces ``None`` for a page that does carry a stamp
+        disables the check permanently, and every run stays green while the source
+        goes cold.
+
+        ``parse_page_date_stamp`` raises rather than returning ``None`` on a stamp
+        it cannot read, which closes the paths anyone has thought of. This closes
+        the rest. It is defence in depth of the same kind as ``ranks_are_unique``:
+        the parser should already have made it unreachable, and a future parser
+        change should not be able to make it reachable again.
+        """
+        if self.page_state == "in-season" and self.page_date_stamp is None:
+            raise ParseError(
+                "page_state is 'in-season' but page_date_stamp is None. An in-season page "
+                "carries a 'through games of' date; a null here would make the freshness "
+                "check (SPEC 4.6) skip its comparison silently and forever"
+            )
+        return self
+
+    @model_validator(mode="after")
     def preseason_degeneracy_is_flagged(self) -> "SagarinSnapshot":
         """A preseason page must actually be degenerate.
 

@@ -21,6 +21,7 @@ are expected to fail until ``cfb.parsers.sagarin_ratings`` lands.
 """
 
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -207,6 +208,88 @@ def test_preseason_page_carries_no_internal_date_stamp(page):
     nothing to compare until the first in-season page lands.
     """
     assert parse_page_date_stamp(page) is None
+
+
+# --- the date stamp, and the two reasons it can come back None ------------
+#
+# ``None`` means "this page has no stamp", which is legal and makes SPEC 4.6 skip
+# the comparison. It must never also mean "this page has a stamp and the parser
+# could not read it", because the two are indistinguishable downstream and the
+# second one disables the freshness check silently, forever, with every run green.
+# So: absent phrase -> None. Phrase present and unreadable -> raise.
+
+PRESEASON_TITLE = "2026 College Football STARTING ratings"
+
+
+def retitled(page: str, rest: str) -> str:
+    """The golden capture with its title line's tail replaced.
+
+    The title block reprints every 10 rows (SPEC 4.7), so this rewrites all of
+    them and the page stays internally consistent.
+    """
+    assert PRESEASON_TITLE in page, "the golden capture's title line changed; this helper is stale"
+    return page.replace(PRESEASON_TITLE, f"2026 College Football {rest}")
+
+
+def test_an_in_season_title_with_no_date_phrase_has_no_stamp(page):
+    """Case 1: nothing claiming to be a date, so nothing to fail to read.
+
+    Separated from the preseason test above because that one confounds two
+    things -- the STARTING marker and the missing phrase -- and only the missing
+    phrase is what makes the stamp legitimately null.
+    """
+    assert parse_page_date_stamp(retitled(page, "ratings")) is None
+
+
+@pytest.mark.parametrize(
+    "stamp",
+    [
+        "Blorptember 45, 2026",  # a month that does not exist
+        "2026-09-15",  # ISO, which _DATE_FORMATS does not list
+        "Sep. 15, 2026",  # abbreviated with a period
+        "15/09/2026",  # day-first
+        "September 2026",  # no day at all
+    ],
+)
+def test_a_date_after_the_phrase_that_will_not_parse_raises(page, stamp):
+    """Case 2: the page says it has a stamp, so the parser owes an answer or an error.
+
+    Returning ``None`` here would be the failure this whole section guards. The
+    page is in-season, the stamp is right there, and a null would tell SPEC 4.6
+    to skip the comparison -- permanently, and without a single red run to say so.
+    """
+    with pytest.raises(ParseError) as excinfo:
+        parse_page_date_stamp(retitled(page, f"ratings  through games of {stamp}"))
+    assert stamp in str(excinfo.value), "the error should quote what it could not read"
+
+
+@pytest.mark.parametrize("tail", ["", " ", "   ", "	"])
+def test_the_phrase_with_nothing_after_it_raises(page, tail):
+    """Case 2, at its edge: the phrase is present and the date is empty.
+
+    A truncated line is exactly what a mid-publish fetch or a format change looks
+    like, and it is the shape where "no stamp" and "unreadable stamp" are easiest
+    to confuse -- there is no text to point at either way. The phrase is the
+    evidence that a date was meant to be here.
+    """
+    with pytest.raises(ParseError):
+        parse_page_date_stamp(retitled(page, f"ratings  through games of{tail}"))
+
+
+@pytest.mark.parametrize(
+    ("stamp", "expected"),
+    [
+        ("September 15, 2026", date(2026, 9, 15)),
+        ("Tuesday, September 15, 2026", date(2026, 9, 15)),
+        ("15 September 2026", date(2026, 9, 15)),
+        ("9/15/2026", date(2026, 9, 15)),
+    ],
+)
+def test_a_readable_stamp_parses(page, stamp, expected):
+    """The control. Without it the two tests above are satisfied by a parser that
+    raises on everything, which would take the collector down every Tuesday.
+    """
+    assert parse_page_date_stamp(retitled(page, f"ratings  through games of {stamp}")) == expected
 
 
 # --- FCS ------------------------------------------------------------------
