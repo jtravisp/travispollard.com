@@ -1,0 +1,2 @@
+# The golden capture is byte-exact evidence. core.autocrlf must not touch it.
+* -text
