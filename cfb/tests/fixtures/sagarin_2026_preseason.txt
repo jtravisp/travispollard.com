@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>College Football Ratings Page</title>
+<script language="javascript">
+<!--
+   if (window != window.top)
+     top.location.href = location.href;
+  / -->
+</script>
+</head>
+<body>
+<br>
+<body bgcolor="#ffffff" text="#000000" link="#0000FF"
+vlink="#551A8B" alink="#FF0000">
+<a href="http:/aa.usno.navy.mil/data/docs/RS_OneDay.html"> <img border=0 width=200
+height=200 src="http://sagarin.com/sports/AAlogo.jpg"></a>&nbsp;
+<p>
+<font size=6> <a href="http:/tycho.usno.navy.mil/"><b>United States Naval
+Observatory</b></a></font>
+<p>&nbsp; <br>
+<table border=3><tr><th bgcolor=000000>
+<img border=0 width=113 height=20
+src="http:/tycho.usno.navy.mil/cgi-bin/nph-usnoclock.gif?zone=UTC;ticks=60"
+alt="Clock requires Netscape"></th></tr></table> <p>
+<font size=2 color="#0000ff">note: clock runs for 30 seconds; it may skip
+seconds; to restart click reload</font><br>
+<p></p>
+</td></tr>
+<center><hr></center>
+<h2><font size=+3>Jeff Sagarin's<sup><font size=1>tm</font></sup> College Football Ratings - Indiana: Bring Back Dane Fife!</font></h2>
+<center><hr></center>
+<p></p><center><strong><font color="#bb0000">[ <a
+href="http://sagarin.com/sports/computer.jpg">My Computer Room</a>
+</font><font color="#bb0000"> ]</font></strong></center>
+<p>
+</p><p></p><center><strong><font color="#bb0000">[ <a
+href="http://sagarin.com/sports/sports.html"><font size=6>Jeff's Sports Ratings</font> - <font size=4>the only place to find my updated ratings</font></a>]
+</strong></center></font color>
+<p></p><center><b>my ratings are no longer updated on the USA Today website</b></center>
+<p>
+<center><b>Email:</b>
+<a href="mailto:Jeff Sagarin<jsagarin@attglobal.net>">Jeff Sagarin</center></a></p>
+<p>
+<center>All Contents Copyright &copy; 2026 Jeff Sagarin<sup><font size=1>tm</font></sup>. All Rights
+Reserved.</center></p>
+<pre>
+<p>
+<center>
+"I particularly condemn the way our political leaders supplied the
+manpower for that war.  The policies - determining who would be
+drafted and who would be deferred, who would serve and who would
+escape, who would die and who would live - were an antidemocratic
+disgrace.  I can never forgive a leadership that said, in effect: These
+young men - poorer, less educated, less privileged - are expendable
+(someone described them as 'economic cannon fodder'), but the rest are
+too good to risk.  <b>I am angry that so many of the sons of the powerful
+and well placed and so many professional athletes (who were probably
+healthier than any of us) managed to wangle slots in Reserve and
+National Guard units.</b>  Of the many tragedies of <b>Vietnam</b>, this raw
+class discrimination strikes me as the most damaging to the ideal that
+all Americans are created equal and owe equal allegiance to their country."
+</center>
+</pre>
+<p>
+<center>page 148  <b>"MY AMERICAN JOURNEY"</b> by <b>Colin Powell</b></center>
+<center>Copyright 1995 by <b>Colin L. Powell</b></center>
+<center>published by Random House</center>
+<center>ISBN 0-679-43296-5</center>
+</p>
+<pre>
+<b>
+2026 COLLEGE FOOTBALL STARTING RATINGS
+</b>
+this output has three parts: (1) teams listed by RATING top-to-bottom
+                             (2) CONFERENCE AVERAGES
+                                 (listed top-to-bottom & alphabetically)
+                             (3) teams listed by CONFERENCE
+                                 (listed in order within conferences)
+The SCHEDULE ratings represent what the rating would have to be for a
+hypothetical team to have a mathematical expectation of winning precisely 50%
+of their games against the schedule played by the team in question in the games
+that it has played so far.  The schedule difficulty of each given game takes
+into account the rating of the opponent and the location of the game. This
+is the same concept that is used in computing the WIN50% conference ratings.
+In COLLEGE FOOTBALL the W-L records include ALL games, but ONLY
+games between the <b>266 TEAMS RATED</b> here are used for RATING and SCHEDULE
+STRENGTH computations.
+To make predictions for upcoming games, simply compare the RATINGS of
+the teams in question and allow an ADDITIONAL  3  points for the home
+team.  Thus, for example, a HOME team with a rating of 92 would be
+favored by  5  points over a VISITING team having a rating of 90.
+Or a VISITING team with a rating of 89 would be favored by  7  points
+over a HOME team having a rating of 79.
+NOTE: Use whatever home advantage is listed in the output below.
+      In the example just above, a home edge of 3 was shown for
+      illustrative purposes. The home edge will vary during the season.
+<b>Several different home edges are shown, one for each of the several different type of ratings
+directly over their respective columns.</b>
+<h3><font size=+2>The numbers to the right of a team's schedule strength
+are its rank of schedule - (in parentheses) - and its
+record versus teams in <b><font color="#0000ff">these rating's</font> <font color="#9900ff">CURRENT</font> top 10</b>
+and <b>top 30</b> respectively.</font></h3>
+<b>Teams that appear to be tied to two decimal places in a given column are actually
+different when carried to more decimal places in the computer's internal arithmetic.</b>
+----------------------------------------------------------------------------------------------------------------
+The <b><font color="#0000ff">PREDICTOR</font></b>, is such that the <b>score</b> is the <b>only thing</b> that <b>matters</b>.
+<b><font color="#0000ff">PREDICTOR</font></b> is also known as <b><font color="#0000ff">PURE_POINTS</font>, BALLANTINE, RHEINGOLD, WHITE OWL</b>
+and is a very good <b><font color="#0000ff">PREDICTOR</font></b> of <b>future games</b>.
+----------------------------------------------------------------------------------------------------------------
+<b><font color="#bb0000">GOLDEN_MEAN</font></b> also utilizes the <b>actual SCORES</b> of the games in a different way but is also <b>completely SCORE BASED</b>
+and thus should be a good match for the <b><font color="#0000ff">PURE POINTS</font></b> in terms of predictive accuracy for upcoming games.
+----------------------------------------------------------------------------------------------------------------
+The <b><font color="#006B3C">RECENT</font></b>, is <b>score-based</b> and weights <b><font color="#006B3C">RECENT</font></b> play more heavily than earlier games. Its effect will become
+more pronounced the longer a season goes if a given team happens to have an upward or downward trend.
+----------------------------------------------------------------------------------------------------------------
+The overall <b><font color="#9900ff">RATING</font></b> is a <b>synthesis</b> of the three different <b>SCORE-BASED</b> methods, <b><font color="#0000ff">PREDICTOR(PURE_POINTS)</font></b>, <b><font color="#bb0000">GOLDEN_MEAN</font></b>,
+and <b><font color="#006B3C">RECENT</font></b> and thus should be a good predictor in its own right.
+<a name="Top_of_Page"></a>
+<h2><font size=+2><a href="#Predictions_with_Totals_and_Moneylines"><b>Predictions_with_Totals_and_Moneylines</b></a></h2></font>
+<b>just click on "Predictions_with_Totals_and_Moneylines" and it will take you to the daily predictions at the bottom of the file
+   where you'll also see the additional set of EXPERIMENTAL predictions which are the basic predictions that are adjusted to take into
+   account each team's tendencies of performance at home and away along with the extra picks column of <font size=+2>STRONG RECENT</font></b>
+</pre>
+<b>
+<pre>
+_________________________________________________________________________________________________________________________________________________
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   1  Ohio State           A  = 103.07    0   0    0.00(   0)    0   0  |    0   0  |  103.07    1 |  103.07    1 |  103.07    1 |  103.07    1  BIG TEN             (A)
+   2  Oregon               A  = 101.74    0   0    0.00(   0)    0   0  |    0   0  |  101.74    2 |  101.74    2 |  101.74    2 |  101.74    2  BIG TEN             (A)
+   3  Notre Dame           A  = 101.00    0   0    0.00(   0)    0   0  |    0   0  |  101.00    3 |  101.00    3 |  101.00    3 |  101.00    3  I-A IND.            (A)
+   4  Indiana              A  = 100.44    0   0    0.00(   0)    0   0  |    0   0  |  100.44    4 |  100.44    4 |  100.44    4 |  100.44    4  BIG TEN             (A)
+   5  Texas                A  =  98.50    0   0    0.00(   0)    0   0  |    0   0  |   98.50    5 |   98.50    5 |   98.50    5 |   98.50    5  SEC                 (A)
+   6  Georgia              A  =  97.38    0   0    0.00(   0)    0   0  |    0   0  |   97.38    6 |   97.38    6 |   97.38    6 |   97.38    6  SEC                 (A)
+   7  Miami-Florida        A  =  95.73    0   0    0.00(   0)    0   0  |    0   0  |   95.73    7 |   95.73    7 |   95.73    7 |   95.73    7  ACC                 (A)
+   8  Texas A&M            A  =  92.87    0   0    0.00(   0)    0   0  |    0   0  |   92.87    8 |   92.87    8 |   92.87    8 |   92.87    8  SEC                 (A)
+   9  Oklahoma             A  =  92.66    0   0    0.00(   0)    0   0  |    0   0  |   92.66    9 |   92.66    9 |   92.66    9 |   92.66    9  SEC                 (A)
+  10  LSU                  A  =  92.31    0   0    0.00(   0)    0   0  |    0   0  |   92.31   10 |   92.31   10 |   92.31   10 |   92.31   10  SEC                 (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  11  Southern California  A  =  92.11    0   0    0.00(   0)    0   0  |    0   0  |   92.11   11 |   92.11   11 |   92.11   11 |   92.11   11  BIG TEN             (A)
+  12  Texas Tech           A  =  92.08    0   0    0.00(   0)    0   0  |    0   0  |   92.08   12 |   92.08   12 |   92.08   12 |   92.08   12  BIG 12              (A)
+  13  Michigan             A  =  91.82    0   0    0.00(   0)    0   0  |    0   0  |   91.82   13 |   91.82   13 |   91.82   13 |   91.82   13  BIG TEN             (A)
+  14  Alabama              A  =  91.76    0   0    0.00(   0)    0   0  |    0   0  |   91.76   14 |   91.76   14 |   91.76   14 |   91.76   14  SEC                 (A)
+  15  Mississippi          A  =  91.18    0   0    0.00(   0)    0   0  |    0   0  |   91.18   15 |   91.18   15 |   91.18   15 |   91.18   15  SEC                 (A)
+  16  Florida              A  =  87.91    0   0    0.00(   0)    0   0  |    0   0  |   87.91   16 |   87.91   16 |   87.91   16 |   87.91   16  SEC                 (A)
+  17  Tennessee            A  =  87.90    0   0    0.00(   0)    0   0  |    0   0  |   87.90   17 |   87.90   17 |   87.90   17 |   87.90   17  SEC                 (A)
+  18  Penn State           A  =  87.68    0   0    0.00(   0)    0   0  |    0   0  |   87.68   18 |   87.68   18 |   87.68   18 |   87.68   18  BIG TEN             (A)
+  19  Washington           A  =  87.63    0   0    0.00(   0)    0   0  |    0   0  |   87.63   19 |   87.63   19 |   87.63   19 |   87.63   19  BIG TEN             (A)
+  20  Iowa                 A  =  85.40    0   0    0.00(   0)    0   0  |    0   0  |   85.40   20 |   85.40   20 |   85.40   20 |   85.40   20  BIG TEN             (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  21  Missouri             A  =  84.98    0   0    0.00(   0)    0   0  |    0   0  |   84.98   21 |   84.98   21 |   84.98   21 |   84.98   21  SEC                 (A)
+  22  Auburn               A  =  84.38    0   0    0.00(   0)    0   0  |    0   0  |   84.38   22 |   84.38   22 |   84.38   22 |   84.38   22  SEC                 (A)
+  23  South Carolina       A  =  84.20    0   0    0.00(   0)    0   0  |    0   0  |   84.20   23 |   84.20   23 |   84.20   23 |   84.20   23  SEC                 (A)
+  24  BYU                  A  =  84.02    0   0    0.00(   0)    0   0  |    0   0  |   84.02   24 |   84.02   24 |   84.02   24 |   84.02   24  BIG 12              (A)
+  25  SMU                  A  =  83.06    0   0    0.00(   0)    0   0  |    0   0  |   83.06   25 |   83.06   25 |   83.06   25 |   83.06   25  ACC                 (A)
+  26  Wisconsin            A  =  82.49    0   0    0.00(   0)    0   0  |    0   0  |   82.49   26 |   82.49   26 |   82.49   26 |   82.49   26  BIG TEN             (A)
+  27  Louisville           A  =  82.09    0   0    0.00(   0)    0   0  |    0   0  |   82.09   27 |   82.09   27 |   82.09   27 |   82.09   27  ACC                 (A)
+  28  Clemson              A  =  81.63    0   0    0.00(   0)    0   0  |    0   0  |   81.63   28 |   81.63   28 |   81.63   28 |   81.63   28  ACC                 (A)
+  29  Utah                 A  =  81.60    0   0    0.00(   0)    0   0  |    0   0  |   81.60   29 |   81.60   29 |   81.60   29 |   81.60   29  BIG 12              (A)
+  30  Illinois             A  =  81.12    0   0    0.00(   0)    0   0  |    0   0  |   81.12   30 |   81.12   30 |   81.12   30 |   81.12   30  BIG TEN             (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  31  Nebraska             A  =  80.57    0   0    0.00(   0)    0   0  |    0   0  |   80.57   31 |   80.57   31 |   80.57   31 |   80.57   31  BIG TEN             (A)
+  32  Vanderbilt           A  =  80.09    0   0    0.00(   0)    0   0  |    0   0  |   80.09   32 |   80.09   32 |   80.09   32 |   80.09   32  SEC                 (A)
+  33  Kentucky             A  =  79.45    0   0    0.00(   0)    0   0  |    0   0  |   79.45   33 |   79.45   33 |   79.45   33 |   79.45   33  SEC                 (A)
+  34  Minnesota            A  =  79.37    0   0    0.00(   0)    0   0  |    0   0  |   79.37   34 |   79.37   34 |   79.37   34 |   79.37   34  BIG TEN             (A)
+  35  UCLA                 A  =  79.24    0   0    0.00(   0)    0   0  |    0   0  |   79.24   35 |   79.24   35 |   79.24   35 |   79.24   35  BIG TEN             (A)
+  36  Pittsburgh           A  =  78.78    0   0    0.00(   0)    0   0  |    0   0  |   78.78   36 |   78.78   36 |   78.78   36 |   78.78   36  ACC                 (A)
+  37  Houston              A  =  78.71    0   0    0.00(   0)    0   0  |    0   0  |   78.71   37 |   78.71   37 |   78.71   37 |   78.71   37  BIG 12              (A)
+  38  Mississippi State    A  =  78.28    0   0    0.00(   0)    0   0  |    0   0  |   78.28   38 |   78.28   38 |   78.28   38 |   78.28   38  SEC                 (A)
+  39  Kansas State         A  =  77.98    0   0    0.00(   0)    0   0  |    0   0  |   77.98   39 |   77.98   39 |   77.98   39 |   77.98   39  BIG 12              (A)
+  40  Florida State        A  =  77.72    0   0    0.00(   0)    0   0  |    0   0  |   77.72   40 |   77.72   40 |   77.72   40 |   77.72   40  ACC                 (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  41  Arizona              A  =  77.70    0   0    0.00(   0)    0   0  |    0   0  |   77.70   41 |   77.70   41 |   77.70   41 |   77.70   41  BIG 12              (A)
+  42  Virginia Tech        A  =  77.49    0   0    0.00(   0)    0   0  |    0   0  |   77.49   42 |   77.49   42 |   77.49   42 |   77.49   42  ACC                 (A)
+  43  Northwestern         A  =  77.49    0   0    0.00(   0)    0   0  |    0   0  |   77.49   43 |   77.49   43 |   77.49   43 |   77.49   43  BIG TEN             (A)
+  44  Virginia             A  =  77.43    0   0    0.00(   0)    0   0  |    0   0  |   77.43   44 |   77.43   44 |   77.43   44 |   77.43   44  ACC                 (A)
+  45  Arizona State        A  =  77.11    0   0    0.00(   0)    0   0  |    0   0  |   77.11   45 |   77.11   45 |   77.11   45 |   77.11   45  BIG 12              (A)
+  46  TCU                  A  =  76.92    0   0    0.00(   0)    0   0  |    0   0  |   76.92   46 |   76.92   46 |   76.92   46 |   76.92   46  BIG 12              (A)
+  47  Georgia Tech         A  =  76.31    0   0    0.00(   0)    0   0  |    0   0  |   76.31   47 |   76.31   47 |   76.31   47 |   76.31   47  ACC                 (A)
+  48  Arkansas             A  =  75.76    0   0    0.00(   0)    0   0  |    0   0  |   75.76   48 |   75.76   48 |   75.76   48 |   75.76   48  SEC                 (A)
+  49  NC State             A  =  75.29    0   0    0.00(   0)    0   0  |    0   0  |   75.29   49 |   75.29   49 |   75.29   49 |   75.29   49  ACC                 (A)
+  50  Baylor               A  =  74.67    0   0    0.00(   0)    0   0  |    0   0  |   74.67   50 |   74.67   50 |   74.67   50 |   74.67   50  BIG 12              (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  51  Oklahoma State       A  =  74.55    0   0    0.00(   0)    0   0  |    0   0  |   74.55   51 |   74.55   51 |   74.55   51 |   74.55   51  BIG 12              (A)
+  52  Maryland             A  =  74.14    0   0    0.00(   0)    0   0  |    0   0  |   74.14   52 |   74.14   52 |   74.14   52 |   74.14   52  BIG TEN             (A)
+  53  Kansas               A  =  74.06    0   0    0.00(   0)    0   0  |    0   0  |   74.06   53 |   74.06   53 |   74.06   53 |   74.06   53  BIG 12              (A)
+  54  California           A  =  74.05    0   0    0.00(   0)    0   0  |    0   0  |   74.05   54 |   74.05   54 |   74.05   54 |   74.05   54  ACC                 (A)
+  55  Rutgers              A  =  73.30    0   0    0.00(   0)    0   0  |    0   0  |   73.30   55 |   73.30   55 |   73.30   55 |   73.30   55  BIG TEN             (A)
+  56  West Virginia        A  =  73.11    0   0    0.00(   0)    0   0  |    0   0  |   73.11   56 |   73.11   56 |   73.11   56 |   73.11   56  BIG 12              (A)
+  57  Wake Forest          A  =  72.71    0   0    0.00(   0)    0   0  |    0   0  |   72.71   57 |   72.71   57 |   72.71   57 |   72.71   57  ACC                 (A)
+  58  Duke                 A  =  72.32    0   0    0.00(   0)    0   0  |    0   0  |   72.32   58 |   72.32   58 |   72.32   58 |   72.32   58  ACC                 (A)
+  59  Michigan State       A  =  72.15    0   0    0.00(   0)    0   0  |    0   0  |   72.15   59 |   72.15   59 |   72.15   59 |   72.15   59  BIG TEN             (A)
+  60  Central Florida(UCF) A  =  71.77    0   0    0.00(   0)    0   0  |    0   0  |   71.77   60 |   71.77   60 |   71.77   60 |   71.77   60  BIG 12              (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  61  North Carolina       A  =  70.72    0   0    0.00(   0)    0   0  |    0   0  |   70.72   61 |   70.72   61 |   70.72   61 |   70.72   61  ACC                 (A)
+  62  Purdue               A  =  70.40    0   0    0.00(   0)    0   0  |    0   0  |   70.40   62 |   70.40   62 |   70.40   62 |   70.40   62  BIG TEN             (A)
+  63  Cincinnati           A  =  70.29    0   0    0.00(   0)    0   0  |    0   0  |   70.29   63 |   70.29   63 |   70.29   63 |   70.29   63  BIG 12              (A)
+  64  Colorado             A  =  69.80    0   0    0.00(   0)    0   0  |    0   0  |   69.80   64 |   69.80   64 |   69.80   64 |   69.80   64  BIG 12              (A)
+  65  Boise State          A  =  69.71    0   0    0.00(   0)    0   0  |    0   0  |   69.71   65 |   69.71   65 |   69.71   65 |   69.71   65  PAC-12              (A)
+  66  Syracuse             A  =  69.20    0   0    0.00(   0)    0   0  |    0   0  |   69.20   66 |   69.20   66 |   69.20   66 |   69.20   66  ACC                 (A)
+  67  Iowa State           A  =  68.73    0   0    0.00(   0)    0   0  |    0   0  |   68.73   67 |   68.73   67 |   68.73   67 |   68.73   67  BIG 12              (A)
+  68  South Dakota State   AA =  67.55    0   0    0.00(   0)    0   0  |    0   0  |   67.55   68 |   67.55   68 |   67.55   68 |   67.55   68  MISSOURI VALLEY     (AA)
+  69  Stanford             A  =  66.80    0   0    0.00(   0)    0   0  |    0   0  |   66.80   69 |   66.80   69 |   66.80   69 |   66.80   69  ACC                 (A)
+  70  Montana State        AA =  66.18    0   0    0.00(   0)    0   0  |    0   0  |   66.18   70 |   66.18   70 |   66.18   70 |   66.18   70  BIG SKY             (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  71  Boston College       A  =  65.70    0   0    0.00(   0)    0   0  |    0   0  |   65.70   71 |   65.70   71 |   65.70   71 |   65.70   71  ACC                 (A)
+  72  San Diego State      A  =  64.58    0   0    0.00(   0)    0   0  |    0   0  |   64.58   72 |   64.58   72 |   64.58   72 |   64.58   72  PAC-12              (A)
+  73  Navy                 A  =  64.23    0   0    0.00(   0)    0   0  |    0   0  |   64.23   73 |   64.23   73 |   64.23   73 |   64.23   73  AMERICAN            (A)
+  74  UNLV                 A  =  64.16    0   0    0.00(   0)    0   0  |    0   0  |   64.16   74 |   64.16   74 |   64.16   74 |   64.16   74  MOUNTAIN WEST       (A)
+  75  UTSA                 A  =  63.92    0   0    0.00(   0)    0   0  |    0   0  |   63.92   75 |   63.92   75 |   63.92   75 |   63.92   75  AMERICAN            (A)
+  76  North Dakota State   A  =  63.83    0   0    0.00(   0)    0   0  |    0   0  |   63.83   76 |   63.83   76 |   63.83   76 |   63.83   76  MOUNTAIN WEST       (A)
+  77  Tulane               A  =  63.39    0   0    0.00(   0)    0   0  |    0   0  |   63.39   77 |   63.39   77 |   63.39   77 |   63.39   77  AMERICAN            (A)
+  78  Memphis              A  =  63.24    0   0    0.00(   0)    0   0  |    0   0  |   63.24   78 |   63.24   78 |   63.24   78 |   63.24   78  AMERICAN            (A)
+  79  South Florida        A  =  63.15    0   0    0.00(   0)    0   0  |    0   0  |   63.15   79 |   63.15   79 |   63.15   79 |   63.15   79  AMERICAN            (A)
+  80  Army West Point      A  =  62.91    0   0    0.00(   0)    0   0  |    0   0  |   62.91   80 |   62.91   80 |   62.91   80 |   62.91   80  AMERICAN            (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  81  New Mexico           A  =  62.81    0   0    0.00(   0)    0   0  |    0   0  |   62.81   81 |   62.81   81 |   62.81   81 |   62.81   81  MOUNTAIN WEST       (A)
+  82  James Madison        A  =  62.67    0   0    0.00(   0)    0   0  |    0   0  |   62.67   82 |   62.67   82 |   62.67   82 |   62.67   82  SUN BELT EAST       (A)
+  83  Texas State          A  =  61.61    0   0    0.00(   0)    0   0  |    0   0  |   61.61   83 |   61.61   83 |   61.61   83 |   61.61   83  PAC-12              (A)
+  84  Washington State     A  =  61.44    0   0    0.00(   0)    0   0  |    0   0  |   61.44   84 |   61.44   84 |   61.44   84 |   61.44   84  PAC-12              (A)
+  85  Hawai'i              A  =  60.58    0   0    0.00(   0)    0   0  |    0   0  |   60.58   85 |   60.58   85 |   60.58   85 |   60.58   85  MOUNTAIN WEST       (A)
+  86  East Carolina        A  =  60.51    0   0    0.00(   0)    0   0  |    0   0  |   60.51   86 |   60.51   86 |   60.51   86 |   60.51   86  AMERICAN            (A)
+  87  Old Dominion         A  =  60.09    0   0    0.00(   0)    0   0  |    0   0  |   60.09   87 |   60.09   87 |   60.09   87 |   60.09   87  SUN BELT EAST       (A)
+  88  Fresno State         A  =  59.78    0   0    0.00(   0)    0   0  |    0   0  |   59.78   88 |   59.78   88 |   59.78   88 |   59.78   88  PAC-12              (A)
+  89  Montana              AA =  59.64    0   0    0.00(   0)    0   0  |    0   0  |   59.64   89 |   59.64   89 |   59.64   89 |   59.64   89  BIG SKY             (AA)
+  90  Air Force            A  =  58.76    0   0    0.00(   0)    0   0  |    0   0  |   58.76   90 |   58.76   90 |   58.76   90 |   58.76   90  MOUNTAIN WEST       (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  91  North Dakota         AA =  58.74    0   0    0.00(   0)    0   0  |    0   0  |   58.74   91 |   58.74   91 |   58.74   91 |   58.74   91  MISSOURI VALLEY     (AA)
+  92  Liberty              A  =  58.20    0   0    0.00(   0)    0   0  |    0   0  |   58.20   92 |   58.20   92 |   58.20   92 |   58.20   92  CONF-USA            (A)
+  93  Western Kentucky     A  =  57.94    0   0    0.00(   0)    0   0  |    0   0  |   57.94   93 |   57.94   93 |   57.94   93 |   57.94   93  CONF-USA            (A)
+  94  Marshall             A  =  57.57    0   0    0.00(   0)    0   0  |    0   0  |   57.57   94 |   57.57   94 |   57.57   94 |   57.57   94  SUN BELT EAST       (A)
+  95  Western Michigan     A  =  57.53    0   0    0.00(   0)    0   0  |    0   0  |   57.53   95 |   57.53   95 |   57.53   95 |   57.53   95  MAC                 (A)
+  96  Florida Atlantic     A  =  57.47    0   0    0.00(   0)    0   0  |    0   0  |   57.47   96 |   57.47   96 |   57.47   96 |   57.47   96  AMERICAN            (A)
+  97  South Dakota         AA =  57.12    0   0    0.00(   0)    0   0  |    0   0  |   57.12   97 |   57.12   97 |   57.12   97 |   57.12   97  MISSOURI VALLEY     (AA)
+  98  North Texas          A  =  56.76    0   0    0.00(   0)    0   0  |    0   0  |   56.76   98 |   56.76   98 |   56.76   98 |   56.76   98  AMERICAN            (A)
+  99  Tulsa                A  =  56.53    0   0    0.00(   0)    0   0  |    0   0  |   56.53   99 |   56.53   99 |   56.53   99 |   56.53   99  AMERICAN            (A)
+ 100  Toledo               A  =  56.53    0   0    0.00(   0)    0   0  |    0   0  |   56.53  100 |   56.53  100 |   56.53  100 |   56.53  100  MAC                 (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 101  Miami-Ohio           A  =  56.45    0   0    0.00(   0)    0   0  |    0   0  |   56.45  101 |   56.45  101 |   56.45  101 |   56.45  101  MAC                 (A)
+ 102  Troy                 A  =  56.23    0   0    0.00(   0)    0   0  |    0   0  |   56.23  102 |   56.23  102 |   56.23  102 |   56.23  102  SUN BELT WEST       (A)
+ 103  Oregon State         A  =  56.18    0   0    0.00(   0)    0   0  |    0   0  |   56.18  103 |   56.18  103 |   56.18  103 |   56.18  103  PAC-12              (A)
+ 104  Tarleton State       AA =  55.93    0   0    0.00(   0)    0   0  |    0   0  |   55.93  104 |   55.93  104 |   55.93  104 |   55.93  104  UAC                 (AA)
+ 105  Southern Illinois    AA =  55.89    0   0    0.00(   0)    0   0  |    0   0  |   55.89  105 |   55.89  105 |   55.89  105 |   55.89  105  MISSOURI VALLEY     (AA)
+ 106  Jacksonville State   A  =  55.87    0   0    0.00(   0)    0   0  |    0   0  |   55.87  106 |   55.87  106 |   55.87  106 |   55.87  106  CONF-USA            (A)
+ 107  Temple               A  =  55.61    0   0    0.00(   0)    0   0  |    0   0  |   55.61  107 |   55.61  107 |   55.61  107 |   55.61  107  AMERICAN            (A)
+ 108  UC Davis             AA =  55.51    0   0    0.00(   0)    0   0  |    0   0  |   55.51  108 |   55.51  108 |   55.51  108 |   55.51  108  BIG SKY             (AA)
+ 109  Utah State           A  =  55.26    0   0    0.00(   0)    0   0  |    0   0  |   55.26  109 |   55.26  109 |   55.26  109 |   55.26  109  PAC-12              (A)
+ 110  Connecticut          A  =  55.22    0   0    0.00(   0)    0   0  |    0   0  |   55.22  110 |   55.22  110 |   55.22  110 |   55.22  110  I-A IND.            (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 111  Louisiana-Lafayette  A  =  55.07    0   0    0.00(   0)    0   0  |    0   0  |   55.07  111 |   55.07  111 |   55.07  111 |   55.07  111  SUN BELT WEST       (A)
+ 112  Louisiana Tech       A  =  54.99    0   0    0.00(   0)    0   0  |    0   0  |   54.99  112 |   54.99  112 |   54.99  112 |   54.99  112  SUN BELT WEST       (A)
+ 113  Colorado State       A  =  54.84    0   0    0.00(   0)    0   0  |    0   0  |   54.84  113 |   54.84  113 |   54.84  113 |   54.84  113  PAC-12              (A)
+ 114  Delaware             A  =  53.94    0   0    0.00(   0)    0   0  |    0   0  |   53.94  114 |   53.94  114 |   53.94  114 |   53.94  114  CONF-USA            (A)
+ 115  Arkansas State       A  =  53.82    0   0    0.00(   0)    0   0  |    0   0  |   53.82  115 |   53.82  115 |   53.82  115 |   53.82  115  SUN BELT WEST       (A)
+ 116  Wyoming              A  =  53.80    0   0    0.00(   0)    0   0  |    0   0  |   53.80  116 |   53.80  116 |   53.80  116 |   53.80  116  MOUNTAIN WEST       (A)
+ 117  Appalachian State    A  =  53.78    0   0    0.00(   0)    0   0  |    0   0  |   53.78  117 |   53.78  117 |   53.78  117 |   53.78  117  SUN BELT EAST       (A)
+ 118  South Alabama        A  =  53.75    0   0    0.00(   0)    0   0  |    0   0  |   53.75  118 |   53.75  118 |   53.75  118 |   53.75  118  SUN BELT WEST       (A)
+ 119  Illinois State       AA =  53.44    0   0    0.00(   0)    0   0  |    0   0  |   53.44  119 |   53.44  119 |   53.44  119 |   53.44  119  MISSOURI VALLEY     (AA)
+ 120  Georgia Southern     A  =  53.34    0   0    0.00(   0)    0   0  |    0   0  |   53.34  120 |   53.34  120 |   53.34  120 |   53.34  120  SUN BELT EAST       (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 121  Kennesaw State       A  =  53.34    0   0    0.00(   0)    0   0  |    0   0  |   53.34  121 |   53.34  121 |   53.34  121 |   53.34  121  CONF-USA            (A)
+ 122  Central Michigan     A  =  53.14    0   0    0.00(   0)    0   0  |    0   0  |   53.14  122 |   53.14  122 |   53.14  122 |   53.14  122  MAC                 (A)
+ 123  Ohio                 A  =  53.00    0   0    0.00(   0)    0   0  |    0   0  |   53.00  123 |   53.00  123 |   53.00  123 |   53.00  123  MAC                 (A)
+ 124  Villanova            AA =  52.96    0   0    0.00(   0)    0   0  |    0   0  |   52.96  124 |   52.96  124 |   52.96  124 |   52.96  124  PATRIOT             (AA)
+ 125  Youngstown State     AA =  52.53    0   0    0.00(   0)    0   0  |    0   0  |   52.53  125 |   52.53  125 |   52.53  125 |   52.53  125  MISSOURI VALLEY     (AA)
+ 126  Idaho                AA =  52.10    0   0    0.00(   0)    0   0  |    0   0  |   52.10  126 |   52.10  126 |   52.10  126 |   52.10  126  BIG SKY             (AA)
+ 127  Nevada               A  =  52.05    0   0    0.00(   0)    0   0  |    0   0  |   52.05  127 |   52.05  127 |   52.05  127 |   52.05  127  MOUNTAIN WEST       (A)
+ 128  Fla. International   A  =  51.97    0   0    0.00(   0)    0   0  |    0   0  |   51.97  128 |   51.97  128 |   51.97  128 |   51.97  128  CONF-USA            (A)
+ 129  Stephen F. Austin    AA =  51.71    0   0    0.00(   0)    0   0  |    0   0  |   51.71  129 |   51.71  129 |   51.71  129 |   51.71  129  SOUTHLAND           (AA)
+ 130  Mercer               AA =  51.54    0   0    0.00(   0)    0   0  |    0   0  |   51.54  130 |   51.54  130 |   51.54  130 |   51.54  130  SOUTHERN            (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 131  Coastal Carolina     A  =  51.21    0   0    0.00(   0)    0   0  |    0   0  |   51.21  131 |   51.21  131 |   51.21  131 |   51.21  131  SUN BELT EAST       (A)
+ 132  Abilene Christian    AA =  51.12    0   0    0.00(   0)    0   0  |    0   0  |   51.12  132 |   51.12  132 |   51.12  132 |   51.12  132  UAC                 (AA)
+ 133  Eastern Michigan     A  =  51.09    0   0    0.00(   0)    0   0  |    0   0  |   51.09  133 |   51.09  133 |   51.09  133 |   51.09  133  MAC                 (A)
+ 134  San Jose State       A  =  50.82    0   0    0.00(   0)    0   0  |    0   0  |   50.82  134 |   50.82  134 |   50.82  134 |   50.82  134  MOUNTAIN WEST       (A)
+ 135  Austin Peay          AA =  50.69    0   0    0.00(   0)    0   0  |    0   0  |   50.69  135 |   50.69  135 |   50.69  135 |   50.69  135  UAC                 (AA)
+ 136  Rice                 A  =  50.61    0   0    0.00(   0)    0   0  |    0   0  |   50.61  136 |   50.61  136 |   50.61  136 |   50.61  136  AMERICAN            (A)
+ 137  Yale                 AA =  50.43    0   0    0.00(   0)    0   0  |    0   0  |   50.43  137 |   50.43  137 |   50.43  137 |   50.43  137  IVY LEAGUE          (AA)
+ 138  Harvard              AA =  50.39    0   0    0.00(   0)    0   0  |    0   0  |   50.39  138 |   50.39  138 |   50.39  138 |   50.39  138  IVY LEAGUE          (AA)
+ 139  Southern Utah        AA =  49.56    0   0    0.00(   0)    0   0  |    0   0  |   49.56  139 |   49.56  139 |   49.56  139 |   49.56  139  BIG SKY             (AA)
+ 140  Northern Arizona     AA =  49.51    0   0    0.00(   0)    0   0  |    0   0  |   49.51  140 |   49.51  140 |   49.51  140 |   49.51  140  BIG SKY             (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 141  Bowling Green        A  =  49.48    0   0    0.00(   0)    0   0  |    0   0  |   49.48  141 |   49.48  141 |   49.48  141 |   49.48  141  MAC                 (A)
+ 142  Buffalo              A  =  49.06    0   0    0.00(   0)    0   0  |    0   0  |   49.06  142 |   49.06  142 |   49.06  142 |   49.06  142  MAC                 (A)
+ 143  Incarnate Word       AA =  48.70    0   0    0.00(   0)    0   0  |    0   0  |   48.70  143 |   48.70  143 |   48.70  143 |   48.70  143  SOUTHLAND           (AA)
+ 144  New Mexico State     A  =  48.39    0   0    0.00(   0)    0   0  |    0   0  |   48.39  144 |   48.39  144 |   48.39  144 |   48.39  144  CONF-USA            (A)
+ 145  UAB                  A  =  48.17    0   0    0.00(   0)    0   0  |    0   0  |   48.17  145 |   48.17  145 |   48.17  145 |   48.17  145  AMERICAN            (A)
+ 146  Northern Illinois    A  =  48.14    0   0    0.00(   0)    0   0  |    0   0  |   48.14  146 |   48.14  146 |   48.14  146 |   48.14  146  MOUNTAIN WEST       (A)
+ 147  Missouri State       A  =  48.11    0   0    0.00(   0)    0   0  |    0   0  |   48.11  147 |   48.11  147 |   48.11  147 |   48.11  147  CONF-USA            (A)
+ 148  Akron                A  =  47.94    0   0    0.00(   0)    0   0  |    0   0  |   47.94  148 |   47.94  148 |   47.94  148 |   47.94  148  MAC                 (A)
+ 149  SE Louisiana         AA =  47.61    0   0    0.00(   0)    0   0  |    0   0  |   47.61  149 |   47.61  149 |   47.61  149 |   47.61  149  SOUTHLAND           (AA)
+ 150  Monmouth-NJ          AA =  47.59    0   0    0.00(   0)    0   0  |    0   0  |   47.59  150 |   47.59  150 |   47.59  150 |   47.59  150  COASTAL ATHLETIC    (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 151  Rhode Island         AA =  47.46    0   0    0.00(   0)    0   0  |    0   0  |   47.46  151 |   47.46  151 |   47.46  151 |   47.46  151  COASTAL ATHLETIC    (AA)
+ 152  Northern Iowa        AA =  47.43    0   0    0.00(   0)    0   0  |    0   0  |   47.43  152 |   47.43  152 |   47.43  152 |   47.43  152  MISSOURI VALLEY     (AA)
+ 153  Georgia State        A  =  47.38    0   0    0.00(   0)    0   0  |    0   0  |   47.38  153 |   47.38  153 |   47.38  153 |   47.38  153  SUN BELT EAST       (A)
+ 154  Southern Miss        A  =  47.34    0   0    0.00(   0)    0   0  |    0   0  |   47.34  154 |   47.34  154 |   47.34  154 |   47.34  154  SUN BELT WEST       (A)
+ 155  Tennessee-Martin     AA =  47.23    0   0    0.00(   0)    0   0  |    0   0  |   47.23  155 |   47.23  155 |   47.23  155 |   47.23  155  OVC-BIG SOUTH       (AA)
+ 156  UTRGV                AA =  47.14    0   0    0.00(   0)    0   0  |    0   0  |   47.14  156 |   47.14  156 |   47.14  156 |   47.14  156  SOUTHLAND           (AA)
+ 157  Eastern Washington   AA =  46.83    0   0    0.00(   0)    0   0  |    0   0  |   46.83  157 |   46.83  157 |   46.83  157 |   46.83  157  BIG SKY             (AA)
+ 158  UTEP                 A  =  46.71    0   0    0.00(   0)    0   0  |    0   0  |   46.71  158 |   46.71  158 |   46.71  158 |   46.71  158  MOUNTAIN WEST       (A)
+ 159  Tennessee Tech       AA =  46.63    0   0    0.00(   0)    0   0  |    0   0  |   46.63  159 |   46.63  159 |   46.63  159 |   46.63  159  SOUTHERN            (AA)
+ 160  LouisianaMonroe(ULM) A  =  46.39    0   0    0.00(   0)    0   0  |    0   0  |   46.39  160 |   46.39  160 |   46.39  160 |   46.39  160  SUN BELT WEST       (A)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 161  Weber State          AA =  46.29    0   0    0.00(   0)    0   0  |    0   0  |   46.29  161 |   46.29  161 |   46.29  161 |   46.29  161  BIG SKY             (AA)
+ 162  New Hampshire        AA =  46.24    0   0    0.00(   0)    0   0  |    0   0  |   46.24  162 |   46.24  162 |   46.24  162 |   46.24  162  COASTAL ATHLETIC    (AA)
+ 163  Western Carolina     AA =  46.15    0   0    0.00(   0)    0   0  |    0   0  |   46.15  163 |   46.15  163 |   46.15  163 |   46.15  163  SOUTHERN            (AA)
+ 164  Middle Tennessee     A  =  46.11    0   0    0.00(   0)    0   0  |    0   0  |   46.11  164 |   46.11  164 |   46.11  164 |   46.11  164  CONF-USA            (A)
+ 165  Lehigh               AA =  45.97    0   0    0.00(   0)    0   0  |    0   0  |   45.97  165 |   45.97  165 |   45.97  165 |   45.97  165  PATRIOT             (AA)
+ 166  Eastern Kentucky     AA =  45.91    0   0    0.00(   0)    0   0  |    0   0  |   45.91  166 |   45.91  166 |   45.91  166 |   45.91  166  UAC                 (AA)
+ 167  Idaho State          AA =  45.89    0   0    0.00(   0)    0   0  |    0   0  |   45.89  167 |   45.89  167 |   45.89  167 |   45.89  167  BIG SKY             (AA)
+ 168  Dartmouth            AA =  45.84    0   0    0.00(   0)    0   0  |    0   0  |   45.84  168 |   45.84  168 |   45.84  168 |   45.84  168  IVY LEAGUE          (AA)
+ 169  Central Arkansas     AA =  45.72    0   0    0.00(   0)    0   0  |    0   0  |   45.72  169 |   45.72  169 |   45.72  169 |   45.72  169  UAC                 (AA)
+ 170  Elon                 AA =  45.32    0   0    0.00(   0)    0   0  |    0   0  |   45.32  170 |   45.32  170 |   45.32  170 |   45.32  170  COASTAL ATHLETIC    (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 171  William & Mary       AA =  45.30    0   0    0.00(   0)    0   0  |    0   0  |   45.30  171 |   45.30  171 |   45.30  171 |   45.30  171  PATRIOT             (AA)
+ 172  Sacramento State     A  =  45.22    0   0    0.00(   0)    0   0  |    0   0  |   45.22  172 |   45.22  172 |   45.22  172 |   45.22  172  MAC                 (A)
+ 173  Holy Cross           AA =  44.96    0   0    0.00(   0)    0   0  |    0   0  |   44.96  173 |   44.96  173 |   44.96  173 |   44.96  173  PATRIOT             (AA)
+ 174  Chattanooga          AA =  44.95    0   0    0.00(   0)    0   0  |    0   0  |   44.95  174 |   44.95  174 |   44.95  174 |   44.95  174  SOUTHERN            (AA)
+ 175  Jackson State        AA =  44.83    0   0    0.00(   0)    0   0  |    0   0  |   44.83  175 |   44.83  175 |   44.83  175 |   44.83  175  SWAC-EAST           (AA)
+ 176  East Tennessee State AA =  44.69    0   0    0.00(   0)    0   0  |    0   0  |   44.69  176 |   44.69  176 |   44.69  176 |   44.69  176  SOUTHERN            (AA)
+ 177  Kent State           A  =  44.30    0   0    0.00(   0)    0   0  |    0   0  |   44.30  177 |   44.30  177 |   44.30  177 |   44.30  177  MAC                 (A)
+ 178  Richmond             AA =  44.07    0   0    0.00(   0)    0   0  |    0   0  |   44.07  178 |   44.07  178 |   44.07  178 |   44.07  178  PATRIOT             (AA)
+ 179  SE Missouri State    AA =  43.90    0   0    0.00(   0)    0   0  |    0   0  |   43.90  179 |   43.90  179 |   43.90  179 |   43.90  179  OVC-BIG SOUTH       (AA)
+ 180  West Georgia         AA =  43.76    0   0    0.00(   0)    0   0  |    0   0  |   43.76  180 |   43.76  180 |   43.76  180 |   43.76  180  UAC                 (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 181  Towson               AA =  43.70    0   0    0.00(   0)    0   0  |    0   0  |   43.70  181 |   43.70  181 |   43.70  181 |   43.70  181  COASTAL ATHLETIC    (AA)
+ 182  Sam Houston State    A  =  43.58    0   0    0.00(   0)    0   0  |    0   0  |   43.58  182 |   43.58  182 |   43.58  182 |   43.58  182  CONF-USA            (A)
+ 183  NC Central           AA =  43.18    0   0    0.00(   0)    0   0  |    0   0  |   43.18  183 |   43.18  183 |   43.18  183 |   43.18  183  MEAC                (AA)
+ 184  SC State             AA =  43.06    0   0    0.00(   0)    0   0  |    0   0  |   43.06  184 |   43.06  184 |   43.06  184 |   43.06  184  MEAC                (AA)
+ 185  Charlotte            A  =  42.87    0   0    0.00(   0)    0   0  |    0   0  |   42.87  185 |   42.87  185 |   42.87  185 |   42.87  185  AMERICAN            (A)
+ 186  Ball State           A  =  42.69    0   0    0.00(   0)    0   0  |    0   0  |   42.69  186 |   42.69  186 |   42.69  186 |   42.69  186  MAC                 (A)
+ 187  Pennsylvania         AA =  42.61    0   0    0.00(   0)    0   0  |    0   0  |   42.61  187 |   42.61  187 |   42.61  187 |   42.61  187  IVY LEAGUE          (AA)
+ 188  Alabama State        AA =  42.50    0   0    0.00(   0)    0   0  |    0   0  |   42.50  188 |   42.50  188 |   42.50  188 |   42.50  188  SWAC-EAST           (AA)
+ 189  Gardner-Webb         AA =  42.43    0   0    0.00(   0)    0   0  |    0   0  |   42.43  189 |   42.43  189 |   42.43  189 |   42.43  189  OVC-BIG SOUTH       (AA)
+ 190  Princeton            AA =  42.07    0   0    0.00(   0)    0   0  |    0   0  |   42.07  190 |   42.07  190 |   42.07  190 |   42.07  190  IVY LEAGUE          (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 191  Lafayette            AA =  41.28    0   0    0.00(   0)    0   0  |    0   0  |   41.28  191 |   41.28  191 |   41.28  191 |   41.28  191  PATRIOT             (AA)
+ 192  Wofford              AA =  41.28    0   0    0.00(   0)    0   0  |    0   0  |   41.28  192 |   41.28  192 |   41.28  192 |   41.28  192  SOUTHERN            (AA)
+ 193  Nicholls State       AA =  41.23    0   0    0.00(   0)    0   0  |    0   0  |   41.23  193 |   41.23  193 |   41.23  193 |   41.23  193  SOUTHLAND           (AA)
+ 194  Cal Poly-SLO         AA =  40.89    0   0    0.00(   0)    0   0  |    0   0  |   40.89  194 |   40.89  194 |   40.89  194 |   40.89  194  BIG SKY             (AA)
+ 195  Furman               AA =  40.87    0   0    0.00(   0)    0   0  |    0   0  |   40.87  195 |   40.87  195 |   40.87  195 |   40.87  195  SOUTHERN            (AA)
+ 196  Lamar                AA =  40.77    0   0    0.00(   0)    0   0  |    0   0  |   40.77  196 |   40.77  196 |   40.77  196 |   40.77  196  SOUTHLAND           (AA)
+ 197  Stony Brook          AA =  40.36    0   0    0.00(   0)    0   0  |    0   0  |   40.36  197 |   40.36  197 |   40.36  197 |   40.36  197  COASTAL ATHLETIC    (AA)
+ 198  Portland State       AA =  40.19    0   0    0.00(   0)    0   0  |    0   0  |   40.19  198 |   40.19  198 |   40.19  198 |   40.19  198  BIG SKY             (AA)
+ 199  Indiana State        AA =  40.02    0   0    0.00(   0)    0   0  |    0   0  |   40.02  199 |   40.02  199 |   40.02  199 |   40.02  199  MISSOURI VALLEY     (AA)
+ 200  Maine                AA =  39.97    0   0    0.00(   0)    0   0  |    0   0  |   39.97  200 |   39.97  200 |   39.97  200 |   39.97  200  COASTAL ATHLETIC    (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 201  North Alabama        AA =  39.57    0   0    0.00(   0)    0   0  |    0   0  |   39.57  201 |   39.57  201 |   39.57  201 |   39.57  201  UAC                 (AA)
+ 202  Lindenwood           AA =  39.04    0   0    0.00(   0)    0   0  |    0   0  |   39.04  202 |   39.04  202 |   39.04  202 |   39.04  202  OVC-BIG SOUTH       (AA)
+ 203  McNeese State        AA =  39.03    0   0    0.00(   0)    0   0  |    0   0  |   39.03  203 |   39.03  203 |   39.03  203 |   39.03  203  SOUTHLAND           (AA)
+ 204  Duquesne             AA =  39.00    0   0    0.00(   0)    0   0  |    0   0  |   39.00  204 |   39.00  204 |   39.00  204 |   39.00  204  NORTHEAST           (AA)
+ 205  Samford              AA =  38.87    0   0    0.00(   0)    0   0  |    0   0  |   38.87  205 |   38.87  205 |   38.87  205 |   38.87  205  SOUTHERN            (AA)
+ 206  St. Thomas-Mn.       AA =  38.33    0   0    0.00(   0)    0   0  |    0   0  |   38.33  206 |   38.33  206 |   38.33  206 |   38.33  206  PIONEER             (AA)
+ 207  Columbia             AA =  38.31    0   0    0.00(   0)    0   0  |    0   0  |   38.31  207 |   38.31  207 |   38.31  207 |   38.31  207  IVY LEAGUE          (AA)
+ 208  Brown                AA =  38.30    0   0    0.00(   0)    0   0  |    0   0  |   38.30  208 |   38.30  208 |   38.30  208 |   38.30  208  IVY LEAGUE          (AA)
+ 209  Albany-NY            AA =  38.30    0   0    0.00(   0)    0   0  |    0   0  |   38.30  209 |   38.30  209 |   38.30  209 |   38.30  209  COASTAL ATHLETIC    (AA)
+ 210  Prairie View A&M     AA =  38.01    0   0    0.00(   0)    0   0  |    0   0  |   38.01  210 |   38.01  210 |   38.01  210 |   38.01  210  SWAC-WEST           (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 211  Utah Tech            AA =  37.71    0   0    0.00(   0)    0   0  |    0   0  |   37.71  211 |   37.71  211 |   37.71  211 |   37.71  211  BIG SKY             (AA)
+ 212  Drake                AA =  37.66    0   0    0.00(   0)    0   0  |    0   0  |   37.66  212 |   37.66  212 |   37.66  212 |   37.66  212  PIONEER             (AA)
+ 213  Charleston Southern  AA =  37.46    0   0    0.00(   0)    0   0  |    0   0  |   37.46  213 |   37.46  213 |   37.46  213 |   37.46  213  OVC-BIG SOUTH       (AA)
+ 214  The Citadel          AA =  37.39    0   0    0.00(   0)    0   0  |    0   0  |   37.39  214 |   37.39  214 |   37.39  214 |   37.39  214  SOUTHERN            (AA)
+ 215  Campbell             AA =  37.28    0   0    0.00(   0)    0   0  |    0   0  |   37.28  215 |   37.28  215 |   37.28  215 |   37.28  215  COASTAL ATHLETIC    (AA)
+ 216  Cornell              AA =  37.22    0   0    0.00(   0)    0   0  |    0   0  |   37.22  216 |   37.22  216 |   37.22  216 |   37.22  216  IVY LEAGUE          (AA)
+ 217  Northern Colorado    AA =  36.99    0   0    0.00(   0)    0   0  |    0   0  |   36.99  217 |   36.99  217 |   36.99  217 |   36.99  217  BIG SKY             (AA)
+ 218  Eastern Illinois     AA =  36.89    0   0    0.00(   0)    0   0  |    0   0  |   36.89  218 |   36.89  218 |   36.89  218 |   36.89  218  OVC-BIG SOUTH       (AA)
+ 219  Colgate              AA =  36.87    0   0    0.00(   0)    0   0  |    0   0  |   36.87  219 |   36.87  219 |   36.87  219 |   36.87  219  PATRIOT             (AA)
+ 220  San Diego            AA =  36.74    0   0    0.00(   0)    0   0  |    0   0  |   36.74  220 |   36.74  220 |   36.74  220 |   36.74  220  PIONEER             (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 221  Southern U.          AA =  36.71    0   0    0.00(   0)    0   0  |    0   0  |   36.71  221 |   36.71  221 |   36.71  221 |   36.71  221  SWAC-WEST           (AA)
+ 222  Merrimack            AA =  36.51    0   0    0.00(   0)    0   0  |    0   0  |   36.51  222 |   36.51  222 |   36.51  222 |   36.51  222  UAC                 (AA)
+ 223  New Haven            AA =  36.50    0   0    0.00(   0)    0   0  |    0   0  |   36.50  223 |   36.50  223 |   36.50  223 |   36.50  223  NORTHEAST           (AA)
+ 224  Central Connecticut  AA =  36.35    0   0    0.00(   0)    0   0  |    0   0  |   36.35  224 |   36.35  224 |   36.35  224 |   36.35  224  NORTHEAST           (AA)
+ 225  Murray State         AA =  35.91    0   0    0.00(   0)    0   0  |    0   0  |   35.91  225 |   35.91  225 |   35.91  225 |   35.91  225  MISSOURI VALLEY     (AA)
+ 226  Massachusetts        A  =  35.90    0   0    0.00(   0)    0   0  |    0   0  |   35.90  226 |   35.90  226 |   35.90  226 |   35.90  226  MAC                 (A)
+ 227  Western Illinois     AA =  35.88    0   0    0.00(   0)    0   0  |    0   0  |   35.88  227 |   35.88  227 |   35.88  227 |   35.88  227  OVC-BIG SOUTH       (AA)
+ 228  Florida A&M          AA =  35.33    0   0    0.00(   0)    0   0  |    0   0  |   35.33  228 |   35.33  228 |   35.33  228 |   35.33  228  SWAC-EAST           (AA)
+ 229  Tennessee State      AA =  35.18    0   0    0.00(   0)    0   0  |    0   0  |   35.18  229 |   35.18  229 |   35.18  229 |   35.18  229  OVC-BIG SOUTH       (AA)
+ 230  Bryant               AA =  34.95    0   0    0.00(   0)    0   0  |    0   0  |   34.95  230 |   34.95  230 |   34.95  230 |   34.95  230  COASTAL ATHLETIC    (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 231  East Texas A&M       AA =  34.79    0   0    0.00(   0)    0   0  |    0   0  |   34.79  231 |   34.79  231 |   34.79  231 |   34.79  231  SOUTHLAND           (AA)
+ 232  Fordham              AA =  34.74    0   0    0.00(   0)    0   0  |    0   0  |   34.74  232 |   34.74  232 |   34.74  232 |   34.74  232  PATRIOT             (AA)
+ 233  LIU Post             AA =  34.66    0   0    0.00(   0)    0   0  |    0   0  |   34.66  233 |   34.66  233 |   34.66  233 |   34.66  233  NORTHEAST           (AA)
+ 234  Grambling State      AA =  34.46    0   0    0.00(   0)    0   0  |    0   0  |   34.46  234 |   34.46  234 |   34.46  234 |   34.46  234  SWAC-WEST           (AA)
+ 235  Morgan State         AA =  34.46    0   0    0.00(   0)    0   0  |    0   0  |   34.46  235 |   34.46  235 |   34.46  235 |   34.46  235  MEAC                (AA)
+ 236  Howard               AA =  34.35    0   0    0.00(   0)    0   0  |    0   0  |   34.35  236 |   34.35  236 |   34.35  236 |   34.35  236  MEAC                (AA)
+ 237  Butler               AA =  34.19    0   0    0.00(   0)    0   0  |    0   0  |   34.19  237 |   34.19  237 |   34.19  237 |   34.19  237  PIONEER             (AA)
+ 238  Sacred Heart         AA =  33.96    0   0    0.00(   0)    0   0  |    0   0  |   33.96  238 |   33.96  238 |   33.96  238 |   33.96  238  COASTAL ATHLETIC    (AA)
+ 239  Alcorn State         AA =  33.77    0   0    0.00(   0)    0   0  |    0   0  |   33.77  239 |   33.77  239 |   33.77  239 |   33.77  239  SWAC-WEST           (AA)
+ 240  Bethune-Cookman      AA =  33.67    0   0    0.00(   0)    0   0  |    0   0  |   33.67  240 |   33.67  240 |   33.67  240 |   33.67  240  SWAC-EAST           (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 241  Texas Southern       AA =  33.58    0   0    0.00(   0)    0   0  |    0   0  |   33.58  241 |   33.58  241 |   33.58  241 |   33.58  241  SWAC-WEST           (AA)
+ 242  Presbyterian College AA =  33.18    0   0    0.00(   0)    0   0  |    0   0  |   33.18  242 |   33.18  242 |   33.18  242 |   33.18  242  PIONEER             (AA)
+ 243  Dayton               AA =  33.14    0   0    0.00(   0)    0   0  |    0   0  |   33.14  243 |   33.14  243 |   33.14  243 |   33.14  243  PIONEER             (AA)
+ 244  Mercyhurst           AA =  33.11    0   0    0.00(   0)    0   0  |    0   0  |   33.11  244 |   33.11  244 |   33.11  244 |   33.11  244  NORTHEAST           (AA)
+ 245  Robert Morris        AA =  32.73    0   0    0.00(   0)    0   0  |    0   0  |   32.73  245 |   32.73  245 |   32.73  245 |   32.73  245  NORTHEAST           (AA)
+ 246  Bucknell             AA =  32.54    0   0    0.00(   0)    0   0  |    0   0  |   32.54  246 |   32.54  246 |   32.54  246 |   32.54  246  PATRIOT             (AA)
+ 247  Delaware State       AA =  32.39    0   0    0.00(   0)    0   0  |    0   0  |   32.39  247 |   32.39  247 |   32.39  247 |   32.39  247  MEAC                (AA)
+ 248  Alabama A&M          AA =  31.94    0   0    0.00(   0)    0   0  |    0   0  |   31.94  248 |   31.94  248 |   31.94  248 |   31.94  248  SWAC-EAST           (AA)
+ 249  Chicago State        AA =  31.69    0   0    0.00(   0)    0   0  |    0   0  |   31.69  249 |   31.69  249 |   31.69  249 |   31.69  249  UAC                 (AA)
+ 250  Hampton              AA =  31.49    0   0    0.00(   0)    0   0  |    0   0  |   31.49  250 |   31.49  250 |   31.49  250 |   31.49  250  COASTAL ATHLETIC    (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 251  Georgetown           AA =  31.37    0   0    0.00(   0)    0   0  |    0   0  |   31.37  251 |   31.37  251 |   31.37  251 |   31.37  251  PATRIOT             (AA)
+ 252  Houston Christian    AA =  31.29    0   0    0.00(   0)    0   0  |    0   0  |   31.29  252 |   31.29  252 |   31.29  252 |   31.29  252  SOUTHLAND           (AA)
+ 253  Norfolk State        AA =  31.25    0   0    0.00(   0)    0   0  |    0   0  |   31.25  253 |   31.25  253 |   31.25  253 |   31.25  253  MEAC                (AA)
+ 254  West Florida         AA =  30.75    0   0    0.00(   0)    0   0  |    0   0  |   30.75  254 |   30.75  254 |   30.75  254 |   30.75  254  UAC                 (AA)
+ 255  Wagner               AA =  29.90    0   0    0.00(   0)    0   0  |    0   0  |   29.90  255 |   29.90  255 |   29.90  255 |   29.90  255  NORTHEAST           (AA)
+ 256  NC A&T               AA =  29.87    0   0    0.00(   0)    0   0  |    0   0  |   29.87  256 |   29.87  256 |   29.87  256 |   29.87  256  COASTAL ATHLETIC    (AA)
+ 257  Stonehill College    AA =  29.49    0   0    0.00(   0)    0   0  |    0   0  |   29.49  257 |   29.49  257 |   29.49  257 |   29.49  257  NORTHEAST           (AA)
+ 258  VMI                  AA =  29.31    0   0    0.00(   0)    0   0  |    0   0  |   29.31  258 |   29.31  258 |   29.31  258 |   29.31  258  SOUTHERN            (AA)
+ 259  Morehead State       AA =  27.52    0   0    0.00(   0)    0   0  |    0   0  |   27.52  259 |   27.52  259 |   27.52  259 |   27.52  259  PIONEER             (AA)
+ 260  Ark.-Pine Bluff      AA =  27.11    0   0    0.00(   0)    0   0  |    0   0  |   27.11  260 |   27.11  260 |   27.11  260 |   27.11  260  SWAC-WEST           (AA)
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 261  Marist               AA =  27.06    0   0    0.00(   0)    0   0  |    0   0  |   27.06  261 |   27.06  261 |   27.06  261 |   27.06  261  PIONEER             (AA)
+ 262  Davidson             AA =  26.60    0   0    0.00(   0)    0   0  |    0   0  |   26.60  262 |   26.60  262 |   26.60  262 |   26.60  262  PIONEER             (AA)
+ 263  Northwestern State   AA =  25.42    0   0    0.00(   0)    0   0  |    0   0  |   25.42  263 |   25.42  263 |   25.42  263 |   25.42  263  SOUTHLAND           (AA)
+ 264  Valparaiso           AA =  25.02    0   0    0.00(   0)    0   0  |    0   0  |   25.02  264 |   25.02  264 |   25.02  264 |   25.02  264  PIONEER             (AA)
+ 265  Miss. Valley State   AA =  24.55    0   0    0.00(   0)    0   0  |    0   0  |   24.55  265 |   24.55  265 |   24.55  265 |   24.55  265  SWAC-EAST           (AA)
+ 266  Stetson              AA =  21.82    0   0    0.00(   0)    0   0  |    0   0  |   21.82  266 |   21.82  266 |   21.82  266 |   21.82  266  PIONEER             (AA)
+ 267  ***UNRATED***        __ = -76.07    0   0    0.00(   0)    0   0  |    0   0  |  -76.07  267 |  -76.07  267 |  -76.07  267 |  -76.07  267  ___UNRATED___       (__)
+_________________________________________________________________________________________________________________________________________________
+</pre>
+<pre>
+<h3><font size=+2>Conference Rankings</font></h3>
+<pre>
+There are three group ratings, the <b>"central mean"</b>, the
+<b>"simple average"</b> (also known as the <b>"arithmetic mean"</b>,)
+and the <b>WIN50%</b>.
+The <b>"central mean"</b> gives the most weight to the middle team(s)
+in the group and progressively less weight to teams as you go
+away from the middle in either direction, up or down.
+This tends to smooth out the effect of anomalous teams that are rated
+much higher and lower than the middle team(s) in the group.  The
+<b>"simple average" ("arithmetic mean")</b> weights each team equally
+no matter where they are relative to the middle.
+Here are a few examples of how the <b>"central mean"</b> is computed.
+  4-team group ___ the weights are   1-2-2-1
+  5-team group ___ the weights are   1-2-3-2-1
+  6-team group ___ the weights are   1-2-3-3-2-1
+  7-team group ___ the weights are   1-2-3-4-3-2-1
+  8-team group ___ the weights are   1-2-3-4-4-3-2-1
+  9-team group ___ the weights are   1-2-3-4-5-4-3-2-1
+ 10-team group ___ the weights are   1-2-3-4-5-5-4-3-2-1
+ 11-team group ___ the weights are   1-2-3-4-5-6-5-4-3-2-1
+ 12-team group ___ the weights are   1-2-3-4-5-6-6-5-4-3-2-1
+ 13-team group ___ the weights are   1-2-3-4-5-6-7-6-5-4-3-2-1
+This is an expanded version of the <b>"tri-mean"</b>.
+The <b>WIN50%</b> is the rating required to win 50% of the games if playing an
+infinite number of round-robins in the given group at a neutral location.
+</pre>
+<pre>
+      <b>CONFERENCE          CENTRAL MEAN    SIMPLE AVERAGE  TEAMS      WIN50%         RATING          PREDICTOR         GOLDEN_MEAN         RECENT
+   1  SEC                 (A) =  87.67      87.48  (  1)     16      87.52  (  1)  87.4754( 6.8263)  87.4754( 6.8263)  87.4754( 6.8263)  87.4754( 6.8263)
+   2  BIG TEN             (A) =  83.61      84.45  (  2)     18      84.00  (  2)  84.4528(10.1365)  84.4528(10.1365)  84.4528(10.1365)  84.4528(10.1365)
+   3  I-A IND.            (A) =  78.11      78.11  (  3)      2      78.11  (  3)  78.1122(32.3747)  78.1122(32.3747)  78.1122(32.3747)  78.1122(32.3747)
+   4  ACC                 (A) =  75.95      76.29  (  5)     17      76.06  (  5)  76.2937( 7.1366)  76.2937( 7.1366)  76.2937( 7.1366)  76.2937( 7.1366)
+   5  BIG 12              (A) =  75.92      76.44  (  4)     16      76.24  (  4)  76.4443( 5.9161)  76.4443( 5.9161)  76.4443( 5.9161)  76.4443( 5.9161)
+   6  PAC-12              (A) =  60.13      60.43  (  6)      8      60.35  (  6)  60.4263( 5.1009)  60.4263( 5.1009)  60.4263( 5.1009)  60.4263( 5.1009)
+   7  AMERICAN            (A) =  58.77      57.81  (  7)     14      58.09  (  7)  57.8143( 6.6599)  57.8143( 6.6599)  57.8143( 6.6599)  57.8143( 6.6599)
+   8  MOUNTAIN WEST       (A) =  56.30      56.17  (  8)     10      56.20  (  8)  56.1659( 6.6478)  56.1659( 6.6478)  56.1659( 6.6478)  56.1659( 6.6478)
+   9  SUN BELT EAST       (A) =  55.03      55.15  (  9)      7      55.14  (  9)  55.1470( 5.2888)  55.1470( 5.2888)  55.1470( 5.2888)  55.1470( 5.2888)
+  10  SUN BELT WEST       (A) =  53.06      52.51  ( 10)      7      52.58  ( 10)  52.5124( 3.9580)  52.5124( 3.9580)  52.5124( 3.9580)  52.5124( 3.9580)
+  11  MISSOURI VALLEY     (AA)=  52.62      52.07  ( 11)      9      52.33  ( 11)  52.0691( 9.7108)  52.0691( 9.7108)  52.0691( 9.7108)  52.0691( 9.7108)
+  12  CONF-USA            (A) =  51.92      51.75  ( 12)     10      51.78  ( 12)  51.7456( 5.0255)  51.7456( 5.0255)  51.7456( 5.0255)  51.7456( 5.0255)
+  13  MAC                 (A) =  49.79      49.41  ( 13)     13      49.54  ( 13)  49.4111( 6.2542)  49.4111( 6.2542)  49.4111( 6.2542)  49.4111( 6.2542)
+  14  BIG SKY             (AA)=  47.69      48.25  ( 14)     13      47.98  ( 14)  48.2539( 8.6130)  48.2539( 8.6130)  48.2539( 8.6130)  48.2539( 8.6130)
+  15  UAC                 (AA)=  43.44      43.17  ( 15)     10      43.27  ( 15)  43.1661( 8.4363)  43.1661( 8.4363)  43.1661( 8.4363)  43.1661( 8.4363)
+  16  IVY LEAGUE          (AA)=  42.81      43.15  ( 16)      8      43.08  ( 16)  43.1465( 5.2942)  43.1465( 5.2942)  43.1465( 5.2942)  43.1465( 5.2942)
+  17  SOUTHERN            (AA)=  42.57      42.17  ( 17)     10      42.31  ( 17)  42.1680( 6.1401)  42.1680( 6.1401)  42.1680( 6.1401)  42.1680( 6.1401)
+  18  SOUTHLAND           (AA)=  41.30      40.77  ( 19)     10      41.00  ( 19)  40.7704( 8.3962)  40.7704( 8.3962)  40.7704( 8.3962)  40.7704( 8.3962)
+  19  PATRIOT             (AA)=  41.18      41.01  ( 18)     10      41.01  ( 18)  41.0067( 6.9278)  41.0067( 6.9278)  41.0067( 6.9278)  41.0067( 6.9278)
+  20  COASTAL ATHLETIC    (AA)=  39.87      39.73  ( 21)     13      39.76  ( 20)  39.7302( 6.0607)  39.7302( 6.0607)  39.7302( 6.0607)  39.7302( 6.0607)
+  21  OVC-BIG SOUTH       (AA)=  39.30      39.75  ( 20)      8      39.69  ( 21)  39.7516( 4.3124)  39.7516( 4.3124)  39.7516( 4.3124)  39.7516( 4.3124)
+  22  MEAC                (AA)=  35.98      36.45  ( 22)      6      36.35  ( 22)  36.4507( 5.3098)  36.4507( 5.3098)  36.4507( 5.3098)  36.4507( 5.3098)
+  23  SWAC-EAST           (AA)=  35.44      35.47  ( 23)      6      35.49  ( 23)  35.4701( 7.3759)  35.4701( 7.3759)  35.4701( 7.3759)  35.4701( 7.3759)
+  24  SWAC-WEST           (AA)=  34.20      33.94  ( 25)      6      34.00  ( 24)  33.9404( 3.7756)  33.9404( 3.7756)  33.9404( 3.7756)  33.9404( 3.7756)
+  25  NORTHEAST           (AA)=  33.98      33.97  ( 24)      8      33.97  ( 25)  33.9682( 3.3119)  33.9682( 3.3119)  33.9682( 3.3119)  33.9682( 3.3119)
+  26  PIONEER             (AA)=  31.19      31.02  ( 26)     11      31.06  ( 26)  31.0233( 5.6364)  31.0233( 5.6364)  31.0233( 5.6364)  31.0233( 5.6364)
+  27  ___UNRATED___       (__)= -76.07     -76.07  ( 27)      1     -76.07  ( 27) -76.0715( 0.0000) -76.0715( 0.0000) -76.0715( 0.0000) -76.0715( 0.0000)
+       OVERALL                                                                    -NaN    ( 0.0000) -NaN    ( 0.0000) -NaN    ( 0.0000) -NaN    ( 0.0000)
+      <b>CONFERENCE          CENTRAL MEAN    SIMPLE AVERAGE  TEAMS      WIN50%         RATING          PREDICTOR         GOLDEN_MEAN         RECENT
+   7  AMERICAN            (A) =  58.77      57.81  (  7)     14      58.09  (  7)  57.8143( 6.6599)  57.8143( 6.6599)  57.8143( 6.6599)  57.8143( 6.6599)
+   4  ACC                 (A) =  75.95      76.29  (  5)     17      76.06  (  5)  76.2937( 7.1366)  76.2937( 7.1366)  76.2937( 7.1366)  76.2937( 7.1366)
+   2  BIG TEN             (A) =  83.61      84.45  (  2)     18      84.00  (  2)  84.4528(10.1365)  84.4528(10.1365)  84.4528(10.1365)  84.4528(10.1365)
+   5  BIG 12              (A) =  75.92      76.44  (  4)     16      76.24  (  4)  76.4443( 5.9161)  76.4443( 5.9161)  76.4443( 5.9161)  76.4443( 5.9161)
+  12  CONF-USA            (A) =  51.92      51.75  ( 12)     10      51.78  ( 12)  51.7456( 5.0255)  51.7456( 5.0255)  51.7456( 5.0255)  51.7456( 5.0255)
+  13  MAC                 (A) =  49.79      49.41  ( 13)     13      49.54  ( 13)  49.4111( 6.2542)  49.4111( 6.2542)  49.4111( 6.2542)  49.4111( 6.2542)
+   8  MOUNTAIN WEST       (A) =  56.30      56.17  (  8)     10      56.20  (  8)  56.1659( 6.6478)  56.1659( 6.6478)  56.1659( 6.6478)  56.1659( 6.6478)
+   6  PAC-12              (A) =  60.13      60.43  (  6)      8      60.35  (  6)  60.4263( 5.1009)  60.4263( 5.1009)  60.4263( 5.1009)  60.4263( 5.1009)
+   1  SEC                 (A) =  87.67      87.48  (  1)     16      87.52  (  1)  87.4754( 6.8263)  87.4754( 6.8263)  87.4754( 6.8263)  87.4754( 6.8263)
+   9  SUN BELT EAST       (A) =  55.03      55.15  (  9)      7      55.14  (  9)  55.1470( 5.2888)  55.1470( 5.2888)  55.1470( 5.2888)  55.1470( 5.2888)
+  10  SUN BELT WEST       (A) =  53.06      52.51  ( 10)      7      52.58  ( 10)  52.5124( 3.9580)  52.5124( 3.9580)  52.5124( 3.9580)  52.5124( 3.9580)
+   3  I-A IND.            (A) =  78.11      78.11  (  3)      2      78.11  (  3)  78.1122(32.3747)  78.1122(32.3747)  78.1122(32.3747)  78.1122(32.3747)
+  14  BIG SKY             (AA)=  47.69      48.25  ( 14)     13      47.98  ( 14)  48.2539( 8.6130)  48.2539( 8.6130)  48.2539( 8.6130)  48.2539( 8.6130)
+  20  COASTAL ATHLETIC    (AA)=  39.87      39.73  ( 21)     13      39.76  ( 20)  39.7302( 6.0607)  39.7302( 6.0607)  39.7302( 6.0607)  39.7302( 6.0607)
+  16  IVY LEAGUE          (AA)=  42.81      43.15  ( 16)      8      43.08  ( 16)  43.1465( 5.2942)  43.1465( 5.2942)  43.1465( 5.2942)  43.1465( 5.2942)
+  22  MEAC                (AA)=  35.98      36.45  ( 22)      6      36.35  ( 22)  36.4507( 5.3098)  36.4507( 5.3098)  36.4507( 5.3098)  36.4507( 5.3098)
+  11  MISSOURI VALLEY     (AA)=  52.62      52.07  ( 11)      9      52.33  ( 11)  52.0691( 9.7108)  52.0691( 9.7108)  52.0691( 9.7108)  52.0691( 9.7108)
+  25  NORTHEAST           (AA)=  33.98      33.97  ( 24)      8      33.97  ( 25)  33.9682( 3.3119)  33.9682( 3.3119)  33.9682( 3.3119)  33.9682( 3.3119)
+  21  OVC-BIG SOUTH       (AA)=  39.30      39.75  ( 20)      8      39.69  ( 21)  39.7516( 4.3124)  39.7516( 4.3124)  39.7516( 4.3124)  39.7516( 4.3124)
+  19  PATRIOT             (AA)=  41.18      41.01  ( 18)     10      41.01  ( 18)  41.0067( 6.9278)  41.0067( 6.9278)  41.0067( 6.9278)  41.0067( 6.9278)
+  26  PIONEER             (AA)=  31.19      31.02  ( 26)     11      31.06  ( 26)  31.0233( 5.6364)  31.0233( 5.6364)  31.0233( 5.6364)  31.0233( 5.6364)
+  17  SOUTHERN            (AA)=  42.57      42.17  ( 17)     10      42.31  ( 17)  42.1680( 6.1401)  42.1680( 6.1401)  42.1680( 6.1401)  42.1680( 6.1401)
+  18  SOUTHLAND           (AA)=  41.30      40.77  ( 19)     10      41.00  ( 19)  40.7704( 8.3962)  40.7704( 8.3962)  40.7704( 8.3962)  40.7704( 8.3962)
+  23  SWAC-EAST           (AA)=  35.44      35.47  ( 23)      6      35.49  ( 23)  35.4701( 7.3759)  35.4701( 7.3759)  35.4701( 7.3759)  35.4701( 7.3759)
+  24  SWAC-WEST           (AA)=  34.20      33.94  ( 25)      6      34.00  ( 24)  33.9404( 3.7756)  33.9404( 3.7756)  33.9404( 3.7756)  33.9404( 3.7756)
+  15  UAC                 (AA)=  43.44      43.17  ( 15)     10      43.27  ( 15)  43.1661( 8.4363)  43.1661( 8.4363)  43.1661( 8.4363)  43.1661( 8.4363)
+  27  ___UNRATED___       (__)= -76.07     -76.07  ( 27)      1     -76.07  ( 27) -76.0715( 0.0000) -76.0715( 0.0000) -76.0715( 0.0000) -76.0715( 0.0000)
+       OVERALL                                                                    -NaN    ( 0.0000) -NaN    ( 0.0000) -NaN    ( 0.0000) -NaN    ( 0.0000)
+__________________________________________________________________________________________________
+</pre>
+<h3><font size=+2>By Conference</font></h3>
+_________________________________________________________________________________________________________________________________________________
+   7  AMERICAN            (A) =  58.77
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  73  Navy                 A  =  64.23    0   0    0.00(   0)    0   0  |    0   0  |   64.23   73 |   64.23   73 |   64.23   73 |   64.23   73  AMERICAN            (A)
+  75  UTSA                 A  =  63.92    0   0    0.00(   0)    0   0  |    0   0  |   63.92   75 |   63.92   75 |   63.92   75 |   63.92   75  AMERICAN            (A)
+  77  Tulane               A  =  63.39    0   0    0.00(   0)    0   0  |    0   0  |   63.39   77 |   63.39   77 |   63.39   77 |   63.39   77  AMERICAN            (A)
+  78  Memphis              A  =  63.24    0   0    0.00(   0)    0   0  |    0   0  |   63.24   78 |   63.24   78 |   63.24   78 |   63.24   78  AMERICAN            (A)
+  79  South Florida        A  =  63.15    0   0    0.00(   0)    0   0  |    0   0  |   63.15   79 |   63.15   79 |   63.15   79 |   63.15   79  AMERICAN            (A)
+  80  Army West Point      A  =  62.91    0   0    0.00(   0)    0   0  |    0   0  |   62.91   80 |   62.91   80 |   62.91   80 |   62.91   80  AMERICAN            (A)
+  86  East Carolina        A  =  60.51    0   0    0.00(   0)    0   0  |    0   0  |   60.51   86 |   60.51   86 |   60.51   86 |   60.51   86  AMERICAN            (A)
+  96  Florida Atlantic     A  =  57.47    0   0    0.00(   0)    0   0  |    0   0  |   57.47   96 |   57.47   96 |   57.47   96 |   57.47   96  AMERICAN            (A)
+  98  North Texas          A  =  56.76    0   0    0.00(   0)    0   0  |    0   0  |   56.76   98 |   56.76   98 |   56.76   98 |   56.76   98  AMERICAN            (A)
+  99  Tulsa                A  =  56.53    0   0    0.00(   0)    0   0  |    0   0  |   56.53   99 |   56.53   99 |   56.53   99 |   56.53   99  AMERICAN            (A)
+ 107  Temple               A  =  55.61    0   0    0.00(   0)    0   0  |    0   0  |   55.61  107 |   55.61  107 |   55.61  107 |   55.61  107  AMERICAN            (A)
+ 136  Rice                 A  =  50.61    0   0    0.00(   0)    0   0  |    0   0  |   50.61  136 |   50.61  136 |   50.61  136 |   50.61  136  AMERICAN            (A)
+ 145  UAB                  A  =  48.17    0   0    0.00(   0)    0   0  |    0   0  |   48.17  145 |   48.17  145 |   48.17  145 |   48.17  145  AMERICAN            (A)
+ 185  Charlotte            A  =  42.87    0   0    0.00(   0)    0   0  |    0   0  |   42.87  185 |   42.87  185 |   42.87  185 |   42.87  185  AMERICAN            (A)
+_________________________________________________________________________________________________________________________________________________
+   4  ACC                 (A) =  75.95
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   7  Miami-Florida        A  =  95.73    0   0    0.00(   0)    0   0  |    0   0  |   95.73    7 |   95.73    7 |   95.73    7 |   95.73    7  ACC                 (A)
+  25  SMU                  A  =  83.06    0   0    0.00(   0)    0   0  |    0   0  |   83.06   25 |   83.06   25 |   83.06   25 |   83.06   25  ACC                 (A)
+  27  Louisville           A  =  82.09    0   0    0.00(   0)    0   0  |    0   0  |   82.09   27 |   82.09   27 |   82.09   27 |   82.09   27  ACC                 (A)
+  28  Clemson              A  =  81.63    0   0    0.00(   0)    0   0  |    0   0  |   81.63   28 |   81.63   28 |   81.63   28 |   81.63   28  ACC                 (A)
+  36  Pittsburgh           A  =  78.78    0   0    0.00(   0)    0   0  |    0   0  |   78.78   36 |   78.78   36 |   78.78   36 |   78.78   36  ACC                 (A)
+  40  Florida State        A  =  77.72    0   0    0.00(   0)    0   0  |    0   0  |   77.72   40 |   77.72   40 |   77.72   40 |   77.72   40  ACC                 (A)
+  42  Virginia Tech        A  =  77.49    0   0    0.00(   0)    0   0  |    0   0  |   77.49   42 |   77.49   42 |   77.49   42 |   77.49   42  ACC                 (A)
+  44  Virginia             A  =  77.43    0   0    0.00(   0)    0   0  |    0   0  |   77.43   44 |   77.43   44 |   77.43   44 |   77.43   44  ACC                 (A)
+  47  Georgia Tech         A  =  76.31    0   0    0.00(   0)    0   0  |    0   0  |   76.31   47 |   76.31   47 |   76.31   47 |   76.31   47  ACC                 (A)
+  49  NC State             A  =  75.29    0   0    0.00(   0)    0   0  |    0   0  |   75.29   49 |   75.29   49 |   75.29   49 |   75.29   49  ACC                 (A)
+  54  California           A  =  74.05    0   0    0.00(   0)    0   0  |    0   0  |   74.05   54 |   74.05   54 |   74.05   54 |   74.05   54  ACC                 (A)
+  57  Wake Forest          A  =  72.71    0   0    0.00(   0)    0   0  |    0   0  |   72.71   57 |   72.71   57 |   72.71   57 |   72.71   57  ACC                 (A)
+  58  Duke                 A  =  72.32    0   0    0.00(   0)    0   0  |    0   0  |   72.32   58 |   72.32   58 |   72.32   58 |   72.32   58  ACC                 (A)
+  61  North Carolina       A  =  70.72    0   0    0.00(   0)    0   0  |    0   0  |   70.72   61 |   70.72   61 |   70.72   61 |   70.72   61  ACC                 (A)
+  66  Syracuse             A  =  69.20    0   0    0.00(   0)    0   0  |    0   0  |   69.20   66 |   69.20   66 |   69.20   66 |   69.20   66  ACC                 (A)
+  69  Stanford             A  =  66.80    0   0    0.00(   0)    0   0  |    0   0  |   66.80   69 |   66.80   69 |   66.80   69 |   66.80   69  ACC                 (A)
+  71  Boston College       A  =  65.70    0   0    0.00(   0)    0   0  |    0   0  |   65.70   71 |   65.70   71 |   65.70   71 |   65.70   71  ACC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   2  BIG TEN             (A) =  83.61
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   1  Ohio State           A  = 103.07    0   0    0.00(   0)    0   0  |    0   0  |  103.07    1 |  103.07    1 |  103.07    1 |  103.07    1  BIG TEN             (A)
+   2  Oregon               A  = 101.74    0   0    0.00(   0)    0   0  |    0   0  |  101.74    2 |  101.74    2 |  101.74    2 |  101.74    2  BIG TEN             (A)
+   4  Indiana              A  = 100.44    0   0    0.00(   0)    0   0  |    0   0  |  100.44    4 |  100.44    4 |  100.44    4 |  100.44    4  BIG TEN             (A)
+  11  Southern California  A  =  92.11    0   0    0.00(   0)    0   0  |    0   0  |   92.11   11 |   92.11   11 |   92.11   11 |   92.11   11  BIG TEN             (A)
+  13  Michigan             A  =  91.82    0   0    0.00(   0)    0   0  |    0   0  |   91.82   13 |   91.82   13 |   91.82   13 |   91.82   13  BIG TEN             (A)
+  18  Penn State           A  =  87.68    0   0    0.00(   0)    0   0  |    0   0  |   87.68   18 |   87.68   18 |   87.68   18 |   87.68   18  BIG TEN             (A)
+  19  Washington           A  =  87.63    0   0    0.00(   0)    0   0  |    0   0  |   87.63   19 |   87.63   19 |   87.63   19 |   87.63   19  BIG TEN             (A)
+  20  Iowa                 A  =  85.40    0   0    0.00(   0)    0   0  |    0   0  |   85.40   20 |   85.40   20 |   85.40   20 |   85.40   20  BIG TEN             (A)
+  26  Wisconsin            A  =  82.49    0   0    0.00(   0)    0   0  |    0   0  |   82.49   26 |   82.49   26 |   82.49   26 |   82.49   26  BIG TEN             (A)
+  30  Illinois             A  =  81.12    0   0    0.00(   0)    0   0  |    0   0  |   81.12   30 |   81.12   30 |   81.12   30 |   81.12   30  BIG TEN             (A)
+  31  Nebraska             A  =  80.57    0   0    0.00(   0)    0   0  |    0   0  |   80.57   31 |   80.57   31 |   80.57   31 |   80.57   31  BIG TEN             (A)
+  34  Minnesota            A  =  79.37    0   0    0.00(   0)    0   0  |    0   0  |   79.37   34 |   79.37   34 |   79.37   34 |   79.37   34  BIG TEN             (A)
+  35  UCLA                 A  =  79.24    0   0    0.00(   0)    0   0  |    0   0  |   79.24   35 |   79.24   35 |   79.24   35 |   79.24   35  BIG TEN             (A)
+  43  Northwestern         A  =  77.49    0   0    0.00(   0)    0   0  |    0   0  |   77.49   43 |   77.49   43 |   77.49   43 |   77.49   43  BIG TEN             (A)
+  52  Maryland             A  =  74.14    0   0    0.00(   0)    0   0  |    0   0  |   74.14   52 |   74.14   52 |   74.14   52 |   74.14   52  BIG TEN             (A)
+  55  Rutgers              A  =  73.30    0   0    0.00(   0)    0   0  |    0   0  |   73.30   55 |   73.30   55 |   73.30   55 |   73.30   55  BIG TEN             (A)
+  59  Michigan State       A  =  72.15    0   0    0.00(   0)    0   0  |    0   0  |   72.15   59 |   72.15   59 |   72.15   59 |   72.15   59  BIG TEN             (A)
+  62  Purdue               A  =  70.40    0   0    0.00(   0)    0   0  |    0   0  |   70.40   62 |   70.40   62 |   70.40   62 |   70.40   62  BIG TEN             (A)
+_________________________________________________________________________________________________________________________________________________
+   5  BIG 12              (A) =  75.92
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  12  Texas Tech           A  =  92.08    0   0    0.00(   0)    0   0  |    0   0  |   92.08   12 |   92.08   12 |   92.08   12 |   92.08   12  BIG 12              (A)
+  24  BYU                  A  =  84.02    0   0    0.00(   0)    0   0  |    0   0  |   84.02   24 |   84.02   24 |   84.02   24 |   84.02   24  BIG 12              (A)
+  29  Utah                 A  =  81.60    0   0    0.00(   0)    0   0  |    0   0  |   81.60   29 |   81.60   29 |   81.60   29 |   81.60   29  BIG 12              (A)
+  37  Houston              A  =  78.71    0   0    0.00(   0)    0   0  |    0   0  |   78.71   37 |   78.71   37 |   78.71   37 |   78.71   37  BIG 12              (A)
+  39  Kansas State         A  =  77.98    0   0    0.00(   0)    0   0  |    0   0  |   77.98   39 |   77.98   39 |   77.98   39 |   77.98   39  BIG 12              (A)
+  41  Arizona              A  =  77.70    0   0    0.00(   0)    0   0  |    0   0  |   77.70   41 |   77.70   41 |   77.70   41 |   77.70   41  BIG 12              (A)
+  45  Arizona State        A  =  77.11    0   0    0.00(   0)    0   0  |    0   0  |   77.11   45 |   77.11   45 |   77.11   45 |   77.11   45  BIG 12              (A)
+  46  TCU                  A  =  76.92    0   0    0.00(   0)    0   0  |    0   0  |   76.92   46 |   76.92   46 |   76.92   46 |   76.92   46  BIG 12              (A)
+  50  Baylor               A  =  74.67    0   0    0.00(   0)    0   0  |    0   0  |   74.67   50 |   74.67   50 |   74.67   50 |   74.67   50  BIG 12              (A)
+  51  Oklahoma State       A  =  74.55    0   0    0.00(   0)    0   0  |    0   0  |   74.55   51 |   74.55   51 |   74.55   51 |   74.55   51  BIG 12              (A)
+  53  Kansas               A  =  74.06    0   0    0.00(   0)    0   0  |    0   0  |   74.06   53 |   74.06   53 |   74.06   53 |   74.06   53  BIG 12              (A)
+  56  West Virginia        A  =  73.11    0   0    0.00(   0)    0   0  |    0   0  |   73.11   56 |   73.11   56 |   73.11   56 |   73.11   56  BIG 12              (A)
+  60  Central Florida(UCF) A  =  71.77    0   0    0.00(   0)    0   0  |    0   0  |   71.77   60 |   71.77   60 |   71.77   60 |   71.77   60  BIG 12              (A)
+  63  Cincinnati           A  =  70.29    0   0    0.00(   0)    0   0  |    0   0  |   70.29   63 |   70.29   63 |   70.29   63 |   70.29   63  BIG 12              (A)
+  64  Colorado             A  =  69.80    0   0    0.00(   0)    0   0  |    0   0  |   69.80   64 |   69.80   64 |   69.80   64 |   69.80   64  BIG 12              (A)
+  67  Iowa State           A  =  68.73    0   0    0.00(   0)    0   0  |    0   0  |   68.73   67 |   68.73   67 |   68.73   67 |   68.73   67  BIG 12              (A)
+_________________________________________________________________________________________________________________________________________________
+  12  CONF-USA            (A) =  51.92
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  92  Liberty              A  =  58.20    0   0    0.00(   0)    0   0  |    0   0  |   58.20   92 |   58.20   92 |   58.20   92 |   58.20   92  CONF-USA            (A)
+  93  Western Kentucky     A  =  57.94    0   0    0.00(   0)    0   0  |    0   0  |   57.94   93 |   57.94   93 |   57.94   93 |   57.94   93  CONF-USA            (A)
+ 106  Jacksonville State   A  =  55.87    0   0    0.00(   0)    0   0  |    0   0  |   55.87  106 |   55.87  106 |   55.87  106 |   55.87  106  CONF-USA            (A)
+ 114  Delaware             A  =  53.94    0   0    0.00(   0)    0   0  |    0   0  |   53.94  114 |   53.94  114 |   53.94  114 |   53.94  114  CONF-USA            (A)
+ 121  Kennesaw State       A  =  53.34    0   0    0.00(   0)    0   0  |    0   0  |   53.34  121 |   53.34  121 |   53.34  121 |   53.34  121  CONF-USA            (A)
+ 128  Fla. International   A  =  51.97    0   0    0.00(   0)    0   0  |    0   0  |   51.97  128 |   51.97  128 |   51.97  128 |   51.97  128  CONF-USA            (A)
+ 144  New Mexico State     A  =  48.39    0   0    0.00(   0)    0   0  |    0   0  |   48.39  144 |   48.39  144 |   48.39  144 |   48.39  144  CONF-USA            (A)
+ 147  Missouri State       A  =  48.11    0   0    0.00(   0)    0   0  |    0   0  |   48.11  147 |   48.11  147 |   48.11  147 |   48.11  147  CONF-USA            (A)
+ 164  Middle Tennessee     A  =  46.11    0   0    0.00(   0)    0   0  |    0   0  |   46.11  164 |   46.11  164 |   46.11  164 |   46.11  164  CONF-USA            (A)
+ 182  Sam Houston State    A  =  43.58    0   0    0.00(   0)    0   0  |    0   0  |   43.58  182 |   43.58  182 |   43.58  182 |   43.58  182  CONF-USA            (A)
+_________________________________________________________________________________________________________________________________________________
+  13  MAC                 (A) =  49.79
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  95  Western Michigan     A  =  57.53    0   0    0.00(   0)    0   0  |    0   0  |   57.53   95 |   57.53   95 |   57.53   95 |   57.53   95  MAC                 (A)
+ 100  Toledo               A  =  56.53    0   0    0.00(   0)    0   0  |    0   0  |   56.53  100 |   56.53  100 |   56.53  100 |   56.53  100  MAC                 (A)
+ 101  Miami-Ohio           A  =  56.45    0   0    0.00(   0)    0   0  |    0   0  |   56.45  101 |   56.45  101 |   56.45  101 |   56.45  101  MAC                 (A)
+ 122  Central Michigan     A  =  53.14    0   0    0.00(   0)    0   0  |    0   0  |   53.14  122 |   53.14  122 |   53.14  122 |   53.14  122  MAC                 (A)
+ 123  Ohio                 A  =  53.00    0   0    0.00(   0)    0   0  |    0   0  |   53.00  123 |   53.00  123 |   53.00  123 |   53.00  123  MAC                 (A)
+ 133  Eastern Michigan     A  =  51.09    0   0    0.00(   0)    0   0  |    0   0  |   51.09  133 |   51.09  133 |   51.09  133 |   51.09  133  MAC                 (A)
+ 141  Bowling Green        A  =  49.48    0   0    0.00(   0)    0   0  |    0   0  |   49.48  141 |   49.48  141 |   49.48  141 |   49.48  141  MAC                 (A)
+ 142  Buffalo              A  =  49.06    0   0    0.00(   0)    0   0  |    0   0  |   49.06  142 |   49.06  142 |   49.06  142 |   49.06  142  MAC                 (A)
+ 148  Akron                A  =  47.94    0   0    0.00(   0)    0   0  |    0   0  |   47.94  148 |   47.94  148 |   47.94  148 |   47.94  148  MAC                 (A)
+ 172  Sacramento State     A  =  45.22    0   0    0.00(   0)    0   0  |    0   0  |   45.22  172 |   45.22  172 |   45.22  172 |   45.22  172  MAC                 (A)
+ 177  Kent State           A  =  44.30    0   0    0.00(   0)    0   0  |    0   0  |   44.30  177 |   44.30  177 |   44.30  177 |   44.30  177  MAC                 (A)
+ 186  Ball State           A  =  42.69    0   0    0.00(   0)    0   0  |    0   0  |   42.69  186 |   42.69  186 |   42.69  186 |   42.69  186  MAC                 (A)
+ 226  Massachusetts        A  =  35.90    0   0    0.00(   0)    0   0  |    0   0  |   35.90  226 |   35.90  226 |   35.90  226 |   35.90  226  MAC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   8  MOUNTAIN WEST       (A) =  56.30
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  74  UNLV                 A  =  64.16    0   0    0.00(   0)    0   0  |    0   0  |   64.16   74 |   64.16   74 |   64.16   74 |   64.16   74  MOUNTAIN WEST       (A)
+  76  North Dakota State   A  =  63.83    0   0    0.00(   0)    0   0  |    0   0  |   63.83   76 |   63.83   76 |   63.83   76 |   63.83   76  MOUNTAIN WEST       (A)
+  81  New Mexico           A  =  62.81    0   0    0.00(   0)    0   0  |    0   0  |   62.81   81 |   62.81   81 |   62.81   81 |   62.81   81  MOUNTAIN WEST       (A)
+  85  Hawai'i              A  =  60.58    0   0    0.00(   0)    0   0  |    0   0  |   60.58   85 |   60.58   85 |   60.58   85 |   60.58   85  MOUNTAIN WEST       (A)
+  90  Air Force            A  =  58.76    0   0    0.00(   0)    0   0  |    0   0  |   58.76   90 |   58.76   90 |   58.76   90 |   58.76   90  MOUNTAIN WEST       (A)
+ 116  Wyoming              A  =  53.80    0   0    0.00(   0)    0   0  |    0   0  |   53.80  116 |   53.80  116 |   53.80  116 |   53.80  116  MOUNTAIN WEST       (A)
+ 127  Nevada               A  =  52.05    0   0    0.00(   0)    0   0  |    0   0  |   52.05  127 |   52.05  127 |   52.05  127 |   52.05  127  MOUNTAIN WEST       (A)
+ 134  San Jose State       A  =  50.82    0   0    0.00(   0)    0   0  |    0   0  |   50.82  134 |   50.82  134 |   50.82  134 |   50.82  134  MOUNTAIN WEST       (A)
+ 146  Northern Illinois    A  =  48.14    0   0    0.00(   0)    0   0  |    0   0  |   48.14  146 |   48.14  146 |   48.14  146 |   48.14  146  MOUNTAIN WEST       (A)
+ 158  UTEP                 A  =  46.71    0   0    0.00(   0)    0   0  |    0   0  |   46.71  158 |   46.71  158 |   46.71  158 |   46.71  158  MOUNTAIN WEST       (A)
+_________________________________________________________________________________________________________________________________________________
+   6  PAC-12              (A) =  60.13
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  65  Boise State          A  =  69.71    0   0    0.00(   0)    0   0  |    0   0  |   69.71   65 |   69.71   65 |   69.71   65 |   69.71   65  PAC-12              (A)
+  72  San Diego State      A  =  64.58    0   0    0.00(   0)    0   0  |    0   0  |   64.58   72 |   64.58   72 |   64.58   72 |   64.58   72  PAC-12              (A)
+  83  Texas State          A  =  61.61    0   0    0.00(   0)    0   0  |    0   0  |   61.61   83 |   61.61   83 |   61.61   83 |   61.61   83  PAC-12              (A)
+  84  Washington State     A  =  61.44    0   0    0.00(   0)    0   0  |    0   0  |   61.44   84 |   61.44   84 |   61.44   84 |   61.44   84  PAC-12              (A)
+  88  Fresno State         A  =  59.78    0   0    0.00(   0)    0   0  |    0   0  |   59.78   88 |   59.78   88 |   59.78   88 |   59.78   88  PAC-12              (A)
+ 103  Oregon State         A  =  56.18    0   0    0.00(   0)    0   0  |    0   0  |   56.18  103 |   56.18  103 |   56.18  103 |   56.18  103  PAC-12              (A)
+ 109  Utah State           A  =  55.26    0   0    0.00(   0)    0   0  |    0   0  |   55.26  109 |   55.26  109 |   55.26  109 |   55.26  109  PAC-12              (A)
+ 113  Colorado State       A  =  54.84    0   0    0.00(   0)    0   0  |    0   0  |   54.84  113 |   54.84  113 |   54.84  113 |   54.84  113  PAC-12              (A)
+_________________________________________________________________________________________________________________________________________________
+   1  SEC                 (A) =  87.67
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   5  Texas                A  =  98.50    0   0    0.00(   0)    0   0  |    0   0  |   98.50    5 |   98.50    5 |   98.50    5 |   98.50    5  SEC                 (A)
+   6  Georgia              A  =  97.38    0   0    0.00(   0)    0   0  |    0   0  |   97.38    6 |   97.38    6 |   97.38    6 |   97.38    6  SEC                 (A)
+   8  Texas A&M            A  =  92.87    0   0    0.00(   0)    0   0  |    0   0  |   92.87    8 |   92.87    8 |   92.87    8 |   92.87    8  SEC                 (A)
+   9  Oklahoma             A  =  92.66    0   0    0.00(   0)    0   0  |    0   0  |   92.66    9 |   92.66    9 |   92.66    9 |   92.66    9  SEC                 (A)
+  10  LSU                  A  =  92.31    0   0    0.00(   0)    0   0  |    0   0  |   92.31   10 |   92.31   10 |   92.31   10 |   92.31   10  SEC                 (A)
+  14  Alabama              A  =  91.76    0   0    0.00(   0)    0   0  |    0   0  |   91.76   14 |   91.76   14 |   91.76   14 |   91.76   14  SEC                 (A)
+  15  Mississippi          A  =  91.18    0   0    0.00(   0)    0   0  |    0   0  |   91.18   15 |   91.18   15 |   91.18   15 |   91.18   15  SEC                 (A)
+  16  Florida              A  =  87.91    0   0    0.00(   0)    0   0  |    0   0  |   87.91   16 |   87.91   16 |   87.91   16 |   87.91   16  SEC                 (A)
+  17  Tennessee            A  =  87.90    0   0    0.00(   0)    0   0  |    0   0  |   87.90   17 |   87.90   17 |   87.90   17 |   87.90   17  SEC                 (A)
+  21  Missouri             A  =  84.98    0   0    0.00(   0)    0   0  |    0   0  |   84.98   21 |   84.98   21 |   84.98   21 |   84.98   21  SEC                 (A)
+  22  Auburn               A  =  84.38    0   0    0.00(   0)    0   0  |    0   0  |   84.38   22 |   84.38   22 |   84.38   22 |   84.38   22  SEC                 (A)
+  23  South Carolina       A  =  84.20    0   0    0.00(   0)    0   0  |    0   0  |   84.20   23 |   84.20   23 |   84.20   23 |   84.20   23  SEC                 (A)
+  32  Vanderbilt           A  =  80.09    0   0    0.00(   0)    0   0  |    0   0  |   80.09   32 |   80.09   32 |   80.09   32 |   80.09   32  SEC                 (A)
+  33  Kentucky             A  =  79.45    0   0    0.00(   0)    0   0  |    0   0  |   79.45   33 |   79.45   33 |   79.45   33 |   79.45   33  SEC                 (A)
+  38  Mississippi State    A  =  78.28    0   0    0.00(   0)    0   0  |    0   0  |   78.28   38 |   78.28   38 |   78.28   38 |   78.28   38  SEC                 (A)
+  48  Arkansas             A  =  75.76    0   0    0.00(   0)    0   0  |    0   0  |   75.76   48 |   75.76   48 |   75.76   48 |   75.76   48  SEC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   9  SUN BELT EAST       (A) =  55.03
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  82  James Madison        A  =  62.67    0   0    0.00(   0)    0   0  |    0   0  |   62.67   82 |   62.67   82 |   62.67   82 |   62.67   82  SUN BELT EAST       (A)
+  87  Old Dominion         A  =  60.09    0   0    0.00(   0)    0   0  |    0   0  |   60.09   87 |   60.09   87 |   60.09   87 |   60.09   87  SUN BELT EAST       (A)
+  94  Marshall             A  =  57.57    0   0    0.00(   0)    0   0  |    0   0  |   57.57   94 |   57.57   94 |   57.57   94 |   57.57   94  SUN BELT EAST       (A)
+ 117  Appalachian State    A  =  53.78    0   0    0.00(   0)    0   0  |    0   0  |   53.78  117 |   53.78  117 |   53.78  117 |   53.78  117  SUN BELT EAST       (A)
+ 120  Georgia Southern     A  =  53.34    0   0    0.00(   0)    0   0  |    0   0  |   53.34  120 |   53.34  120 |   53.34  120 |   53.34  120  SUN BELT EAST       (A)
+ 131  Coastal Carolina     A  =  51.21    0   0    0.00(   0)    0   0  |    0   0  |   51.21  131 |   51.21  131 |   51.21  131 |   51.21  131  SUN BELT EAST       (A)
+ 153  Georgia State        A  =  47.38    0   0    0.00(   0)    0   0  |    0   0  |   47.38  153 |   47.38  153 |   47.38  153 |   47.38  153  SUN BELT EAST       (A)
+_________________________________________________________________________________________________________________________________________________
+  10  SUN BELT WEST       (A) =  53.06
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 102  Troy                 A  =  56.23    0   0    0.00(   0)    0   0  |    0   0  |   56.23  102 |   56.23  102 |   56.23  102 |   56.23  102  SUN BELT WEST       (A)
+ 111  Louisiana-Lafayette  A  =  55.07    0   0    0.00(   0)    0   0  |    0   0  |   55.07  111 |   55.07  111 |   55.07  111 |   55.07  111  SUN BELT WEST       (A)
+ 112  Louisiana Tech       A  =  54.99    0   0    0.00(   0)    0   0  |    0   0  |   54.99  112 |   54.99  112 |   54.99  112 |   54.99  112  SUN BELT WEST       (A)
+ 115  Arkansas State       A  =  53.82    0   0    0.00(   0)    0   0  |    0   0  |   53.82  115 |   53.82  115 |   53.82  115 |   53.82  115  SUN BELT WEST       (A)
+ 118  South Alabama        A  =  53.75    0   0    0.00(   0)    0   0  |    0   0  |   53.75  118 |   53.75  118 |   53.75  118 |   53.75  118  SUN BELT WEST       (A)
+ 154  Southern Miss        A  =  47.34    0   0    0.00(   0)    0   0  |    0   0  |   47.34  154 |   47.34  154 |   47.34  154 |   47.34  154  SUN BELT WEST       (A)
+ 160  LouisianaMonroe(ULM) A  =  46.39    0   0    0.00(   0)    0   0  |    0   0  |   46.39  160 |   46.39  160 |   46.39  160 |   46.39  160  SUN BELT WEST       (A)
+_________________________________________________________________________________________________________________________________________________
+   3  I-A IND.            (A) =  78.11
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   3  Notre Dame           A  = 101.00    0   0    0.00(   0)    0   0  |    0   0  |  101.00    3 |  101.00    3 |  101.00    3 |  101.00    3  I-A IND.            (A)
+ 110  Connecticut          A  =  55.22    0   0    0.00(   0)    0   0  |    0   0  |   55.22  110 |   55.22  110 |   55.22  110 |   55.22  110  I-A IND.            (A)
+_________________________________________________________________________________________________________________________________________________
+  14  BIG SKY             (AA)=  47.69
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  70  Montana State        AA =  66.18    0   0    0.00(   0)    0   0  |    0   0  |   66.18   70 |   66.18   70 |   66.18   70 |   66.18   70  BIG SKY             (AA)
+  89  Montana              AA =  59.64    0   0    0.00(   0)    0   0  |    0   0  |   59.64   89 |   59.64   89 |   59.64   89 |   59.64   89  BIG SKY             (AA)
+ 108  UC Davis             AA =  55.51    0   0    0.00(   0)    0   0  |    0   0  |   55.51  108 |   55.51  108 |   55.51  108 |   55.51  108  BIG SKY             (AA)
+ 126  Idaho                AA =  52.10    0   0    0.00(   0)    0   0  |    0   0  |   52.10  126 |   52.10  126 |   52.10  126 |   52.10  126  BIG SKY             (AA)
+ 139  Southern Utah        AA =  49.56    0   0    0.00(   0)    0   0  |    0   0  |   49.56  139 |   49.56  139 |   49.56  139 |   49.56  139  BIG SKY             (AA)
+ 140  Northern Arizona     AA =  49.51    0   0    0.00(   0)    0   0  |    0   0  |   49.51  140 |   49.51  140 |   49.51  140 |   49.51  140  BIG SKY             (AA)
+ 157  Eastern Washington   AA =  46.83    0   0    0.00(   0)    0   0  |    0   0  |   46.83  157 |   46.83  157 |   46.83  157 |   46.83  157  BIG SKY             (AA)
+ 161  Weber State          AA =  46.29    0   0    0.00(   0)    0   0  |    0   0  |   46.29  161 |   46.29  161 |   46.29  161 |   46.29  161  BIG SKY             (AA)
+ 167  Idaho State          AA =  45.89    0   0    0.00(   0)    0   0  |    0   0  |   45.89  167 |   45.89  167 |   45.89  167 |   45.89  167  BIG SKY             (AA)
+ 194  Cal Poly-SLO         AA =  40.89    0   0    0.00(   0)    0   0  |    0   0  |   40.89  194 |   40.89  194 |   40.89  194 |   40.89  194  BIG SKY             (AA)
+ 198  Portland State       AA =  40.19    0   0    0.00(   0)    0   0  |    0   0  |   40.19  198 |   40.19  198 |   40.19  198 |   40.19  198  BIG SKY             (AA)
+ 211  Utah Tech            AA =  37.71    0   0    0.00(   0)    0   0  |    0   0  |   37.71  211 |   37.71  211 |   37.71  211 |   37.71  211  BIG SKY             (AA)
+ 217  Northern Colorado    AA =  36.99    0   0    0.00(   0)    0   0  |    0   0  |   36.99  217 |   36.99  217 |   36.99  217 |   36.99  217  BIG SKY             (AA)
+_________________________________________________________________________________________________________________________________________________
+  20  COASTAL ATHLETIC    (AA)=  39.87
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 150  Monmouth-NJ          AA =  47.59    0   0    0.00(   0)    0   0  |    0   0  |   47.59  150 |   47.59  150 |   47.59  150 |   47.59  150  COASTAL ATHLETIC    (AA)
+ 151  Rhode Island         AA =  47.46    0   0    0.00(   0)    0   0  |    0   0  |   47.46  151 |   47.46  151 |   47.46  151 |   47.46  151  COASTAL ATHLETIC    (AA)
+ 162  New Hampshire        AA =  46.24    0   0    0.00(   0)    0   0  |    0   0  |   46.24  162 |   46.24  162 |   46.24  162 |   46.24  162  COASTAL ATHLETIC    (AA)
+ 170  Elon                 AA =  45.32    0   0    0.00(   0)    0   0  |    0   0  |   45.32  170 |   45.32  170 |   45.32  170 |   45.32  170  COASTAL ATHLETIC    (AA)
+ 181  Towson               AA =  43.70    0   0    0.00(   0)    0   0  |    0   0  |   43.70  181 |   43.70  181 |   43.70  181 |   43.70  181  COASTAL ATHLETIC    (AA)
+ 197  Stony Brook          AA =  40.36    0   0    0.00(   0)    0   0  |    0   0  |   40.36  197 |   40.36  197 |   40.36  197 |   40.36  197  COASTAL ATHLETIC    (AA)
+ 200  Maine                AA =  39.97    0   0    0.00(   0)    0   0  |    0   0  |   39.97  200 |   39.97  200 |   39.97  200 |   39.97  200  COASTAL ATHLETIC    (AA)
+ 209  Albany-NY            AA =  38.30    0   0    0.00(   0)    0   0  |    0   0  |   38.30  209 |   38.30  209 |   38.30  209 |   38.30  209  COASTAL ATHLETIC    (AA)
+ 215  Campbell             AA =  37.28    0   0    0.00(   0)    0   0  |    0   0  |   37.28  215 |   37.28  215 |   37.28  215 |   37.28  215  COASTAL ATHLETIC    (AA)
+ 230  Bryant               AA =  34.95    0   0    0.00(   0)    0   0  |    0   0  |   34.95  230 |   34.95  230 |   34.95  230 |   34.95  230  COASTAL ATHLETIC    (AA)
+ 238  Sacred Heart         AA =  33.96    0   0    0.00(   0)    0   0  |    0   0  |   33.96  238 |   33.96  238 |   33.96  238 |   33.96  238  COASTAL ATHLETIC    (AA)
+ 250  Hampton              AA =  31.49    0   0    0.00(   0)    0   0  |    0   0  |   31.49  250 |   31.49  250 |   31.49  250 |   31.49  250  COASTAL ATHLETIC    (AA)
+ 256  NC A&T               AA =  29.87    0   0    0.00(   0)    0   0  |    0   0  |   29.87  256 |   29.87  256 |   29.87  256 |   29.87  256  COASTAL ATHLETIC    (AA)
+_________________________________________________________________________________________________________________________________________________
+  16  IVY LEAGUE          (AA)=  42.81
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 137  Yale                 AA =  50.43    0   0    0.00(   0)    0   0  |    0   0  |   50.43  137 |   50.43  137 |   50.43  137 |   50.43  137  IVY LEAGUE          (AA)
+ 138  Harvard              AA =  50.39    0   0    0.00(   0)    0   0  |    0   0  |   50.39  138 |   50.39  138 |   50.39  138 |   50.39  138  IVY LEAGUE          (AA)
+ 168  Dartmouth            AA =  45.84    0   0    0.00(   0)    0   0  |    0   0  |   45.84  168 |   45.84  168 |   45.84  168 |   45.84  168  IVY LEAGUE          (AA)
+ 187  Pennsylvania         AA =  42.61    0   0    0.00(   0)    0   0  |    0   0  |   42.61  187 |   42.61  187 |   42.61  187 |   42.61  187  IVY LEAGUE          (AA)
+ 190  Princeton            AA =  42.07    0   0    0.00(   0)    0   0  |    0   0  |   42.07  190 |   42.07  190 |   42.07  190 |   42.07  190  IVY LEAGUE          (AA)
+ 207  Columbia             AA =  38.31    0   0    0.00(   0)    0   0  |    0   0  |   38.31  207 |   38.31  207 |   38.31  207 |   38.31  207  IVY LEAGUE          (AA)
+ 208  Brown                AA =  38.30    0   0    0.00(   0)    0   0  |    0   0  |   38.30  208 |   38.30  208 |   38.30  208 |   38.30  208  IVY LEAGUE          (AA)
+ 216  Cornell              AA =  37.22    0   0    0.00(   0)    0   0  |    0   0  |   37.22  216 |   37.22  216 |   37.22  216 |   37.22  216  IVY LEAGUE          (AA)
+_________________________________________________________________________________________________________________________________________________
+  22  MEAC                (AA)=  35.98
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 183  NC Central           AA =  43.18    0   0    0.00(   0)    0   0  |    0   0  |   43.18  183 |   43.18  183 |   43.18  183 |   43.18  183  MEAC                (AA)
+ 184  SC State             AA =  43.06    0   0    0.00(   0)    0   0  |    0   0  |   43.06  184 |   43.06  184 |   43.06  184 |   43.06  184  MEAC                (AA)
+ 235  Morgan State         AA =  34.46    0   0    0.00(   0)    0   0  |    0   0  |   34.46  235 |   34.46  235 |   34.46  235 |   34.46  235  MEAC                (AA)
+ 236  Howard               AA =  34.35    0   0    0.00(   0)    0   0  |    0   0  |   34.35  236 |   34.35  236 |   34.35  236 |   34.35  236  MEAC                (AA)
+ 247  Delaware State       AA =  32.39    0   0    0.00(   0)    0   0  |    0   0  |   32.39  247 |   32.39  247 |   32.39  247 |   32.39  247  MEAC                (AA)
+ 253  Norfolk State        AA =  31.25    0   0    0.00(   0)    0   0  |    0   0  |   31.25  253 |   31.25  253 |   31.25  253 |   31.25  253  MEAC                (AA)
+_________________________________________________________________________________________________________________________________________________
+  11  MISSOURI VALLEY     (AA)=  52.62
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  68  South Dakota State   AA =  67.55    0   0    0.00(   0)    0   0  |    0   0  |   67.55   68 |   67.55   68 |   67.55   68 |   67.55   68  MISSOURI VALLEY     (AA)
+  91  North Dakota         AA =  58.74    0   0    0.00(   0)    0   0  |    0   0  |   58.74   91 |   58.74   91 |   58.74   91 |   58.74   91  MISSOURI VALLEY     (AA)
+  97  South Dakota         AA =  57.12    0   0    0.00(   0)    0   0  |    0   0  |   57.12   97 |   57.12   97 |   57.12   97 |   57.12   97  MISSOURI VALLEY     (AA)
+ 105  Southern Illinois    AA =  55.89    0   0    0.00(   0)    0   0  |    0   0  |   55.89  105 |   55.89  105 |   55.89  105 |   55.89  105  MISSOURI VALLEY     (AA)
+ 119  Illinois State       AA =  53.44    0   0    0.00(   0)    0   0  |    0   0  |   53.44  119 |   53.44  119 |   53.44  119 |   53.44  119  MISSOURI VALLEY     (AA)
+ 125  Youngstown State     AA =  52.53    0   0    0.00(   0)    0   0  |    0   0  |   52.53  125 |   52.53  125 |   52.53  125 |   52.53  125  MISSOURI VALLEY     (AA)
+ 152  Northern Iowa        AA =  47.43    0   0    0.00(   0)    0   0  |    0   0  |   47.43  152 |   47.43  152 |   47.43  152 |   47.43  152  MISSOURI VALLEY     (AA)
+ 199  Indiana State        AA =  40.02    0   0    0.00(   0)    0   0  |    0   0  |   40.02  199 |   40.02  199 |   40.02  199 |   40.02  199  MISSOURI VALLEY     (AA)
+ 225  Murray State         AA =  35.91    0   0    0.00(   0)    0   0  |    0   0  |   35.91  225 |   35.91  225 |   35.91  225 |   35.91  225  MISSOURI VALLEY     (AA)
+_________________________________________________________________________________________________________________________________________________
+  25  NORTHEAST           (AA)=  33.98
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 204  Duquesne             AA =  39.00    0   0    0.00(   0)    0   0  |    0   0  |   39.00  204 |   39.00  204 |   39.00  204 |   39.00  204  NORTHEAST           (AA)
+ 223  New Haven            AA =  36.50    0   0    0.00(   0)    0   0  |    0   0  |   36.50  223 |   36.50  223 |   36.50  223 |   36.50  223  NORTHEAST           (AA)
+ 224  Central Connecticut  AA =  36.35    0   0    0.00(   0)    0   0  |    0   0  |   36.35  224 |   36.35  224 |   36.35  224 |   36.35  224  NORTHEAST           (AA)
+ 233  LIU Post             AA =  34.66    0   0    0.00(   0)    0   0  |    0   0  |   34.66  233 |   34.66  233 |   34.66  233 |   34.66  233  NORTHEAST           (AA)
+ 244  Mercyhurst           AA =  33.11    0   0    0.00(   0)    0   0  |    0   0  |   33.11  244 |   33.11  244 |   33.11  244 |   33.11  244  NORTHEAST           (AA)
+ 245  Robert Morris        AA =  32.73    0   0    0.00(   0)    0   0  |    0   0  |   32.73  245 |   32.73  245 |   32.73  245 |   32.73  245  NORTHEAST           (AA)
+ 255  Wagner               AA =  29.90    0   0    0.00(   0)    0   0  |    0   0  |   29.90  255 |   29.90  255 |   29.90  255 |   29.90  255  NORTHEAST           (AA)
+ 257  Stonehill College    AA =  29.49    0   0    0.00(   0)    0   0  |    0   0  |   29.49  257 |   29.49  257 |   29.49  257 |   29.49  257  NORTHEAST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  21  OVC-BIG SOUTH       (AA)=  39.30
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 155  Tennessee-Martin     AA =  47.23    0   0    0.00(   0)    0   0  |    0   0  |   47.23  155 |   47.23  155 |   47.23  155 |   47.23  155  OVC-BIG SOUTH       (AA)
+ 179  SE Missouri State    AA =  43.90    0   0    0.00(   0)    0   0  |    0   0  |   43.90  179 |   43.90  179 |   43.90  179 |   43.90  179  OVC-BIG SOUTH       (AA)
+ 189  Gardner-Webb         AA =  42.43    0   0    0.00(   0)    0   0  |    0   0  |   42.43  189 |   42.43  189 |   42.43  189 |   42.43  189  OVC-BIG SOUTH       (AA)
+ 202  Lindenwood           AA =  39.04    0   0    0.00(   0)    0   0  |    0   0  |   39.04  202 |   39.04  202 |   39.04  202 |   39.04  202  OVC-BIG SOUTH       (AA)
+ 213  Charleston Southern  AA =  37.46    0   0    0.00(   0)    0   0  |    0   0  |   37.46  213 |   37.46  213 |   37.46  213 |   37.46  213  OVC-BIG SOUTH       (AA)
+ 218  Eastern Illinois     AA =  36.89    0   0    0.00(   0)    0   0  |    0   0  |   36.89  218 |   36.89  218 |   36.89  218 |   36.89  218  OVC-BIG SOUTH       (AA)
+ 227  Western Illinois     AA =  35.88    0   0    0.00(   0)    0   0  |    0   0  |   35.88  227 |   35.88  227 |   35.88  227 |   35.88  227  OVC-BIG SOUTH       (AA)
+ 229  Tennessee State      AA =  35.18    0   0    0.00(   0)    0   0  |    0   0  |   35.18  229 |   35.18  229 |   35.18  229 |   35.18  229  OVC-BIG SOUTH       (AA)
+_________________________________________________________________________________________________________________________________________________
+  19  PATRIOT             (AA)=  41.18
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 124  Villanova            AA =  52.96    0   0    0.00(   0)    0   0  |    0   0  |   52.96  124 |   52.96  124 |   52.96  124 |   52.96  124  PATRIOT             (AA)
+ 165  Lehigh               AA =  45.97    0   0    0.00(   0)    0   0  |    0   0  |   45.97  165 |   45.97  165 |   45.97  165 |   45.97  165  PATRIOT             (AA)
+ 171  William & Mary       AA =  45.30    0   0    0.00(   0)    0   0  |    0   0  |   45.30  171 |   45.30  171 |   45.30  171 |   45.30  171  PATRIOT             (AA)
+ 173  Holy Cross           AA =  44.96    0   0    0.00(   0)    0   0  |    0   0  |   44.96  173 |   44.96  173 |   44.96  173 |   44.96  173  PATRIOT             (AA)
+ 178  Richmond             AA =  44.07    0   0    0.00(   0)    0   0  |    0   0  |   44.07  178 |   44.07  178 |   44.07  178 |   44.07  178  PATRIOT             (AA)
+ 191  Lafayette            AA =  41.28    0   0    0.00(   0)    0   0  |    0   0  |   41.28  191 |   41.28  191 |   41.28  191 |   41.28  191  PATRIOT             (AA)
+ 219  Colgate              AA =  36.87    0   0    0.00(   0)    0   0  |    0   0  |   36.87  219 |   36.87  219 |   36.87  219 |   36.87  219  PATRIOT             (AA)
+ 232  Fordham              AA =  34.74    0   0    0.00(   0)    0   0  |    0   0  |   34.74  232 |   34.74  232 |   34.74  232 |   34.74  232  PATRIOT             (AA)
+ 246  Bucknell             AA =  32.54    0   0    0.00(   0)    0   0  |    0   0  |   32.54  246 |   32.54  246 |   32.54  246 |   32.54  246  PATRIOT             (AA)
+ 251  Georgetown           AA =  31.37    0   0    0.00(   0)    0   0  |    0   0  |   31.37  251 |   31.37  251 |   31.37  251 |   31.37  251  PATRIOT             (AA)
+_________________________________________________________________________________________________________________________________________________
+  26  PIONEER             (AA)=  31.19
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 206  St. Thomas-Mn.       AA =  38.33    0   0    0.00(   0)    0   0  |    0   0  |   38.33  206 |   38.33  206 |   38.33  206 |   38.33  206  PIONEER             (AA)
+ 212  Drake                AA =  37.66    0   0    0.00(   0)    0   0  |    0   0  |   37.66  212 |   37.66  212 |   37.66  212 |   37.66  212  PIONEER             (AA)
+ 220  San Diego            AA =  36.74    0   0    0.00(   0)    0   0  |    0   0  |   36.74  220 |   36.74  220 |   36.74  220 |   36.74  220  PIONEER             (AA)
+ 237  Butler               AA =  34.19    0   0    0.00(   0)    0   0  |    0   0  |   34.19  237 |   34.19  237 |   34.19  237 |   34.19  237  PIONEER             (AA)
+ 242  Presbyterian College AA =  33.18    0   0    0.00(   0)    0   0  |    0   0  |   33.18  242 |   33.18  242 |   33.18  242 |   33.18  242  PIONEER             (AA)
+ 243  Dayton               AA =  33.14    0   0    0.00(   0)    0   0  |    0   0  |   33.14  243 |   33.14  243 |   33.14  243 |   33.14  243  PIONEER             (AA)
+ 259  Morehead State       AA =  27.52    0   0    0.00(   0)    0   0  |    0   0  |   27.52  259 |   27.52  259 |   27.52  259 |   27.52  259  PIONEER             (AA)
+ 261  Marist               AA =  27.06    0   0    0.00(   0)    0   0  |    0   0  |   27.06  261 |   27.06  261 |   27.06  261 |   27.06  261  PIONEER             (AA)
+ 262  Davidson             AA =  26.60    0   0    0.00(   0)    0   0  |    0   0  |   26.60  262 |   26.60  262 |   26.60  262 |   26.60  262  PIONEER             (AA)
+ 264  Valparaiso           AA =  25.02    0   0    0.00(   0)    0   0  |    0   0  |   25.02  264 |   25.02  264 |   25.02  264 |   25.02  264  PIONEER             (AA)
+ 266  Stetson              AA =  21.82    0   0    0.00(   0)    0   0  |    0   0  |   21.82  266 |   21.82  266 |   21.82  266 |   21.82  266  PIONEER             (AA)
+_________________________________________________________________________________________________________________________________________________
+  17  SOUTHERN            (AA)=  42.57
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 130  Mercer               AA =  51.54    0   0    0.00(   0)    0   0  |    0   0  |   51.54  130 |   51.54  130 |   51.54  130 |   51.54  130  SOUTHERN            (AA)
+ 159  Tennessee Tech       AA =  46.63    0   0    0.00(   0)    0   0  |    0   0  |   46.63  159 |   46.63  159 |   46.63  159 |   46.63  159  SOUTHERN            (AA)
+ 163  Western Carolina     AA =  46.15    0   0    0.00(   0)    0   0  |    0   0  |   46.15  163 |   46.15  163 |   46.15  163 |   46.15  163  SOUTHERN            (AA)
+ 174  Chattanooga          AA =  44.95    0   0    0.00(   0)    0   0  |    0   0  |   44.95  174 |   44.95  174 |   44.95  174 |   44.95  174  SOUTHERN            (AA)
+ 176  East Tennessee State AA =  44.69    0   0    0.00(   0)    0   0  |    0   0  |   44.69  176 |   44.69  176 |   44.69  176 |   44.69  176  SOUTHERN            (AA)
+ 192  Wofford              AA =  41.28    0   0    0.00(   0)    0   0  |    0   0  |   41.28  192 |   41.28  192 |   41.28  192 |   41.28  192  SOUTHERN            (AA)
+ 195  Furman               AA =  40.87    0   0    0.00(   0)    0   0  |    0   0  |   40.87  195 |   40.87  195 |   40.87  195 |   40.87  195  SOUTHERN            (AA)
+ 205  Samford              AA =  38.87    0   0    0.00(   0)    0   0  |    0   0  |   38.87  205 |   38.87  205 |   38.87  205 |   38.87  205  SOUTHERN            (AA)
+ 214  The Citadel          AA =  37.39    0   0    0.00(   0)    0   0  |    0   0  |   37.39  214 |   37.39  214 |   37.39  214 |   37.39  214  SOUTHERN            (AA)
+ 258  VMI                  AA =  29.31    0   0    0.00(   0)    0   0  |    0   0  |   29.31  258 |   29.31  258 |   29.31  258 |   29.31  258  SOUTHERN            (AA)
+_________________________________________________________________________________________________________________________________________________
+  18  SOUTHLAND           (AA)=  41.30
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 129  Stephen F. Austin    AA =  51.71    0   0    0.00(   0)    0   0  |    0   0  |   51.71  129 |   51.71  129 |   51.71  129 |   51.71  129  SOUTHLAND           (AA)
+ 143  Incarnate Word       AA =  48.70    0   0    0.00(   0)    0   0  |    0   0  |   48.70  143 |   48.70  143 |   48.70  143 |   48.70  143  SOUTHLAND           (AA)
+ 149  SE Louisiana         AA =  47.61    0   0    0.00(   0)    0   0  |    0   0  |   47.61  149 |   47.61  149 |   47.61  149 |   47.61  149  SOUTHLAND           (AA)
+ 156  UTRGV                AA =  47.14    0   0    0.00(   0)    0   0  |    0   0  |   47.14  156 |   47.14  156 |   47.14  156 |   47.14  156  SOUTHLAND           (AA)
+ 193  Nicholls State       AA =  41.23    0   0    0.00(   0)    0   0  |    0   0  |   41.23  193 |   41.23  193 |   41.23  193 |   41.23  193  SOUTHLAND           (AA)
+ 196  Lamar                AA =  40.77    0   0    0.00(   0)    0   0  |    0   0  |   40.77  196 |   40.77  196 |   40.77  196 |   40.77  196  SOUTHLAND           (AA)
+ 203  McNeese State        AA =  39.03    0   0    0.00(   0)    0   0  |    0   0  |   39.03  203 |   39.03  203 |   39.03  203 |   39.03  203  SOUTHLAND           (AA)
+ 231  East Texas A&M       AA =  34.79    0   0    0.00(   0)    0   0  |    0   0  |   34.79  231 |   34.79  231 |   34.79  231 |   34.79  231  SOUTHLAND           (AA)
+ 252  Houston Christian    AA =  31.29    0   0    0.00(   0)    0   0  |    0   0  |   31.29  252 |   31.29  252 |   31.29  252 |   31.29  252  SOUTHLAND           (AA)
+ 263  Northwestern State   AA =  25.42    0   0    0.00(   0)    0   0  |    0   0  |   25.42  263 |   25.42  263 |   25.42  263 |   25.42  263  SOUTHLAND           (AA)
+_________________________________________________________________________________________________________________________________________________
+  23  SWAC-EAST           (AA)=  35.44
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 175  Jackson State        AA =  44.83    0   0    0.00(   0)    0   0  |    0   0  |   44.83  175 |   44.83  175 |   44.83  175 |   44.83  175  SWAC-EAST           (AA)
+ 188  Alabama State        AA =  42.50    0   0    0.00(   0)    0   0  |    0   0  |   42.50  188 |   42.50  188 |   42.50  188 |   42.50  188  SWAC-EAST           (AA)
+ 228  Florida A&M          AA =  35.33    0   0    0.00(   0)    0   0  |    0   0  |   35.33  228 |   35.33  228 |   35.33  228 |   35.33  228  SWAC-EAST           (AA)
+ 240  Bethune-Cookman      AA =  33.67    0   0    0.00(   0)    0   0  |    0   0  |   33.67  240 |   33.67  240 |   33.67  240 |   33.67  240  SWAC-EAST           (AA)
+ 248  Alabama A&M          AA =  31.94    0   0    0.00(   0)    0   0  |    0   0  |   31.94  248 |   31.94  248 |   31.94  248 |   31.94  248  SWAC-EAST           (AA)
+ 265  Miss. Valley State   AA =  24.55    0   0    0.00(   0)    0   0  |    0   0  |   24.55  265 |   24.55  265 |   24.55  265 |   24.55  265  SWAC-EAST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  24  SWAC-WEST           (AA)=  34.20
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 210  Prairie View A&M     AA =  38.01    0   0    0.00(   0)    0   0  |    0   0  |   38.01  210 |   38.01  210 |   38.01  210 |   38.01  210  SWAC-WEST           (AA)
+ 221  Southern U.          AA =  36.71    0   0    0.00(   0)    0   0  |    0   0  |   36.71  221 |   36.71  221 |   36.71  221 |   36.71  221  SWAC-WEST           (AA)
+ 234  Grambling State      AA =  34.46    0   0    0.00(   0)    0   0  |    0   0  |   34.46  234 |   34.46  234 |   34.46  234 |   34.46  234  SWAC-WEST           (AA)
+ 239  Alcorn State         AA =  33.77    0   0    0.00(   0)    0   0  |    0   0  |   33.77  239 |   33.77  239 |   33.77  239 |   33.77  239  SWAC-WEST           (AA)
+ 241  Texas Southern       AA =  33.58    0   0    0.00(   0)    0   0  |    0   0  |   33.58  241 |   33.58  241 |   33.58  241 |   33.58  241  SWAC-WEST           (AA)
+ 260  Ark.-Pine Bluff      AA =  27.11    0   0    0.00(   0)    0   0  |    0   0  |   27.11  260 |   27.11  260 |   27.11  260 |   27.11  260  SWAC-WEST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  15  UAC                 (AA)=  43.44
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 104  Tarleton State       AA =  55.93    0   0    0.00(   0)    0   0  |    0   0  |   55.93  104 |   55.93  104 |   55.93  104 |   55.93  104  UAC                 (AA)
+ 132  Abilene Christian    AA =  51.12    0   0    0.00(   0)    0   0  |    0   0  |   51.12  132 |   51.12  132 |   51.12  132 |   51.12  132  UAC                 (AA)
+ 135  Austin Peay          AA =  50.69    0   0    0.00(   0)    0   0  |    0   0  |   50.69  135 |   50.69  135 |   50.69  135 |   50.69  135  UAC                 (AA)
+ 166  Eastern Kentucky     AA =  45.91    0   0    0.00(   0)    0   0  |    0   0  |   45.91  166 |   45.91  166 |   45.91  166 |   45.91  166  UAC                 (AA)
+ 169  Central Arkansas     AA =  45.72    0   0    0.00(   0)    0   0  |    0   0  |   45.72  169 |   45.72  169 |   45.72  169 |   45.72  169  UAC                 (AA)
+ 180  West Georgia         AA =  43.76    0   0    0.00(   0)    0   0  |    0   0  |   43.76  180 |   43.76  180 |   43.76  180 |   43.76  180  UAC                 (AA)
+ 201  North Alabama        AA =  39.57    0   0    0.00(   0)    0   0  |    0   0  |   39.57  201 |   39.57  201 |   39.57  201 |   39.57  201  UAC                 (AA)
+ 222  Merrimack            AA =  36.51    0   0    0.00(   0)    0   0  |    0   0  |   36.51  222 |   36.51  222 |   36.51  222 |   36.51  222  UAC                 (AA)
+ 249  Chicago State        AA =  31.69    0   0    0.00(   0)    0   0  |    0   0  |   31.69  249 |   31.69  249 |   31.69  249 |   31.69  249  UAC                 (AA)
+ 254  West Florida         AA =  30.75    0   0    0.00(   0)    0   0  |    0   0  |   30.75  254 |   30.75  254 |   30.75  254 |   30.75  254  UAC                 (AA)
+_________________________________________________________________________________________________________________________________________________
+  27  ___UNRATED___       (__)= -76.07
+2026 College Football STARTING ratings
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 267  ***UNRATED***        __ = -76.07    0   0    0.00(   0)    0   0  |    0   0  |  -76.07  267 |  -76.07  267 |  -76.07  267 |  -76.07  267  ___UNRATED___       (__)
+_________________________________________________________________________________________________________________________________________________
+                                      These are the "regular method".                                                           _
+HOME or CLOSEBY (c) is denoted                                                                                                  _
+by an "@" next to the HOME or CLOSER team                                                                                       _
+An "n" for NEUTRAL location will appear if a neutral game                               Rating Favorite                         _
+                                                            Strong                   MONEYLINE=odds to 100                      _
+          FAVORITE             Rating Predict Golden Recent Recent  UNDERDOG                ODDS   PCT%                 TOTAL   _
+====================================================================================================================================</pre></pre>
+<pre><b>
+<h2><font size=+2><a name="Predictions_with_Totals_and_Moneylines"><b>Predictions_with_Totals_and_Moneylines</b></a></h2></font>
+2026 College Football STARTING ratings
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG               MONEY   WIN%    home   away  TOTAL
+    1   @ Austin Peay           10.67  10.67  10.67  10.67  10.67   Gardner-Webb             309    76%   27.21  24.79  52.00  57%
+    2     Stony Brook            5.56   5.56   5.56   5.56   5.56 @ Delaware State           184    65%   27.21  24.79  52.00  43%
+    3   @ Lindenwood             3.99   3.99   3.99   3.99   3.99   Charleston Southern      156    61%   27.21  24.79  52.00  57%
+    4   @ Murray State           1.43   1.43   1.43   1.43   1.43   Eastern Illinois         117    54%   27.21  24.79  52.00  57%
+    5   @ Nicholls State        19.09  19.09  19.09  19.09  19.09   Miss. Valley State       679    87%   27.21  24.79  52.00  57%
+    6   @ North Dakota          26.49  26.49  26.49  26.49  26.49   LIU Post                1268    93%   27.21  24.79  52.00  57%
+    7   @ SE Louisiana          18.74  18.74  18.74  18.74  18.74   Houston Christian        658    87%   27.21  24.79  52.00  57%
+    8   @ Tennessee-Martin       3.92   3.92   3.92   3.92   3.92   Central Arkansas         154    61%   27.21  24.79  52.00  57%
+    9   @ Towson                 6.14   6.14   6.14   6.14   6.14   Maine                    196    66%   27.21  24.79  52.00  57%
+   10     Southern Illinois     22.73  22.73  22.73  22.73  22.73 @ West Florida             932    90%   27.21  24.79  52.00  43%
+   11   @ West Georgia           1.22   1.22   1.22   1.22   1.22   Chattanooga              115    53%   27.21  24.79  52.00  57%
+   12   @ Youngstown State      21.82  21.82  21.82  21.82  21.82   Mercyhurst               863    90%   27.21  24.79  52.00  57%
+   13     New Hampshire          5.54   5.54   5.54   5.54   5.54 @ Albany-NY                183    65%   27.21  24.79  52.00  43%
+   14     Idaho                  8.79   8.79   8.79   8.79   8.79 @ Cal Poly-SLO             256    72%   27.21  24.79  52.00  43%
+   15   @ Fordham                0.28   0.28   0.28   0.28   0.28   Colgate                  103    51%   27.21  24.79  52.00  57%
+   16     Rhode Island           8.54   8.54   8.54   8.54   8.54 @ Merrimack                250    71%   27.21  24.79  52.00  43%
+   17   @ New Haven             11.85  11.85  11.85  11.85  11.85   Marist                   346    78%   27.21  24.79  52.00  57%
+   18   @ Eastern Michigan       8.28   8.28   8.28   8.28   8.28   Sacramento State         243    71%   27.21  24.79  52.00  57%
+   19   @ Florida State         31.73  31.73  31.73  31.73  31.73   New Mexico State        1862    95%   27.21  24.79  52.00  57%
+   20 N   TCU                    6.20   6.20   6.20   6.20   6.20 @ North Carolina           197    66%   26.00  26.00  52.00  50%
+   21   @ North Dakota State    10.37  10.37  10.37  10.37  10.37   Jacksonville State       300    75%   27.21  24.79  52.00  57%
+   22   @ Southern California   43.70  43.70  43.70  43.70  43.70   San Jose State          3512    97%   27.21  24.79  52.00  57%
+   23   @ Stanford               8.62   8.62   8.62   8.62   8.62   Hawai'i                  252    72%   27.21  24.79  52.00  57%
+   24   @ UNLV                   3.32   3.32   3.32   3.32   3.32   Memphis                  145    59%   27.21  24.79  52.00  57%
+   25 N @ Virginia               2.14   2.14   2.14   2.14   2.14   NC State                 127    56%   26.00  26.00  52.00  50%
+   26 N   Howard                 2.41   2.41   2.41   2.41   2.41 @ Alabama A&M              131    57%   26.00  26.00  52.00  50%
+   27 C @ Alabama State          7.00   7.00   7.00   7.00   7.00   Southern U.              214    68%   26.60  25.40  52.00  53%
+   28   @ East Tennessee State   9.83   9.83   9.83   9.83   9.83   Campbell                 284    74%   27.21  24.79  52.00  57%
+   29     Lafayette              7.50   7.50   7.50   7.50   7.50 @ Georgetown               225    69%   27.21  24.79  52.00  43%
+   30   @ Holy Cross             1.40   1.40   1.40   1.40   1.40   Lehigh                   117    54%   27.21  24.79  52.00  57%
+   31   @ Idaho State           19.00  19.00  19.00  19.00  19.00   VMI                      673    87%   27.21  24.79  52.00  57%
+   32     SE Missouri State      1.47   1.47   1.47   1.47   1.47 @ Indiana State            118    54%   27.21  24.79  52.00  43%
+   33     Abilene Christian      7.94   7.94   7.94   7.94   7.94 @ Lamar                    235    70%   27.21  24.79  52.00  43%
+   34     Stephen F. Austin     10.27  10.27  10.27  10.27  10.27 @ McNeese State            297    75%   27.21  24.79  52.00  43%
+   35   @ Montana               12.49  12.49  12.49  12.49  12.49   Southern Utah            369    79%   27.21  24.79  52.00  57%
+   36 N @ North Alabama          0.70   0.70   0.70   0.70   0.70   Samford                  108    52%   26.00  26.00  52.00  50%
+   37     Morgan State           2.18   2.18   2.18   2.18   2.18 @ NC A&T                   128    56%   27.21  24.79  52.00  43%
+   38   @ Northern Arizona       5.10   5.10   5.10   5.10   5.10   Eastern Washington       175    64%   27.21  24.79  52.00  57%
+   39     Weber State            6.89   6.89   6.89   6.89   6.89 @ Northern Colorado        211    68%   27.21  24.79  52.00  43%
+   40     UC Davis              12.91  12.91  12.91  12.91  12.91 @ Portland State           383    79%   27.21  24.79  52.00  43%
+   41   @ Richmond              13.93  13.93  13.93  13.93  13.93   Bucknell                 423    81%   27.21  24.79  52.00  57%
+   42   @ South Dakota          23.17  23.17  23.17  23.17  23.17   Central Connecticut      968    91%   27.21  24.79  52.00  57%
+   43   @ South Dakota State    48.15  48.15  48.15  48.15  48.15   Stetson                 4116    98%   27.21  24.79  52.00  57%
+   44     Bryant                 3.04   3.04   3.04   3.04   3.04 @ Stonehill College        140    58%   27.21  24.79  52.00  43%
+   45   @ Tarleton State        20.33  20.33  20.33  20.33  20.33   Prairie View A&M         758    88%   27.21  24.79  52.00  57%
+   46     Jackson State          7.23   7.23   7.23   7.23   7.23 @ Tennessee State          219    69%   27.21  24.79  52.00  43%
+   47   @ Tennessee Tech         1.45   1.45   1.45   1.45   1.45   Monmouth-NJ              118    54%   27.21  24.79  52.00  57%
+   48     NC Central             7.20   7.20   7.20   7.20   7.20 @ Texas Southern           218    69%   27.21  24.79  52.00  43%
+   49     Montana State         26.05  26.05  26.05  26.05  26.05 @ Utah Tech               1225    92%   27.21  24.79  52.00  43%
+   50   @ Villanova             10.07  10.07  10.07  10.07  10.07   William & Mary           291    74%   27.21  24.79  52.00  57%
+2026 College Football STARTING ratings
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG               MONEY   WIN%    home   away  TOTAL
+   51     Robert Morris          0.42   0.42   0.42   0.42   0.42 @ Wagner                   105    51%   27.21  24.79  52.00  43%
+   52   @ Western Carolina       2.65   2.65   2.65   2.65   2.65   Eastern Kentucky         134    57%   27.21  24.79  52.00  57%
+   53   @ Wofford                6.30   6.30   6.30   6.30   6.30   The Citadel              199    67%   27.21  24.79  52.00  57%
+EXPERIMENTAL NUMBERS INVOLVING HOME-AWAY ADJUSTMENTS FOR EACH TEAM
+2026 College Football STARTING ratings
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG               MONEY   WIN%    home   away  TOTAL
+    1   @ Austin Peay           10.67  10.67  10.67  10.67  10.67   Gardner-Webb             309    76%   27.21  24.79  52.00  57%
+    2     Stony Brook            5.56   5.56   5.56   5.56   5.56 @ Delaware State           184    65%   27.21  24.79  52.00  43%
+    3   @ Lindenwood             3.99   3.99   3.99   3.99   3.99   Charleston Southern      156    61%   27.21  24.79  52.00  57%
+    4   @ Murray State           1.43   1.43   1.43   1.43   1.43   Eastern Illinois         117    54%   27.21  24.79  52.00  57%
+    5   @ Nicholls State        19.09  19.09  19.09  19.09  19.09   Miss. Valley State       679    87%   27.21  24.79  52.00  57%
+    6   @ North Dakota          26.49  26.49  26.49  26.49  26.49   LIU Post                1268    93%   27.21  24.79  52.00  57%
+    7   @ SE Louisiana          18.74  18.74  18.74  18.74  18.74   Houston Christian        658    87%   27.21  24.79  52.00  57%
+    8   @ Tennessee-Martin       3.92   3.92   3.92   3.92   3.92   Central Arkansas         154    61%   27.21  24.79  52.00  57%
+    9   @ Towson                 6.14   6.14   6.14   6.14   6.14   Maine                    196    66%   27.21  24.79  52.00  57%
+   10     Southern Illinois     22.73  22.73  22.73  22.73  22.73 @ West Florida             932    90%   27.21  24.79  52.00  43%
+   11   @ West Georgia           1.22   1.22   1.22   1.22   1.22   Chattanooga              115    53%   27.21  24.79  52.00  57%
+   12   @ Youngstown State      21.82  21.82  21.82  21.82  21.82   Mercyhurst               863    90%   27.21  24.79  52.00  57%
+   13     New Hampshire          5.54   5.54   5.54   5.54   5.54 @ Albany-NY                183    65%   27.21  24.79  52.00  43%
+   14     Idaho                  8.79   8.79   8.79   8.79   8.79 @ Cal Poly-SLO             256    72%   27.21  24.79  52.00  43%
+   15   @ Fordham                0.28   0.28   0.28   0.28   0.28   Colgate                  103    51%   27.21  24.79  52.00  57%
+   16     Rhode Island           8.54   8.54   8.54   8.54   8.54 @ Merrimack                250    71%   27.21  24.79  52.00  43%
+   17   @ New Haven             11.85  11.85  11.85  11.85  11.85   Marist                   346    78%   27.21  24.79  52.00  57%
+   18   @ Eastern Michigan       8.28   8.28   8.28   8.28   8.28   Sacramento State         243    71%   27.21  24.79  52.00  57%
+   19   @ Florida State         31.73  31.73  31.73  31.73  31.73   New Mexico State        1862    95%   27.21  24.79  52.00  57%
+   20 N   TCU                    6.20   6.20   6.20   6.20   6.20 @ North Carolina           197    66%   26.00  26.00  52.00  50%
+   21   @ North Dakota State    10.37  10.37  10.37  10.37  10.37   Jacksonville State       300    75%   27.21  24.79  52.00  57%
+   22   @ Southern California   43.70  43.70  43.70  43.70  43.70   San Jose State          3512    97%   27.21  24.79  52.00  57%
+   23   @ Stanford               8.62   8.62   8.62   8.62   8.62   Hawai'i                  252    72%   27.21  24.79  52.00  57%
+   24   @ UNLV                   3.32   3.32   3.32   3.32   3.32   Memphis                  145    59%   27.21  24.79  52.00  57%
+   25 N @ Virginia               2.14   2.14   2.14   2.14   2.14   NC State                 127    56%   26.00  26.00  52.00  50%
+   26 N   Howard                 2.41   2.41   2.41   2.41   2.41 @ Alabama A&M              131    57%   26.00  26.00  52.00  50%
+   27 C @ Alabama State          7.00   7.00   7.00   7.00   7.00   Southern U.              214    68%   26.60  25.40  52.00  53%
+   28   @ East Tennessee State   9.83   9.83   9.83   9.83   9.83   Campbell                 284    74%   27.21  24.79  52.00  57%
+   29     Lafayette              7.50   7.50   7.50   7.50   7.50 @ Georgetown               225    69%   27.21  24.79  52.00  43%
+   30   @ Holy Cross             1.40   1.40   1.40   1.40   1.40   Lehigh                   117    54%   27.21  24.79  52.00  57%
+   31   @ Idaho State           19.00  19.00  19.00  19.00  19.00   VMI                      673    87%   27.21  24.79  52.00  57%
+   32     SE Missouri State      1.47   1.47   1.47   1.47   1.47 @ Indiana State            118    54%   27.21  24.79  52.00  43%
+   33     Abilene Christian      7.94   7.94   7.94   7.94   7.94 @ Lamar                    235    70%   27.21  24.79  52.00  43%
+   34     Stephen F. Austin     10.27  10.27  10.27  10.27  10.27 @ McNeese State            297    75%   27.21  24.79  52.00  43%
+   35   @ Montana               12.49  12.49  12.49  12.49  12.49   Southern Utah            369    79%   27.21  24.79  52.00  57%
+   36 N @ North Alabama          0.70   0.70   0.70   0.70   0.70   Samford                  108    52%   26.00  26.00  52.00  50%
+   37     Morgan State           2.18   2.18   2.18   2.18   2.18 @ NC A&T                   128    56%   27.21  24.79  52.00  43%
+   38   @ Northern Arizona       5.10   5.10   5.10   5.10   5.10   Eastern Washington       175    64%   27.21  24.79  52.00  57%
+   39     Weber State            6.89   6.89   6.89   6.89   6.89 @ Northern Colorado        211    68%   27.21  24.79  52.00  43%
+   40     UC Davis              12.91  12.91  12.91  12.91  12.91 @ Portland State           383    79%   27.21  24.79  52.00  43%
+   41   @ Richmond              13.93  13.93  13.93  13.93  13.93   Bucknell                 423    81%   27.21  24.79  52.00  57%
+   42   @ South Dakota          23.17  23.17  23.17  23.17  23.17   Central Connecticut      968    91%   27.21  24.79  52.00  57%
+   43   @ South Dakota State    48.15  48.15  48.15  48.15  48.15   Stetson                 4116    98%   27.21  24.79  52.00  57%
+   44     Bryant                 3.04   3.04   3.04   3.04   3.04 @ Stonehill College        140    58%   27.21  24.79  52.00  43%
+   45   @ Tarleton State        20.33  20.33  20.33  20.33  20.33   Prairie View A&M         758    88%   27.21  24.79  52.00  57%
+   46     Jackson State          7.23   7.23   7.23   7.23   7.23 @ Tennessee State          219    69%   27.21  24.79  52.00  43%
+   47   @ Tennessee Tech         1.45   1.45   1.45   1.45   1.45   Monmouth-NJ              118    54%   27.21  24.79  52.00  57%
+   48     NC Central             7.20   7.20   7.20   7.20   7.20 @ Texas Southern           218    69%   27.21  24.79  52.00  43%
+   49     Montana State         26.05  26.05  26.05  26.05  26.05 @ Utah Tech               1225    92%   27.21  24.79  52.00  43%
+   50   @ Villanova             10.07  10.07  10.07  10.07  10.07   William & Mary           291    74%   27.21  24.79  52.00  57%
+2026 College Football STARTING ratings
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG               MONEY   WIN%    home   away  TOTAL
+   51     Robert Morris          0.42   0.42   0.42   0.42   0.42 @ Wagner                   105    51%   27.21  24.79  52.00  43%
+   52   @ Western Carolina       2.65   2.65   2.65   2.65   2.65   Eastern Kentucky         134    57%   27.21  24.79  52.00  57%
+   53   @ Wofford                6.30   6.30   6.30   6.30   6.30   The Citadel              199    67%   27.21  24.79  52.00  57%
+<pre>
+EIGENVECTOR Analysis            eigen MONEY=odds to 100  EPCT%=confidence
+          EFAVORITE           ESPREAD EODDS EPCT%    EUNDERDOG
+endfile
+<h2><font size=+2><a href="#Top_of_Page"><b>Top_of_Page</b></a></h2></font>
+</pre>
