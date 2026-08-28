@@ -12,20 +12,20 @@
 
 ## Where this stands (2026-08-28)
 
-Every module SPEC §1 plans except the crosswalk now exists, and **both sources have been fetched
-for real**. The Sagarin page returns bytes whose sha256 matches the golden fixture in §4.7 exactly.
-CFBD authenticated from SSM and served `/calendar` and `/teams/fbs`, which between them produced
-the committed `data/calendar/2026.json` and the CFBD half of the §6.5 roster fixture. **Nothing has
-touched S3**: every byte so far went to `file://./local-snapshots`, because the bucket in §6 has
-never been applied.
+Every module SPEC §1 plans except the crosswalk now exists, both sources have been fetched for
+real, and **the stack is applied**. `cfb/terraform` created the data bucket, the publisher role and
+the account's GitHub OIDC provider; both collectors then wrote to the real bucket from this machine,
+and the full `SnapshotStore` contract passed against S3 rather than skipping. The three §11
+workflows are written and **none has run** — `workflow_dispatch` needs them on the default branch,
+which carries no `.github/` yet.
 
 | | |
 |---|---|
 | Tests | 460 passing, 16 skipped, no collection errors; `ruff check .` clean |
-| Landed | `2fa6833..4cbde93` — everything through the CLI, the CFBD credential path, the real calendar and the roster fixture |
+| Landed | `2fa6833..855fb0c` — through the applied stack and the three §11 workflows. Pushed to `site/refresh-2026-08` |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | §6, the crosswalk. Its CFBD half is now a committed fixture; the Sagarin half is one function call away, and nothing else blocks it |
-| Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions, `terraform apply` — see the bottom of this file |
+| Next | merge to `main` so the workflows can be dispatched, then the two `fetch cfbd` CLI gaps blocking `cfb-cfbd.yml` (§7). §5, the crosswalk, is the last section with no code |
+| Blocked on a human | a merge to `main`, an in-season Sagarin capture, ~25 crosswalk decisions — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
@@ -176,14 +176,25 @@ Still open in this section:
       order (`utf-8`, `cp1252`, `latin-1`), first candidate that decodes **and** contains both
       markers wins, `EncodingError` when none qualifies. The golden capture resolves to `utf-8`
       because it happens to be pure ASCII, exactly as SPEC §4.7 predicts
-- [~] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
+- [x] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
   - The code is complete and the ordering is the tested part: `fetch_sagarin` writes bytes at step
     2 of SPEC §4.3, before anything parses them, and the §3.3 suite asserts the bytes survive a
     resolution failure rather than merely that the run went red
-  - Still `[~]` because the bucket in §6 has never been applied. `MemorySnapshotStore` and
-    `FileSnapshotStore` are exercised on every run; `S3SnapshotStore` is only reached with
-    `CFB_INTEGRATION=1` and `CFB_TEST_BUCKET` set, which is the 16 skips in every count on this
-    page. No object has ever been written to the real bucket, because there is no real bucket
+  - **Applied and written to for real, 2026-08-28.** `uv run cfb fetch sagarin` and
+    `uv run cfb fetch cfbd --resource calendar --season 2026` both defaulted to the `s3://` store
+    and landed objects:
+
+    ```
+    raw/cfbd/season=2026/week=season/calendar/2026-08-28T165019Z.json        3386
+    raw/cfbd/season=2026/week=season/calendar/2026-08-28T165019Z.meta.json    635
+    raw/sagarin/season=2026/week=preseason/2026-08-28T165010Z.txt          148793
+    raw/sagarin/season=2026/week=preseason/2026-08-28T165010Z.meta.json       751
+    ```
+
+    `week=preseason` rather than `week=unknown`, so the committed calendar is resolving. And
+    `uv run pytest tests/test_storage.py` reported **48 passed** — all 48, none skipped, in 30s —
+    which means the S3 parametrization ran against the real bucket rather than skipping. The
+    `SnapshotStore` contract now holds against S3 and not only against memory and disk
   - [x] `tests/test_storage.py` — the `SnapshotStore` contract, 16 assertions parametrized over
         three stores. Verified 2026-08-28 against a throwaway implementation written outside the
         repo and deleted immediately: **32 passed, 16 skipped** (memory and file run; the S3
@@ -397,16 +408,15 @@ exist.
     classify was written by us — and the status that actually means "over quota"
     is one the vendor has stopped documenting, so the first real one may not be a
     429 at all. That is exactly why the body of every non-2xx is logged
-- [~] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
+- [x] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
   - `fetch_cfbd` stores the bytes verbatim under
     `raw/cfbd/season=YYYY/week=NN/<resource>/<timestamp>.json` with a `.meta.json`
     beside it, and writes nothing at all when the pull fails — asserted for both
     an exhausted retry and a budget refusal, because `raw/` is write-once and a
     truncated object at the right key is permanent
-  - `[~]` on the same terms as the Sagarin write: the bucket in §6 has never been
-    applied. The two real pulls went to `file://./local-snapshots`, so the write
-    path and the manifest are exercised end to end against real vendor bytes and
-    no object has ever reached S3
+  - **Reached S3 on 2026-08-28**, alongside the Sagarin write — see §3. `fetch cfbd --resource
+    calendar` with no `--store` defaulted to the bucket and landed the JSON and its manifest under
+    `week=season/calendar/`
   - One field is weaker than it looks. `week_resolution` reads `"calendar"` on a
     CFBD manifest, but the week came from the CLI rather than from resolving a
     date. SPEC 2.2 allows only `"calendar"` or `"unknown"` and `"calendar"` is the
@@ -438,10 +448,9 @@ exist.
 
 ## 6. Infrastructure
 
-- [~] `cfb/terraform/` root with its own backend and state — **initialised against the real backend
-      and planned, 2026-08-28. Still not applied.** `terraform init` configures the S3 backend at
-      `travispollard.com-tf-state` (us-west-2, key `cfb/terraform.tfstate`) and `plan` reports
-      **8 to add, 0 to change, 0 to destroy**
+- [x] `cfb/terraform/` root with its own backend and state — **applied 2026-08-28.** State in
+      `travispollard.com-tf-state` (us-west-2, key `cfb/terraform.tfstate`); the plan it matched was
+      8 to add, 0 to change, 0 to destroy, and is kept below for the record
   - **Provider drift closed, and it was not what the earlier note said.** This file previously
     recorded "resolves 5.100.0", and the diagnosis offered this session was a *missing* cfb
     lockfile. Both wrong: `cfb/terraform/.terraform.lock.hcl` was tracked all along, pinned to
@@ -452,14 +461,16 @@ exist.
     now `5.82.2` with both platforms, byte-identical to the root on `version` and `constraints`.
     Neither `required_providers` block changed: both said `~> 5.0` already, so the constraint was
     never the problem
-- [~] Data bucket, private, versioned — written in `main.tf` (versioning, public access block,
-      `raw/` lifecycle to STANDARD_IA at 90 days, no `s3:DeleteObject` on `raw/`). Never applied
+- [x] Data bucket, private, versioned — applied. Versioning, public access block, `raw/` lifecycle
+      to STANDARD_IA at 90 days, no `s3:DeleteObject` on `raw/`. Holds four real objects and passed
+      the full `SnapshotStore` contract against S3 (§3)
 - [x] Reads distribution ARN from SSM — **resolved for real during the plan**:
       `data.aws_ssm_parameter.cdn_distribution_arn: Read complete [id=/travispollard/cdn/distribution_arn]`.
       The parameter exists in `679878703800`, so the root stack's `cfb-wiring.tf` has been applied
       at some point — this file said it never had, which was wrong. The apply-order constraint
       (root, then cfb) is therefore already satisfied and no longer blocks the cfb apply
-- [~] GitHub OIDC publisher role — written and planned, never applied. `github_repo` default
+- [x] GitHub OIDC publisher role — applied, with the OIDC provider it depends on.
+      **Not yet assumed by anything but a human**: that happens on the first workflow run (§7). `github_repo` default
       corrected to `jtravisp/travispollard.com`; the previous value was an org that does not exist,
       so the trust condition would never have matched and every scheduled run would have failed to
       assume the role
@@ -480,9 +491,8 @@ exist.
       root apply, ahead of the behavior that uses it. `modules/cloudfront` gained a
       `cloudfront_distribution_arn` output, which the parameters need
 
-**The plan, 2026-08-28** — `terraform -chdir=terraform plan`, account `679878703800`, profile
-`tp-site`. Nothing applied; shown here because the next session's first act is an apply and this is
-what it should match:
+**The plan that was applied, 2026-08-28** — account `679878703800`, profile `tp-site`. Kept because
+it is the only record of what the first apply created:
 
 ```
 data.aws_caller_identity.current: Read complete [id=679878703800]
@@ -502,9 +512,37 @@ Plan: 8 to add, 0 to change, 0 to destroy.
 
 ## 7. Schedule and alerting
 
-- [ ] GitHub Actions workflow, cron, Sunday and Tuesday — `.github/workflows/` does not exist yet
-- [ ] Failure notification that reaches you
-- [ ] Stale-data alert wired to the freshness check
+- [~] GitHub Actions workflow, cron, Sunday and Tuesday — all three written 2026-08-28,
+      `.github/workflows/{cfb-ci,cfb-sagarin,cfb-cfbd}.yml`. **None has run.**
+  - `cfb-ci.yml` and `cfb-sagarin.yml` are complete. Every step is a command a human runs locally
+    (SPEC §8), so a red run is reproducible with one copy-paste: no inline Python, no workflow-only
+    branch, no date arithmetic in YAML
+  - `cfb-ci.yml` is offline **by construction** — no `configure-aws-credentials` step, no
+    `id-token` permission, no profile — so a test that reached for AWS fails there rather than
+    passing on someone's laptop credentials. `uv sync` without `--extra s3`, which also proves
+    `storage.py` still imports with boto3 absent
+  - Both collect workflows install `--extra s3`. Without it the default `s3://` store dies on
+    `ModuleNotFoundError` inside `S3SnapshotStore.__init__` — a traceback rather than the clean
+    exit 1 SPEC §9 promises
+  - Neither names `AWS_PROFILE` or `tp-site`. The role is assumed by OIDC; a workflow referencing
+    either would be relying on a credential it cannot have
+  - **`cfb-cfbd.yml` is committed with its schedule commented out**, because two CLI gaps make it
+    unrunnable. The file is the shape the workflow takes rather than a guess at it later:
+    - `fetch cfbd --resource games` requires an explicit `--week`. Passing it from YAML means
+      computing "the week that just completed" where nothing tests it, while `calendar.py` already
+      knows. The CLI should default it
+    - `fetch cfbd` has no `in_season` guard. `fetch sagarin` has one; this was left out on the
+      reading that SPEC §8 gives cfbd no `--force`. SPEC §11 wants both collect workflows gated, so
+      the guard belongs in the CLI, not the workflow
+  - **Blocked on the default branch.** `workflow_dispatch` requires the workflow to exist on the
+    repo's default branch and `origin/main` carries no `.github/` at all, so nothing can be
+    triggered until these merge. `gh` is not installed on this machine either
+- [~] Failure notification that reaches you — the mechanism is the run failure itself (SPEC §11):
+      any `CfbError` is exit 1, which turns the run red and GitHub emails it. No SNS topic, no bot
+      token. Unverified until a run has actually gone red
+- [~] Stale-data alert wired to the freshness check — `cfb check-freshness sagarin` is the second
+      step of `cfb-sagarin.yml`, so `StaleSourceError` reaches you by the same path as every other
+      failure. Unverified for the same reason
 
 ---
 
