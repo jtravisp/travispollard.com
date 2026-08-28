@@ -34,10 +34,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from cfb.storage import FileSnapshotStore, MemorySnapshotStore, S3SnapshotStore
 
 from cfb.errors import SnapshotExistsError, SnapshotNotFoundError
 from cfb.models import Manifest
+from cfb.storage import FileSnapshotStore, MemorySnapshotStore, S3SnapshotStore
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

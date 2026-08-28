@@ -31,3 +31,9 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+# Without this, isort classifies `cfb` by whether it can find the module on disk,
+# so a test written before its implementation lands gets sorted into the
+# third-party block and then moves again once the module exists.
+[tool.ruff.lint.isort]
+known-first-party = ["cfb"]
