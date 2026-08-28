@@ -104,11 +104,16 @@ Added since:
 
 Still open in this section:
 
-- [ ] An in-season golden page, `tests/fixtures/sagarin_2026_week04.txt` — nothing can test the
-      date stamp, the in-season title flag, or freshness until one exists. Two pieces of shipped
-      code are unverified against real bytes because of it: the "through games of …" date parsing
-      in `parse_page_date_stamp`, whose format list is a guess, and the `"in-season"` branch of
-      `parse_page_state`
+- [ ] An in-season golden page — nothing can test the date stamp, the in-season title flag, or
+      freshness until one exists. Two pieces of shipped code are unverified against real bytes
+      because of it: the "through games of …" date parsing in `parse_page_date_stamp`, whose
+      format list is a guess, and the `"in-season"` branch of `parse_page_state`
+  - **The gate is the title line, not a week number.** `parse_page_state` (`sagarin_ratings.py:285`)
+    keys on one substring: `STARTING`. Nothing in this project reads a week number off the page.
+    So the fixture is capturable the first time the page drops `STARTING`, which is after the
+    first games are played — not week 4. The earlier `sagarin_2026_week04.txt` name asserted a
+    schedule the code never required; name captures by capture date instead, and let the page's
+    own "through games of" stamp say which week it covers
 
 ## 3. Sagarin collector
 
@@ -141,6 +146,15 @@ bool. Also unverifiable until an in-season page lands: `predicted_margin` is the
 signed from the home team's perspective. The row supplies five spread columns and the model has
 one field, and SPEC §4.4 names PREDICTOR as the benchmark — but all five are identical in the
 preseason, so nothing distinguishes them empirically yet.
+
+This one does *not* clear on the same schedule as the other three. The title flag, the date stamp
+and the `"in-season"` branch all flip the moment any games are played. The columns only separate
+for teams that have actually played, and they separate by an amount proportional to how much
+result data has displaced the preseason prior. On the first in-season page most of the 266 teams
+are still 0-0 and still degenerate, and the predictions block is computed off ratings that are
+almost entirely prior. So: capture the page anyway — it unblocks the other three — but check the
+specific rows an assertion would target before closing this item. If PREDICTOR still agrees with
+its neighbours on those rows, the fixture has not settled anything and the item stays open.
 
 ## 4. CFBD collector
 
@@ -188,23 +202,25 @@ preseason, so nothing distinguishes them empirically yet.
 
 ## What blocks §3, the next section with open work
 
-In dependency order. Only the first is startable today.
+In dependency order. The first two are startable now; the third is the only real wait.
 
 1. **`storage.py` — the `SnapshotStore` protocol (SPEC §2.3, lines 136-145).** Nothing else in §3
    can be written first: "write raw bytes before parsing" is the project's immutability rule, so
    the store is upstream of the fetch, not downstream of it. It is also the only one of these
    that needs no AWS and no new fixture — `MemorySnapshotStore` keeps the collector tests offline,
    which `cfb/CLAUDE.md` requires. Write this next.
-2. **`terraform apply`, root stack before `cfb/`.** The data bucket, the OIDC publisher role and
+2. **An in-season capture, by hand, the first weekend games are played.** Gates the freshness
+   check above, and until it exists two already-shipped code paths stay unverified against real
+   bytes: the date formats in `parse_page_date_stamp` are a guess, and the `"in-season"` branch of
+   `parse_page_state` has never seen a page that takes it. Previously logged here as a four-week
+   clock dependency, which was wrong — see §2. One page carries both parsers' input (SPEC §4.7:
+   the predictions block is on the same file, printed twice, 53 games each), so a single capture
+   unblocks the ratings and the predictions side together.
+3. **`terraform apply`, root stack before `cfb/`.** The data bucket, the OIDC publisher role and
    the SSM parameters are all written and all unapplied. The order is forced: `cfb/terraform`
    reads `/travispollard/cdn/` parameters that the root stack's `cfb-wiring.tf` publishes, so the
    root applies first or the cfb data source resolves nothing. Until this happens the S3 write in
    §3 can be unit-tested but never run for real, and §7's scheduled job has no role to assume.
-3. **An in-season capture, `tests/fixtures/sagarin_2026_week04.txt`.** Gates the freshness check
-   above, and until it exists two already-shipped code paths stay unverified against real bytes:
-   the date formats in `parse_page_date_stamp` are a guess, and the `"in-season"` branch of
-   `parse_page_state` has never seen a page that takes it. This one is a clock dependency — the
-   2026 season has to reach week 4 — so the collector should not be designed around it landing.
 
 §4 and §5 are blocked on the two human items below, not on §3.
 
