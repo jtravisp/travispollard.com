@@ -22,16 +22,21 @@ if the injection should look different, these tests are where to say so.
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-from cfb.calendar import in_season, load_calendar, resolve
+from cfb.calendar import PRESEASON_LEAD, in_season, load_calendar, resolve
 from cfb.errors import WeekResolutionError
+from cfb.manifest import snapshot_key
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SYNTHETIC = FIXTURES / "calendar_2026_synthetic.json"
+
+#: Fixed so the expected key is a literal rather than a second computation of the
+#: thing under test. Nothing here depends on it matching the resolved moment.
+KEYED_AT = datetime(2026, 9, 16, 11, 3, 2, tzinfo=UTC)
 
 
 @pytest.fixture(scope="module")
@@ -136,10 +141,18 @@ class TestResolvePartitionValues:
         The value is a literal S3 path segment. A stray ``"4"`` opens a second
         partition for a week that already has one, and neither half is wrong
         enough to notice.
+
+        So the assertion follows it to the segment. A ``WeekRef`` carrying ``04``
+        is necessary and not sufficient: it says nothing about what the key
+        builder does with it downstream, and the docstring above is a claim about
+        the path, which is the only end of that trip anyone ever reads back.
         """
         ref = resolve(moment, calendar=calendar)
         assert ref.week == expected
         assert ref.how == "calendar"
+
+        key = snapshot_key(source="sagarin", season=2026, week=ref.week, fetched_at=KEYED_AT)
+        assert key == f"raw/sagarin/season=2026/week={expected}/2026-09-16T110302Z.txt"
 
     def test_the_gap_between_weeks_belongs_to_the_week_that_opened_it(self, calendar):
         """Sagarin is fetched on a Tuesday (SPEC 11), which is nobody's game day.
@@ -224,6 +237,31 @@ class TestInSeason:
     def test_false_the_month_after_the_postseason_ends(self, calendar):
         assert in_season(at(2027, 2, 15, 12), calendar=calendar) is False
 
+    def test_false_the_day_before_the_preseason_lead_opens(self, calendar):
+        """The lead is three weeks (SPEC 4.6) and it has to start somewhere.
+
+        Every other case in this class sits days or months from an edge, which
+        leaves the whole left boundary decided by no assertion at all -- a lead
+        of zero, of a year, or of nothing would satisfy all of them.
+        """
+        opens = calendar.opens - PRESEASON_LEAD
+        assert in_season(opens - timedelta(days=1), calendar=calendar) is False
+
+    def test_true_at_the_instant_the_preseason_lead_opens(self, calendar):
+        """The bound is inclusive, and this is the only test that says so.
+
+        Fails the moment ``<=`` becomes ``<``. Sagarin publishes a starting page
+        before week 1 and opening the window late loses that snapshot
+        permanently, so the off-by-one here is not symmetric: a run too early is
+        a skipped check, a run too late is a hole in the record.
+        """
+        assert in_season(calendar.opens - PRESEASON_LEAD, calendar=calendar) is True
+
+    def test_true_the_first_full_day_inside_the_preseason_lead(self, calendar):
+        assert in_season(
+            calendar.opens - PRESEASON_LEAD + timedelta(days=1), calendar=calendar
+        ) is True
+
 
 class TestResolutionFailureKeepsTheSnapshot:
     """SPEC 3.3, the case the whole section exists for.
@@ -264,13 +302,26 @@ class TestResolutionFailureKeepsTheSnapshot:
             store=store, now=moment, fetch=lambda: page, data_dir=data_dir
         )
 
-    def test_the_run_exits_non_zero(self, page, truncated_dir):
-        """Necessary, and on its own worth almost nothing -- see the class docstring."""
+    def test_the_run_exits_non_zero_after_the_write_and_not_instead_of_it(
+        self, page, truncated_dir
+    ):
+        """The raise, and the ordering that makes it the right raise.
+
+        ``WeekResolutionError`` alone does not distinguish the two designs this
+        class exists to tell apart: a collector that resolves first and bails
+        raises exactly this, at exactly this call, having stored nothing. Both
+        are "the run exits non-zero", and only one of them still has the week's
+        bytes afterwards. So the error is necessary and the object is the proof.
+        """
         from cfb.storage import MemorySnapshotStore
 
         store = MemorySnapshotStore()
         with pytest.raises(WeekResolutionError):
             self.run(store, page, truncated_dir, at(2026, 12, 28, 12))
+
+        assert store.list_manifests("raw/sagarin/"), (
+            "raised before writing anything: the exit code is right and the week is gone"
+        )
 
     def test_and_the_bytes_survive_it(self, page, truncated_dir):
         """The assertion that separates a messy artifact from a lost one."""
@@ -326,23 +377,44 @@ class TestResolutionFailureKeepsTheSnapshot:
         for guess in ("week=offseason", "week=postseason", "week=15", "week=11"):
             assert guess not in manifest.snapshot_key
 
-    def test_a_missing_calendar_file_takes_the_same_path(self, page, tmp_path):
+    def test_a_missing_calendar_file_reaches_the_same_outcome_by_a_different_route(
+        self, page, truncated_dir, tmp_path
+    ):
         """SPEC 3.3 lists three causes and gives them one behaviour.
 
-        A missing file is the one most likely to happen on a fresh checkout, and
-        the one where an implementation is most tempted to bail early.
+        Not one code path, though, and the difference matters to what this test
+        can see. A truncated calendar loads and ``resolve`` returns
+        ``how="unknown"``; a missing file never gets that far, because
+        ``load_calendar`` raises and the collector turns that into the same
+        ``WeekRef`` itself. Nothing here touches ``resolve``, so a ``resolve``
+        that raised instead of returning would leave this test green.
+
+        What is assertable is that the two routes are indistinguishable
+        downstream, which is the behaviour SPEC 3.3 actually specifies. Both runs
+        use one moment, so agreement extends to the key: same partition, same
+        recorded resolution, same bytes, same object.
         """
         from cfb.storage import MemorySnapshotStore
 
-        empty = tmp_path / "calendar"
+        moment = at(2026, 12, 28, 12)
+        empty = tmp_path / "empty-calendar"
         empty.mkdir()
-        store = MemorySnapshotStore()
-        with pytest.raises(WeekResolutionError):
-            self.run(store, page, empty, at(2026, 9, 20, 12))
 
-        [manifest] = store.list_manifests("raw/sagarin/")
-        assert manifest.week == "unknown"
-        assert store.get_bytes(manifest.snapshot_key) == page
+        missing_store = MemorySnapshotStore()
+        with pytest.raises(WeekResolutionError):
+            self.run(missing_store, page, empty, moment)
+
+        truncated_store = MemorySnapshotStore()
+        with pytest.raises(WeekResolutionError):
+            self.run(truncated_store, page, truncated_dir, moment)
+
+        [missing] = missing_store.list_manifests("raw/sagarin/")
+        [truncated] = truncated_store.list_manifests("raw/sagarin/")
+
+        assert missing.week == truncated.week == "unknown"
+        assert missing.week_resolution == truncated.week_resolution == "unknown"
+        assert missing.snapshot_key == truncated.snapshot_key
+        assert missing_store.get_bytes(missing.snapshot_key) == page
 
     def test_a_resolvable_run_is_unaffected(self, page, data_dir):
         """The control. Without it every assertion above is satisfied by a

@@ -102,13 +102,32 @@ class TestCfbdKeys:
             )
 
 
+#: Every legal ``week=`` value in SPEC 3.2. All fifteen numbered weeks, not a
+#: sample: a key builder that drops the leading zero is wrong on ``01``-``09``
+#: and right on ``10``-``15``, so a sample decides by luck whether the suite
+#: notices. Naming all fifteen takes the luck out.
+LEGAL_WEEKS = [f"{n:02d}" for n in range(1, 16)] + [
+    "preseason",
+    "postseason",
+    "offseason",
+    "season",
+    "unknown",
+]
+
+
 class TestWeekPartitionValues:
-    @pytest.mark.parametrize(
-        "week", ["preseason", "01", "07", "15", "postseason", "offseason", "season", "unknown"]
-    )
-    def test_every_legal_value_from_spec_3_2_is_accepted(self, week):
-        key = snapshot_key(source="sagarin", season=2026, week=week, fetched_at=FETCHED)
-        assert f"/week={week}/" in key
+    @pytest.mark.parametrize("week", LEGAL_WEEKS)
+    def test_every_legal_value_reaches_the_key_intact(self, week):
+        """The whole key, not ``f"/week={week}/" in key``.
+
+        The substring form is satisfied by a key that contains the right segment
+        somewhere, which is a weaker claim than the one SPEC 2.1 makes -- and the
+        assertion it replaces was blind to a builder that emitted ``/week=4/``
+        for every week from 10 up, because that builder is correct there.
+        """
+        assert snapshot_key(source="sagarin", season=2026, week=week, fetched_at=FETCHED) == (
+            f"raw/sagarin/season=2026/week={week}/2026-09-16T110302Z.txt"
+        )
 
     @pytest.mark.parametrize("week", ["4", "004", "16", "00", "Week4", "", "04/05", "unknown "])
     def test_anything_else_raises(self, week):
@@ -117,9 +136,26 @@ class TestWeekPartitionValues:
         ``"4"`` is the dangerous one: it opens a second partition for a week that
         already has one, both halves look plausible in a listing, and every later
         prefix query silently reads half the data.
+
+        This guards the *argument*. What reaches S3 is the return value, and the
+        two are separate claims -- see the test below, which is the half of the
+        hazard this one cannot see.
         """
         with pytest.raises((WeekResolutionError, ValueError)):
             snapshot_key(source="sagarin", season=2026, week=week, fetched_at=FETCHED)
+
+    @pytest.mark.parametrize(("padded", "bare"), [("01", "1"), ("04", "4"), ("09", "9")])
+    def test_the_pad_survives_into_the_emitted_key(self, padded, bare):
+        """Accepting ``"04"`` and writing ``/week=4/`` is a state the validator permits.
+
+        ``test_anything_else_raises["4"]`` passes against exactly that builder:
+        it rejects the bad input and never looks at the output. Nothing else in
+        this class did either, and the emitted key is the only one of the two
+        that becomes a permanent S3 prefix.
+        """
+        key = snapshot_key(source="sagarin", season=2026, week=padded, fetched_at=FETCHED)
+        assert f"/week={padded}/" in key
+        assert f"/week={bare}/" not in key
 
 
 class TestManifestKey:
