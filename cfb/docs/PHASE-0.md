@@ -16,16 +16,17 @@ Every module SPEC §1 plans except the crosswalk now exists, both sources have b
 real, and **the stack is applied**. `cfb/terraform` created the data bucket, the publisher role and
 the account's GitHub OIDC provider; both collectors then wrote to the real bucket from this machine,
 and the full `SnapshotStore` contract passed against S3 rather than skipping. The three §11
-workflows are written and **none has run** — `workflow_dispatch` needs them on the default branch,
-which carries no `.github/` yet.
+workflows are merged and **all three have run**: CI green on the PR, and both collect workflows
+dispatched successfully with the publisher role assumed by GitHub Actions rather than by a human.
+`cfb-sagarin.yml` wrote a snapshot to the real bucket from CI.
 
 | | |
 |---|---|
-| Tests | 460 passing, 16 skipped, no collection errors; `ruff check .` clean |
-| Landed | `2fa6833..855fb0c` — through the applied stack and the three §11 workflows. Pushed to `site/refresh-2026-08` |
+| Tests | 492 passing, 17 skipped, no collection errors; `ruff check .` clean |
+| Landed | `2fa6833..4db2934`. PR #43 merged to `main`; the workflows have run |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | merge to `main` so the workflows can be dispatched, then the two `fetch cfbd` CLI gaps blocking `cfb-cfbd.yml` (§7). §5, the crosswalk, is the last section with no code |
-| Blocked on a human | a merge to `main`, an in-season Sagarin capture, ~25 crosswalk decisions — see the bottom of this file |
+| Next | §5, the crosswalk — the last section with no code. Then the two unattended scheduled runs that Phase 0 is "done when" |
+| Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
@@ -512,37 +513,48 @@ Plan: 8 to add, 0 to change, 0 to destroy.
 
 ## 7. Schedule and alerting
 
-- [~] GitHub Actions workflow, cron, Sunday and Tuesday — all three written 2026-08-28,
-      `.github/workflows/{cfb-ci,cfb-sagarin,cfb-cfbd}.yml`. **None has run.**
-  - `cfb-ci.yml` and `cfb-sagarin.yml` are complete. Every step is a command a human runs locally
-    (SPEC §8), so a red run is reproducible with one copy-paste: no inline Python, no workflow-only
-    branch, no date arithmetic in YAML
-  - `cfb-ci.yml` is offline **by construction** — no `configure-aws-credentials` step, no
-    `id-token` permission, no profile — so a test that reached for AWS fails there rather than
-    passing on someone's laptop credentials. `uv sync` without `--extra s3`, which also proves
-    `storage.py` still imports with boto3 absent
-  - Both collect workflows install `--extra s3`. Without it the default `s3://` store dies on
-    `ModuleNotFoundError` inside `S3SnapshotStore.__init__` — a traceback rather than the clean
-    exit 1 SPEC §9 promises
-  - Neither names `AWS_PROFILE` or `tp-site`. The role is assumed by OIDC; a workflow referencing
-    either would be relying on a credential it cannot have
-  - **`cfb-cfbd.yml` is committed with its schedule commented out**, because two CLI gaps make it
-    unrunnable. The file is the shape the workflow takes rather than a guess at it later:
-    - `fetch cfbd --resource games` requires an explicit `--week`. Passing it from YAML means
-      computing "the week that just completed" where nothing tests it, while `calendar.py` already
-      knows. The CLI should default it
-    - `fetch cfbd` has no `in_season` guard. `fetch sagarin` has one; this was left out on the
-      reading that SPEC §8 gives cfbd no `--force`. SPEC §11 wants both collect workflows gated, so
-      the guard belongs in the CLI, not the workflow
-  - **Blocked on the default branch.** `workflow_dispatch` requires the workflow to exist on the
-    repo's default branch and `origin/main` carries no `.github/` at all, so nothing can be
-    triggered until these merge. `gh` is not installed on this machine either
+- [x] GitHub Actions workflow, cron, Sunday and Tuesday — all three written, merged to `main`
+      (PR #43) and **dispatched successfully 2026-08-28**
+  - Every step is a command a human runs locally (SPEC §8), so a red run is reproducible with one
+    copy-paste. No inline Python, no workflow-only branch, no date arithmetic in YAML
+  - `cfb-ci.yml` passed on PR #43: `460 passed, 16 skipped in 2.44s` on the runner. Offline **by
+    construction** — no `configure-aws-credentials` step, no `id-token` permission, no profile — so
+    the 16 S3 tests skip for want of credentials the job was never given
+  - `cfb-cfbd.yml` ([run 33194110693](https://github.com/jtravisp/travispollard.com/actions/runs/33194110693)),
+    the run that closed the two CLI gaps:
+
+    ```
+    Assuming role with OIDC
+    Authenticated as assumedRoleId AROAZ4S7NXK4FEO6NNV7Q:GitHubActions
+    event=snapshot_written source=cfbd resource=games result=skip reason=no_completed_week
+    event=snapshot_written source=cfbd resource=lines result=skip reason=no_completed_week
+    ```
+
+    Green with nothing collected, which is the correct answer on 2026-08-28: week 1 does not close
+    until 2026-09-08, so the first Sunday with anything to pull is 2026-09-13
+  - `cfb-sagarin.yml` ([run 33194175377](https://github.com/jtravisp/travispollard.com/actions/runs/33194175377))
+    **wrote to the real bucket from CI** — `raw/sagarin/season=2026/week=preseason/2026-08-28T172006Z.txt`,
+    148,793 bytes:
+
+    ```
+    Authenticated as assumedRoleId AROAZ4S7NXK4FEO6NNV7Q:GitHubActions
+    event=snapshot_written source=sagarin result=ok page_state=preseason teams=266 predictions=53
+    event=freshness source=sagarin result=skip reason=no_prior_manifest
+    ```
+
+  - **The publisher role has now been assumed by something other than a human**, which was the last
+    unproven link in the chain. Both collect workflows use only the session credentials the OIDC
+    exchange hands them; neither names `AWS_PROFILE` or `tp-site`
+  - Actions bumped to `checkout@v5`, `setup-uv@v6`, `configure-aws-credentials@v5`. GitHub still
+    warns that two of them target Node 20 and are being forced onto Node 24 — upstream's to fix
 - [~] Failure notification that reaches you — the mechanism is the run failure itself (SPEC §11):
-      any `CfbError` is exit 1, which turns the run red and GitHub emails it. No SNS topic, no bot
-      token. Unverified until a run has actually gone red
+      any `CfbError` is exit 1, which reddens the run and GitHub emails it. **Still unverified: no
+      run has gone red.** Every dispatch so far has been green, so the alert path is the one part of
+      this section nothing has exercised
 - [~] Stale-data alert wired to the freshness check — `cfb check-freshness sagarin` is the second
-      step of `cfb-sagarin.yml`, so `StaleSourceError` reaches you by the same path as every other
-      failure. Unverified for the same reason
+      step of `cfb-sagarin.yml` and ran, reporting `reason=no_prior_manifest`: every snapshot in the
+      bucket is from today, so nothing has a prior *date* to compare against. The skip path is
+      confirmed in CI; the raise path waits on two runs a day apart
 
 ---
 
