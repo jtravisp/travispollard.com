@@ -118,10 +118,14 @@ Still open in this section:
 ## 3. Sagarin collector
 
 - [ ] Fetch with scheme pinned to HTTP, no upgrade
-  - Needs `collectors/sagarin.py`, which does not exist
-- [ ] Encoding sniff, raise on failure
-  - `EncodingError` is defined in `errors.py` and never raised anywhere — the hierarchy landed
-    ahead of the code that uses it
+  - `collectors/sagarin.py` now exists, but `fetch` is an injected zero-argument callable with no
+    default: the CLI is meant to pass the pinned-HTTP fetcher of SPEC §4.1 and that fetcher has not
+    been written. `httpx` is not a dependency yet. `fetch_sagarin` is therefore complete as a seam
+    and not yet runnable in production
+- [x] Encoding sniff, raise on failure — `decode_page()` in `collectors/sagarin.py`. SPEC §4.2
+      order (`utf-8`, `cp1252`, `latin-1`), first candidate that decodes **and** contains both
+      markers wins, `EncodingError` when none qualifies. The golden capture resolves to `utf-8`
+      because it happens to be pure ASCII, exactly as SPEC §4.7 predicts
 - [ ] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
   - Blocked twice over: `storage.py` does not exist, and the bucket in §6 has never been applied
   - [x] `tests/test_storage.py` — the `SnapshotStore` contract, 16 assertions parametrized over
@@ -221,9 +225,34 @@ waiting**: 31 in `test_calendar.py`, 27 in `test_manifest.py`.
       that expects the raise also asserts the bytes are in the store, the key is partitioned under
       `week=unknown`, and `week_resolution` reads `"unknown"` so a later re-partition sweep can
       find it. One control test proves a resolvable run still lands under `week=04`
-- [ ] `calendar.py` — `load_calendar`, `resolve`, `in_season`
-- [ ] `manifest.py` — `snapshot_key`, `manifest_key`
-- [ ] `collectors/sagarin.py` — `fetch_sagarin`
+- [x] `calendar.py` — `load_calendar`, `resolve`, `in_season`
+- [x] `manifest.py` — `snapshot_key`, `manifest_key`
+- [x] `collectors/sagarin.py` — `fetch_sagarin`, `decode_page`
+
+Implemented 2026-08-28. `uv run pytest` with `CFB_INTEGRATION` unset:
+**`154 passed, 16 skipped in 1.07s`**, no collection errors. `uv run ruff check .` →
+`All checks passed!` All four decisions are recorded in SPEC §1, §3.1, §5.1, §5.3 and §8; nothing
+under `cfb/tests/` was touched.
+
+An end-to-end run against the golden capture writes a manifest whose counts match SPEC §4.7
+independently — `team_count` 266, `fbs_count` 138, `predictions_count` 53, `sha256`
+`ba40d836…`, `page_state` `preseason`, `page_date_stamp` null — and the stored bytes compare equal
+to the fixture.
+
+**Still not wired, and the collector docstring says so at the top:**
+
+- Step 5 of SPEC §4.3, crosswalk resolution. `crosswalk/` does not exist. `unmapped` is therefore
+  omitted from **both** manifest writes rather than written as `[]`; an empty list would claim
+  every name resolved, which is a stronger statement than "nothing checked"
+- Step 7, the freshness check. `in_season` exists to gate it but nothing calls it yet
+- `http_status` is hardcoded to `200`. Defensible — SPEC §4.1 makes any non-2xx a `FetchError`
+  inside the fetcher, so bytes reaching `fetch_sagarin` are by construction a 200 — but it means
+  the field records an inference rather than an observation. If the fetch seam ever returns
+  `(status, bytes)` instead of `bytes`, this should become the real value
+- `hfa` is written with **five** keys (`strong_recent` included) because `parse_hfa` captures all
+  five columns the page prints. SPEC §2.2's example manifest names four. Not a bug — §4.7 already
+  documents the five-vs-four gap — but §2.2's example is now narrower than what the code writes,
+  and one of the two should move
 
 **Signatures the tests propose, none of which SPEC pins.** These are the decision to make before
 implementing, and changing them means changing the tests:

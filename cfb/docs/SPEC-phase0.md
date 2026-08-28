@@ -22,11 +22,11 @@ cfb/
 │   ├── cli.py                      # the `cfb` entrypoint, subcommands below
 │   ├── calendar.py                 # season/week resolution
 │   ├── storage.py                  # SnapshotStore protocol + S3/File/Memory impls
-│   ├── manifest.py                 # key construction, the two-phase manifest build (§4.3)
+│   ├── manifest.py                 # snapshot_key(), manifest_key(); the two-phase build (§4.3)
 │   ├── logging.py                  # key=value structured lines to stdout
 │   ├── errors.py                   # the exception hierarchy in §9
 │   ├── collectors/
-│   │   ├── sagarin.py              # fetch, encoding sniff, snapshot, freshness
+│   │   ├── sagarin.py              # fetch_sagarin(): encoding sniff, snapshot, freshness
 │   │   └── cfbd.py                 # budgeted client, incremental sync
 │   ├── parsers/
 │   │   ├── sagarin_ratings.py      # section 1 only
@@ -158,10 +158,39 @@ CFBD's `/calendar?year=YYYY` is authoritative, fetched **once per season** and c
 
 ```python
 # calendar.py
-def load_calendar(season: int) -> Calendar: ...
-def resolve(now: datetime) -> WeekRef: ...       # -> WeekRef(season=2026, week="04", how="calendar")
-def in_season(now: datetime) -> bool: ...        # preseason start .. postseason end
+def load_calendar(season: int, *, data_dir: Path | None = None) -> Calendar: ...
+def resolve(now: datetime, *, calendar: Calendar) -> WeekRef: ...
+def in_season(now: datetime, *, calendar: Calendar) -> bool: ...
 ```
+
+`data_dir` defaults to the packaged `cfb/data/calendar/`; the tests point it at a fixture. `resolve` and
+`in_season` take the calendar rather than loading it, so one run loads once and a test can hand them a
+truncated or malformed calendar without touching the filesystem.
+
+**`resolve` does not raise.** A date it cannot place returns `WeekRef(season=…, week="unknown",
+how="unknown")`. This is stated here rather than left to be inferred from the `"calendar" | "unknown"`
+union in §2.2, because the inference runs backwards: the union is the consequence of this decision, not
+the evidence for it. `load_calendar` still raises `WeekResolutionError` on a missing, malformed,
+empty, or wrong-season file — the file being unreadable is a different fact from a date being
+unplaceable. The non-zero exit §3.3 requires is still owed, and the collector owes it, after the write.
+
+The distinction `resolve` draws: a **complete** calendar (one carrying a postseason entry) places a
+March date in `offseason`, because it knows where the season ended. A calendar **truncated** at week 10
+says nothing at all about December, so December resolves to `unknown`. Answering `offseason` there
+would be a guess dressed as an answer, and a snapshot filed under a confidently wrong partition is
+never re-partitioned, while one filed under `unknown` is.
+
+**`in_season` opens 21 days before the first calendar entry's start** and closes at the last entry's
+`lastGameStart`, inclusive. Both ends are derived from the loaded calendar; **no date is ever
+hardcoded**, because a hardcoded boundary is wrong every year and wrong silently.
+
+21 is arbitrary. It is not a claim about when preseason ratings appear — the CFBD calendar has no
+preseason boundary to read, so some number had to be picked. It is chosen for the shape of the two
+failure modes, which are not symmetric: opening too early costs one wasted fetch of a page that has not
+changed, and §4.6's freshness check already skips rather than alerts when `page_date_stamp` is null,
+which is exactly the preseason case. Opening too late loses a snapshot permanently. Given a cheap error
+on one side and an unrecoverable one on the other, the boundary belongs on the cheap side, and 21 days
+buys three weeks of margin for a guess nobody has to revisit.
 
 ### 3.2 Partition values
 
@@ -383,9 +412,17 @@ A per-run hard cap, enforced in the client, not a shared counter:
 CALL_BUDGET_PER_RUN = 25          # the 26th call raises CallBudgetExceeded
 ```
 
-Stateless and testable, and it bounds the month at cap × runs (~200 worst case against 1,000). There is no
-cross-run counter to race or to leave wrong after a crash. Every call is logged with a running count, so
-the real monthly figure is recoverable from Actions logs for the write-up.
+Stateless and testable, and it bounds the month at cap × runs (~200 worst case). There is no cross-run
+counter to race or to leave wrong after a crash. Every call is logged with a running count, so the real
+monthly figure is recoverable from Actions logs for the write-up.
+
+**The 1,000 calls/month figure is not vendor-backed and must never become a runtime check.** CFBD's
+current documentation deliberately declines to state limits, pointing at the API tiers page and noting
+that the details change. 1,000 is a number this repo copied down once. The per-run cap above is the
+defence precisely because it holds whatever the tier turns out to be; a guard that compared against a
+remembered monthly total would be both stale and unenforceable. The `info` operations
+(`/api/info`) report account information and recent usage and are the only current source for the real
+figure — at the cost of a call.
 
 ### 5.2 What Sunday pulls
 
@@ -403,6 +440,14 @@ the real monthly figure is recoverable from Actions logs for the write-up.
 429 → respect `Retry-After` when present, otherwise backoff 5s / 20s / 60s, maximum 3 attempts, each retry
 counting against the budget. 5xx follows §4.1. Exhausted → `FetchError`, red run. CFBD history is
 backfillable, so a lost Sunday is an inconvenience, not a hole.
+
+**`429` is no longer in CFBD's documented response list**, which names `400`, `401`, `404`, `500` and an
+unnamed "quota or entitlement response". Keep the `429` branch — the vendor removing it from a docs page
+is not evidence the server stopped sending it — but do not assume it is the only over-quota signal. An
+unrecognised quota or entitlement response is **non-retryable**: retrying a request the account is not
+entitled to make burns budget to earn the same answer. Log the status and the response body on every
+non-2xx, without exception. The one thing that makes this decidable is a real response, and a run that
+discarded the body leaves nothing to decide from.
 
 ### 5.4 Re-runs
 
@@ -556,6 +601,25 @@ uv run cfb crosswalk verify --season 2026     # the §6.5 assertions against the
 
 `--store` accepts `s3://travispollard-cfb-data` (default) or `file://./local-snapshots`.
 `--force` bypasses the `in_season` guard for manual testing.
+
+The CLI is a thin shell over functions that take their dependencies as arguments, because a command
+that constructs its own client and reads its own credential cannot be tested without both:
+
+```python
+# manifest.py
+def snapshot_key(*, source: str, season: int, week: str,
+                 fetched_at: datetime, resource: str | None = None) -> str: ...
+def manifest_key(snapshot_key: str) -> str: ...          # idempotent
+
+# collectors/sagarin.py
+def fetch_sagarin(*, store: SnapshotStore, now: datetime,
+                  fetch: Callable[[], bytes], data_dir: Path | None = None) -> SagarinSnapshot: ...
+```
+
+`fetch` is a zero-argument callable returning the raw response bytes. The CLI passes the real pinned-HTTP
+fetcher of §4.1; the tests pass a lambda over a fixture, which is how the suite exercises §4.3's ordering
+with no network. Any non-2xx is a `FetchError` inside the fetcher, so bytes reaching `fetch_sagarin` are
+by construction a 200.
 
 ---
 

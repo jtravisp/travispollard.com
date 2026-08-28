@@ -10,11 +10,7 @@ The visible product is three pages. The actual deliverable is the pipeline behin
 
 Why this exists
 
-Two audiences, in priority order.
-
-A hiring reviewer. They will read the architecture, the pipeline config, and the write-up. The football content is the excuse; the infrastructure is the artifact. Specifically it should demonstrate: scheduled ingest against a rate-limited API, a fragile scrape handled defensively, schema validation and contract testing, a publish deadline that functions as a real SLO, and an honest public accuracy record.
-
-Someone who follows Texas football. They want to know what's likely to happen Saturday. If the page is useful to them it will be shared, and a project people actually visit reads differently from a dead repo.
+Audience: Someone who follows Texas football. They want to know what's likely to happen Saturday. If the page is useful to them it will be shared, and a project people actually visit reads differently from a dead repo.
 
 Scope
 The three surfaces
