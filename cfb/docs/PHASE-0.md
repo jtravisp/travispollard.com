@@ -16,10 +16,41 @@ The Sagarin page is fully parsed and the package is importable. Nothing is fetch
 
 | | |
 |---|---|
-| Tests | 64 passing, `ruff check` clean, no network |
+| Tests | 64 passing (26 ratings, 30 predictions, 8 snapshot-model), `ruff check` clean |
 | Landed | `2fa6833..ec5e0a4` — scaffolding + both parsers + models + Terraform fixes |
 | Next | `storage.py`, the `SnapshotStore` seam (SPEC §2.3) — everything downstream needs it to stay offline in tests |
 | Blocked on a human | the CFBD calendar and the crosswalk — see the bottom of this file |
+
+Re-verified 2026-08-28 by running, in `cfb/`:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `64 passed in 0.25s` |
+| `uv run pytest tests/test_sagarin_parser.py -v` | 26 passed, one per §2 item below |
+| `uv run ruff check .` | `All checks passed!` |
+| `terraform -chdir=terraform validate` | `Success! The configuration is valid.` — Terraform 1.15.3, aws 5.100.0 |
+
+Every `[x]` below is backed by one of those four. Nothing here has been applied to AWS or run
+against the network, so every `[~]` and `[ ]` stays that way regardless of how complete the code
+reads.
+
+### How much of SPEC §1 exists
+
+Three of the nine planned modules under `src/cfb/`, plus the two parsers:
+
+```
+src/cfb/__init__.py  errors.py  models.py  parsers/{sagarin_ratings,sagarin_predictions}.py
+```
+
+Absent: `cli.py`, `calendar.py`, `storage.py`, `manifest.py`, `logging.py`, `collectors/`
+(both), `crosswalk/` (both). Everything still open in §3, §4, §5 and §7 lives in one of those.
+
+The exception hierarchy is the sharpest illustration: `errors.py` declares nine exceptions and
+only two are ever raised — `ParseError` (23 sites) and `DuplicateRankError` (3). `FetchError`,
+`EncodingError`, `ValidationError`, `UnmappedTeamError`, `WeekResolutionError`,
+`StaleSourceError` and `CallBudgetExceeded` are declared and unused, because each belongs to a
+module that has not been written. That is intended — §9 landed as one piece — but it means the
+hierarchy is not evidence that the behaviour behind it exists.
 
 ---
 
@@ -82,8 +113,12 @@ Still open in this section:
 ## 3. Sagarin collector
 
 - [ ] Fetch with scheme pinned to HTTP, no upgrade
+  - Needs `collectors/sagarin.py`, which does not exist
 - [ ] Encoding sniff, raise on failure
+  - `EncodingError` is defined in `errors.py` and never raised anywhere — the hierarchy landed
+    ahead of the code that uses it
 - [ ] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
+  - Blocked twice over: `storage.py` does not exist, and the bucket in §6 has never been applied
 - [x] Parser passing all tests from step 2 — `parsers/sagarin_ratings.py`. Section 1 only, anchored
       on the `=` and `|` tokens; rank is the identity; HFA read per column from the page; a bad row,
       an unrecognised line, a duplicate rank, or a gap in the rank sequence all raise
@@ -91,6 +126,11 @@ Still open in this section:
       First block only. The `@` marks the nominal home team; a row marking neither side or both
       raises, because a misread `@` silently inverts a prediction
 - [ ] Freshness check: internal date stamp advanced since last snapshot
+  - Blocked three ways, and the last one is not a code problem: it needs `storage.py` to have a
+    previous snapshot to compare against, it needs the in-season fixture from §2 to have a stamp
+    at all, and on the preseason page there is nothing to advance — so per the skill the check
+    must be *skipped*, not merely passed, until the first in-season page lands. Whatever gets
+    written here needs a test for the skip path, which the current fixture can supply
 
 **Deviation from SPEC §4.5 to note:** `GamePrediction` carries seven fields, not the five the spec
 lists. The additions are `rank` (the row's only stable identity, and rank is the join key
@@ -143,6 +183,30 @@ preseason, so nothing distinguishes them empirically yet.
 - [ ] GitHub Actions workflow, cron, Sunday and Tuesday — `.github/workflows/` does not exist yet
 - [ ] Failure notification that reaches you
 - [ ] Stale-data alert wired to the freshness check
+
+---
+
+## What blocks §3, the next section with open work
+
+In dependency order. Only the first is startable today.
+
+1. **`storage.py` — the `SnapshotStore` protocol (SPEC §2.3, lines 136-145).** Nothing else in §3
+   can be written first: "write raw bytes before parsing" is the project's immutability rule, so
+   the store is upstream of the fetch, not downstream of it. It is also the only one of these
+   that needs no AWS and no new fixture — `MemorySnapshotStore` keeps the collector tests offline,
+   which `cfb/CLAUDE.md` requires. Write this next.
+2. **`terraform apply`, root stack before `cfb/`.** The data bucket, the OIDC publisher role and
+   the SSM parameters are all written and all unapplied. The order is forced: `cfb/terraform`
+   reads `/travispollard/cdn/` parameters that the root stack's `cfb-wiring.tf` publishes, so the
+   root applies first or the cfb data source resolves nothing. Until this happens the S3 write in
+   §3 can be unit-tested but never run for real, and §7's scheduled job has no role to assume.
+3. **An in-season capture, `tests/fixtures/sagarin_2026_week04.txt`.** Gates the freshness check
+   above, and until it exists two already-shipped code paths stay unverified against real bytes:
+   the date formats in `parse_page_date_stamp` are a guess, and the `"in-season"` branch of
+   `parse_page_state` has never seen a page that takes it. This one is a clock dependency — the
+   2026 season has to reach week 4 — so the collector should not be designed around it landing.
+
+§4 and §5 are blocked on the two human items below, not on §3.
 
 ---
 
