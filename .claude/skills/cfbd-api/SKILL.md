@@ -37,7 +37,8 @@ SPEC §5.5 is stricter and wins:
 
 - The key lives in SSM at `/travispollard/cfb/cfbd_api_key` as a **SecureString**.
 - CI reads it after assuming the publisher role via OIDC. Locally it is read with
-  `AWS_PROFILE=tpollard`.
+  `AWS_PROFILE=tp-site` (account `679878703800`, us-east-1 — see SPEC §5.5; a similarly-named
+  `jtravisp` profile points at a different account and fails by returning nothing).
 - No API key in a GitHub secret. No `.env` file. Not in a URL, not in a browser-side request.
 
 An environment variable is fine for a throwaway `curl` in a terminal you are looking at. It is not

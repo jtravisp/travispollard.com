@@ -2,7 +2,7 @@
 
 # SSM parameter path
 PARAM_NAME="/projects/cloudresume/terraform/tfvars"
-PROFILE="tpollard"
+PROFILE="tp-site"   # account 679878703800; see cfb/docs/SPEC-phase0.md 5.5
 
 echo "Uploading terraform.tfvars to SSM at $PARAM_NAME..."
 

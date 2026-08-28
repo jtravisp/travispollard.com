@@ -522,8 +522,26 @@ existing snapshot with no network at all.
 
 ### 5.5 Credentials
 
+**The AWS account is `679878703800`, and the profile is `tp-site`.** Nothing in this spec said so until
+an hour was spent on it. The trap is that a second account, `100611042748`, is reachable under a
+similarly-named profile (`jtravisp`), and every command aimed at it succeeds — it lists buckets, reads
+parameters, assumes roles — while pointing at the wrong account. The failure is never an access error;
+it is an empty result set, or a parameter that does not exist, or a bucket that is not there. Same
+nickname, different account, and no error message distinguishes them.
+
+So: **always name the profile explicitly**, and confirm it before believing an empty result:
+
+```bash
+aws sts get-caller-identity --profile tp-site --query Account --output text
+# expect: 679878703800
+```
+
+Regions are also split, and only in one place. Everything is **us-east-1** — the data bucket, SSM, the
+publisher role — except the Terraform state bucket `travispollard.com-tf-state`, which is **us-west-2**
+(§10.1). That is the only us-west-2 resource in the project.
+
 `/travispollard/cfb/cfbd_api_key`, SSM **SecureString**. CI reads it after assuming the publisher role via
-OIDC; locally it is read with `AWS_PROFILE=tpollard`. No API key in a GitHub secret, no `.env` file.
+OIDC; locally it is read with `AWS_PROFILE=tp-site`. No API key in a GitHub secret, no `.env` file.
 
 The publisher policy covers `ssm:GetParameter` on `/travispollard/*` and, as of this spec, a `kms:Decrypt`
 statement scoped by `kms:ViaService = ssm.<region>.amazonaws.com` (`DecryptParametersViaSSM` in
@@ -719,6 +737,15 @@ Actions log is greppable and every failure message carries the source, season/we
 
 ### 10.1 `cfb/terraform`
 
+**Account `679878703800`, profile `tp-site`** — see §5.5 for why naming it matters and how to confirm
+you are in it. Both Terraform roots target that account.
+
+**Two regions, and the split is deliberate.** All resources are **us-east-1**. The remote state bucket
+`travispollard.com-tf-state` is **us-west-2**, which is why the `backend "s3"` block below carries a
+`region` that disagrees with the provider's. That is not a mistake to normalise: the state bucket predates
+this project and both roots already use it. An `init` pointed at us-east-1 finds no bucket and offers to
+create one, which is how a project ends up with two state files and no error.
+
 `cfb/terraform/main.tf` is drafted and correct in substance. The `kms:Decrypt` statement (§5.5) is applied;
 `terraform validate` passes. Still needed before the first apply — a `terraform` block with both a backend
 and a provider constraint:
@@ -840,18 +867,18 @@ with no `workflow_dispatch`, no local run, and no hand-edited object. Then verif
 
 ```bash
 # 1. Both snapshots exist, with manifests, under the right partitions
-aws s3 ls --recursive s3://travispollard-cfb-data/raw/sagarin/season=2026/ --profile tpollard
-aws s3 ls --recursive s3://travispollard-cfb-data/raw/cfbd/season=2026/    --profile tpollard
+aws s3 ls --recursive s3://travispollard-cfb-data/raw/sagarin/season=2026/ --profile tp-site
+aws s3 ls --recursive s3://travispollard-cfb-data/raw/cfbd/season=2026/    --profile tp-site
 
 # 2. The Sagarin manifest shows a completed parse and real HFA read from the page
 aws s3 cp s3://travispollard-cfb-data/raw/sagarin/season=2026/week=04/<ts>.meta.json - \
-  --profile tpollard | python -m json.tool
+  --profile tp-site | python -m json.tool
 #    expect: parse_ok true, page_date_stamp advanced from the prior week,
 #            hfa non-empty, team_count 266, fbs_count 138, unmapped []
 
 # 3. Nothing was overwritten: every snapshot object has exactly one version
 aws s3api list-object-versions --bucket travispollard-cfb-data \
-  --prefix raw/sagarin/season=2026/week=04/ --profile tpollard \
+  --prefix raw/sagarin/season=2026/week=04/ --profile tp-site \
   --query 'Versions[?ends_with(Key, `.txt`)].[Key,VersionId]'
 
 # 4. The snapshot replays offline and still parses

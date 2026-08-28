@@ -34,7 +34,14 @@ terraform plan
 ./upload-tfvars.sh     # push local tfvars changes back to SSM
 ```
 
-Both tfvars scripts use the `tpollard` AWS profile and the SSM parameter `/projects/cloudresume/terraform/tfvars`.
+Both tfvars scripts use the `tp-site` AWS profile and the SSM parameter `/projects/cloudresume/terraform/tfvars`.
+
+**Account `679878703800`, profile `tp-site`.** Everything is `us-east-1` except the Terraform state bucket
+`travispollard.com-tf-state`, which is `us-west-2`. `AWS_PROFILE` is not set for you — export it per shell.
+A second account, `100611042748`, is reachable under the similarly-named `jtravisp` profile; commands aimed
+at it succeed and return nothing rather than erroring, so confirm with
+`aws sts get-caller-identity --profile tp-site --query Account --output text` before believing an empty
+result.
 
 ## Architecture
 
