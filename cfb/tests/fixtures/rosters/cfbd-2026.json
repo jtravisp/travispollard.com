@@ -1,0 +1,830 @@
+[
+  {
+    "id": 2005,
+    "school": "Air Force",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 2006,
+    "school": "Akron",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 333,
+    "school": "Alabama",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2026,
+    "school": "App State",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 12,
+    "school": "Arizona",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 9,
+    "school": "Arizona State",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 8,
+    "school": "Arkansas",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2032,
+    "school": "Arkansas State",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 349,
+    "school": "Army",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2,
+    "school": "Auburn",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 252,
+    "school": "BYU",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 2050,
+    "school": "Ball State",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 239,
+    "school": "Baylor",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 68,
+    "school": "Boise State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 103,
+    "school": "Boston College",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 189,
+    "school": "Bowling Green",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 2084,
+    "school": "Buffalo",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 25,
+    "school": "California",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2117,
+    "school": "Central Michigan",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 2429,
+    "school": "Charlotte",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2132,
+    "school": "Cincinnati",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 228,
+    "school": "Clemson",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 324,
+    "school": "Coastal Carolina",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 38,
+    "school": "Colorado",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 36,
+    "school": "Colorado State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 48,
+    "school": "Delaware",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 150,
+    "school": "Duke",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 151,
+    "school": "East Carolina",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2199,
+    "school": "Eastern Michigan",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 57,
+    "school": "Florida",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2226,
+    "school": "Florida Atlantic",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2229,
+    "school": "Florida International",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 52,
+    "school": "Florida State",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 278,
+    "school": "Fresno State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 61,
+    "school": "Georgia",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 290,
+    "school": "Georgia Southern",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2247,
+    "school": "Georgia State",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 59,
+    "school": "Georgia Tech",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 62,
+    "school": "Hawai'i",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 248,
+    "school": "Houston",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 356,
+    "school": "Illinois",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 84,
+    "school": "Indiana",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2294,
+    "school": "Iowa",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 66,
+    "school": "Iowa State",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 55,
+    "school": "Jacksonville State",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 256,
+    "school": "James Madison",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2305,
+    "school": "Kansas",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 2306,
+    "school": "Kansas State",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 338,
+    "school": "Kennesaw State",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 2309,
+    "school": "Kent State",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 96,
+    "school": "Kentucky",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 99,
+    "school": "LSU",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2335,
+    "school": "Liberty",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 309,
+    "school": "Louisiana",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2348,
+    "school": "Louisiana Tech",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 97,
+    "school": "Louisville",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 276,
+    "school": "Marshall",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 120,
+    "school": "Maryland",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 113,
+    "school": "Massachusetts",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 235,
+    "school": "Memphis",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2390,
+    "school": "Miami",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 193,
+    "school": "Miami (OH)",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 130,
+    "school": "Michigan",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 127,
+    "school": "Michigan State",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2393,
+    "school": "Middle Tennessee",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 135,
+    "school": "Minnesota",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 344,
+    "school": "Mississippi State",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 142,
+    "school": "Missouri",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2623,
+    "school": "Missouri State",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 152,
+    "school": "NC State",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2426,
+    "school": "Navy",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 158,
+    "school": "Nebraska",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2440,
+    "school": "Nevada",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 167,
+    "school": "New Mexico",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 166,
+    "school": "New Mexico State",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 153,
+    "school": "North Carolina",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2449,
+    "school": "North Dakota State",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 249,
+    "school": "North Texas",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2459,
+    "school": "Northern Illinois",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 77,
+    "school": "Northwestern",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 87,
+    "school": "Notre Dame",
+    "conference": "FBS Independents",
+    "classification": "fbs"
+  },
+  {
+    "id": 195,
+    "school": "Ohio",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 194,
+    "school": "Ohio State",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 201,
+    "school": "Oklahoma",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 197,
+    "school": "Oklahoma State",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 295,
+    "school": "Old Dominion",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 145,
+    "school": "Ole Miss",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2483,
+    "school": "Oregon",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 204,
+    "school": "Oregon State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 213,
+    "school": "Penn State",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 221,
+    "school": "Pittsburgh",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2509,
+    "school": "Purdue",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 242,
+    "school": "Rice",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 164,
+    "school": "Rutgers",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2567,
+    "school": "SMU",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 16,
+    "school": "Sacramento State",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 2534,
+    "school": "Sam Houston",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 21,
+    "school": "San Diego State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 23,
+    "school": "San José State",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 6,
+    "school": "South Alabama",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2579,
+    "school": "South Carolina",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 58,
+    "school": "South Florida",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2572,
+    "school": "Southern Miss",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 24,
+    "school": "Stanford",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 183,
+    "school": "Syracuse",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 2628,
+    "school": "TCU",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 218,
+    "school": "Temple",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2633,
+    "school": "Tennessee",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 251,
+    "school": "Texas",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 245,
+    "school": "Texas A&M",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 326,
+    "school": "Texas State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 2641,
+    "school": "Texas Tech",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 2649,
+    "school": "Toledo",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 2653,
+    "school": "Troy",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2655,
+    "school": "Tulane",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 202,
+    "school": "Tulsa",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 5,
+    "school": "UAB",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 2116,
+    "school": "UCF",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 26,
+    "school": "UCLA",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 41,
+    "school": "UConn",
+    "conference": "FBS Independents",
+    "classification": "fbs"
+  },
+  {
+    "id": 2433,
+    "school": "UL Monroe",
+    "conference": "Sun Belt",
+    "classification": "fbs"
+  },
+  {
+    "id": 2439,
+    "school": "UNLV",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 30,
+    "school": "USC",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2638,
+    "school": "UTEP",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  },
+  {
+    "id": 2636,
+    "school": "UTSA",
+    "conference": "American Athletic",
+    "classification": "fbs"
+  },
+  {
+    "id": 254,
+    "school": "Utah",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 328,
+    "school": "Utah State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 238,
+    "school": "Vanderbilt",
+    "conference": "SEC",
+    "classification": "fbs"
+  },
+  {
+    "id": 258,
+    "school": "Virginia",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 259,
+    "school": "Virginia Tech",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 154,
+    "school": "Wake Forest",
+    "conference": "ACC",
+    "classification": "fbs"
+  },
+  {
+    "id": 264,
+    "school": "Washington",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 265,
+    "school": "Washington State",
+    "conference": "Pac-12",
+    "classification": "fbs"
+  },
+  {
+    "id": 277,
+    "school": "West Virginia",
+    "conference": "Big 12",
+    "classification": "fbs"
+  },
+  {
+    "id": 98,
+    "school": "Western Kentucky",
+    "conference": "Conference USA",
+    "classification": "fbs"
+  },
+  {
+    "id": 2711,
+    "school": "Western Michigan",
+    "conference": "Mid-American",
+    "classification": "fbs"
+  },
+  {
+    "id": 275,
+    "school": "Wisconsin",
+    "conference": "Big Ten",
+    "classification": "fbs"
+  },
+  {
+    "id": 2751,
+    "school": "Wyoming",
+    "conference": "Mountain West",
+    "classification": "fbs"
+  }
+]

@@ -35,7 +35,7 @@ from __future__ import annotations
 import re
 
 from cfb.errors import DuplicateRankError, ParseError
-from cfb.models import GamePrediction
+from cfb.models import GamePrediction, validating
 
 __all__ = ["parse_predictions"]
 
@@ -151,19 +151,21 @@ def parse_predictions(text: str) -> list[GamePrediction]:
 
         margin = float(row["predictor"])
         home, away = (favorite, underdog) if favorite_home else (underdog, favorite)
-        games.append(
-            GamePrediction(
-                rank=rank,
-                home=home,
-                away=away,
-                site=_SITE_BY_FLAG[row["flag"]],
-                # The page always states the margin in the favorite's favour. Signed
-                # from the home team's perspective, an away favorite is negative.
-                predicted_margin=margin if favorite_home else -margin,
-                total=float(row["total"]),
-                moneyline=int(row["moneyline"]),
+        with validating(f"line {lineno}: prediction rank {rank} ({home!r} vs {away!r})"):
+            games.append(
+                GamePrediction(
+                    rank=rank,
+                    home=home,
+                    away=away,
+                    site=_SITE_BY_FLAG[row["flag"]],
+                    # The page always states the margin in the favorite's favour.
+                    # Signed from the home team's perspective, an away favorite is
+                    # negative.
+                    predicted_margin=margin if favorite_home else -margin,
+                    total=float(row["total"]),
+                    moneyline=int(row["moneyline"]),
+                )
             )
-        )
 
     if not games:
         raise ParseError("the predictions block contained no game rows")

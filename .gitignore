@@ -53,3 +53,10 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Secrets staged for an SSM upload. cfb/.gitignore already covers cfb/; this
+# covers everywhere else, because a credential dropped at the repo root is
+# stageable and a 64-byte file is easy to miss in `git status`.
+key.txt
+*.key
+*.pem

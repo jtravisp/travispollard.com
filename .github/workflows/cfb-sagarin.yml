@@ -1,0 +1,65 @@
+# SPEC-phase0 §11. Capture the Sagarin page, then check it is still moving.
+#
+# Tuesday 12:00 UTC gives Sagarin's Monday/Tuesday update time to land. Actions
+# cron drifts 5-15 minutes under load and the margin absorbs it.
+#
+# **Every step is a command a human runs locally.** That is the whole design of
+# SPEC §8: a red run here is reproducible with one copy-paste and no translation.
+# There is no inline Python, no workflow-only branch, and no date arithmetic --
+# the off-season guard lives inside `cfb fetch sagarin`, which calls
+# `calendar.in_season(now)` and exits 0 with `reason=not_in_season` when false.
+# Putting that check here instead would give the workflow a behaviour the local
+# command does not have, and then a green Actions run would stop meaning what a
+# green local run means.
+#
+# **Alerting is the failure itself** (§11). Any CfbError is exit 1, which turns
+# the run red and emails it. StaleSourceError arrives by the same path as every
+# other failure, so the alert path is exercised by every bug rather than only by
+# the rare stale week.
+name: cfb-sagarin
+
+on:
+  schedule:
+    - cron: "0 12 * * 2" # Tuesday 12:00 UTC
+  workflow_dispatch:
+
+# id-token to assume the publisher role; contents to check the repo out. The
+# role is assumed by OIDC and nothing here names a profile -- AWS_PROFILE and
+# tp-site are how a human reaches this account, and a workflow that referenced
+# either would be relying on a credential it cannot have.
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      # --extra s3 because S3SnapshotStore imports boto3 inside its constructor
+      # (SPEC §2.3). Without it the default s3:// store dies on ModuleNotFoundError
+      # -- a traceback rather than the clean exit 1 SPEC §9 promises.
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # Defaults to s3://travispollard-cfb-data (SPEC §8). Exits 0 without
+      # fetching when out of season.
+      - name: Fetch
+        run: uv run cfb fetch sagarin
+
+      - name: Check freshness
+        run: uv run cfb check-freshness sagarin

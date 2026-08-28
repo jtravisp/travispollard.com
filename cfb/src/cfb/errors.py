@@ -18,6 +18,19 @@ class EncodingError(CfbError):
     """No candidate encoding decoded the bytes and contained the marker strings."""
 
 
+class SnapshotExistsError(CfbError):
+    """A write targeted a raw key that already holds an object.
+
+    Raw snapshots are write-once (SPEC 2.1). A new capture gets a new timestamped
+    key; it never replaces one. Manifests are the documented exception and are
+    written through ``put_json``, which does not raise this.
+    """
+
+
+class SnapshotNotFoundError(CfbError):
+    """A read targeted a key the store does not hold."""
+
+
 class ParseError(CfbError):
     """A source page did not match the schema the parser was written against."""
 

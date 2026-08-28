@@ -3,7 +3,20 @@ name = "cfb"
 version = "0.0.0"
 description = "College football forecast pipeline: collectors, parsers, crosswalk."
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.7"]
+dependencies = ["pydantic>=2.7", "httpx>=0.27"]
+
+# Registered now that cli.py exists. It was deliberately absent until this point:
+# an entry point pointing at a missing module breaks `uv sync` itself, so the
+# script could not be declared before the module it names.
+[project.scripts]
+cfb = "cfb.cli:run"
+
+# S3SnapshotStore only. Kept out of the base dependencies so the offline suite --
+# which is every test that runs without CFB_INTEGRATION=1 -- installs neither
+# boto3 nor botocore. storage.py imports it inside the constructor to match.
+# The conditional write in put_bytes (IfNoneMatch) needs a botocore from 1.35.
+[project.optional-dependencies]
+s3 = ["boto3>=1.35"]
 
 [dependency-groups]
 dev = ["pytest>=8.2", "ruff>=0.5"]
@@ -24,3 +37,9 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+# Without this, isort classifies `cfb` by whether it can find the module on disk,
+# so a test written before its implementation lands gets sorted into the
+# third-party block and then moves again once the module exists.
+[tool.ruff.lint.isort]
+known-first-party = ["cfb"]

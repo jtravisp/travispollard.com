@@ -34,7 +34,7 @@ from datetime import date, datetime
 from typing import Literal
 
 from cfb.errors import DuplicateRankError, ParseError
-from cfb.models import TeamRating
+from cfb.models import TeamRating, validating
 
 __all__ = [
     "HFA_COLUMNS",
@@ -66,7 +66,11 @@ _BRACKETED = re.compile(r"\[\s*(-?\d+\.\d+)\s*\]")
 # Section 1 is closed by a rule of underscores after the last rank.
 _RULE = re.compile(r"^_{20,}\s*$")
 
-_DATE_STAMP = re.compile(r"through\s+games\s+of\s+(?P<stamp>.+?)\s*$", re.IGNORECASE)
+# ``\s*`` and ``.*?``, not ``\s+`` and ``.+?``: the phrase with an empty date after
+# it has to *match* so it can be rejected. Requiring a non-empty stamp in the regex
+# turns a truncated line into "no stamp here", which is the one answer this parser
+# must never give a page that says it has one.
+_DATE_STAMP = re.compile(r"through\s+games\s+of\b(?P<stamp>.*?)\s*$", re.IGNORECASE)
 
 # Formats seen on in-season title lines. A stamp that parses under none of them is
 # a format change, and a format change is an alert.
@@ -195,20 +199,21 @@ def parse_ratings(text: str) -> list[TeamRating]:
             )
         seen[rank] = (lineno, name)
 
-        teams.append(
-            TeamRating(
-                rank=rank,
-                name=name,
-                rating=float(row["rating"]),
-                predictor=float(row["predictor"]),
-                golden_mean=float(row["golden_mean"]),
-                recent=float(row["recent"]),
-                division=division,
-                conference=row["conference"],
-                wins=int(row["wins"]),
-                losses=int(row["losses"]),
+        with validating(f"line {lineno}: team rank {rank} ({name!r})"):
+            teams.append(
+                TeamRating(
+                    rank=rank,
+                    name=name,
+                    rating=float(row["rating"]),
+                    predictor=float(row["predictor"]),
+                    golden_mean=float(row["golden_mean"]),
+                    recent=float(row["recent"]),
+                    division=division,
+                    conference=row["conference"],
+                    wins=int(row["wins"]),
+                    losses=int(row["losses"]),
+                )
             )
-        )
 
     if not teams:
         raise ParseError("section 1 contained no team rows")
@@ -288,16 +293,32 @@ def parse_page_state(text: str) -> Literal["preseason", "in-season"]:
 def parse_page_date_stamp(text: str) -> date | None:
     """The page's internal "through games of ..." stamp, or ``None``.
 
-    The preseason page carries no stamp at all -- its title line is season and
-    state, nothing else -- so this is legitimately nullable and the freshness check
-    has nothing to compare until the first in-season page lands. A stamp that is
-    present but unreadable is a format change, and raises.
+    ``None`` has exactly one meaning: **this page carries no stamp**. The preseason
+    page is that case -- its title line is season and state, nothing else -- so the
+    field is legitimately nullable and SPEC 4.6 has nothing to compare until the
+    first in-season page lands.
+
+    Everything else raises. A page that says "through games of" and then hands over
+    something this parser cannot read is a format change, and returning ``None``
+    for it would be indistinguishable downstream from the preseason case: the
+    freshness check would skip the comparison, every run would stay green, and the
+    source could stop updating for a month with nothing to show it. That is the
+    failure mode this project is built to prevent, so the phrase being present is
+    treated as the page's own claim that a date is here, and the parser either
+    reads it or fails loudly.
     """
     stamp = _DATE_STAMP.search(_title(text)["rest"])
     if stamp is None:
         return None
 
     found = " ".join(stamp["stamp"].split())
+    if not found:
+        raise ParseError(
+            "page date stamp is empty: the title line carries 'through games of' with no "
+            "date after it. The phrase is the page's claim that a date is here, so this is "
+            "a truncated or changed page, not a page without a stamp"
+        )
+
     # In-season stamps have carried a leading weekday; it adds nothing to the date.
     for candidate in (found, found.split(",", 1)[-1].strip()):
         for fmt in _DATE_FORMATS:

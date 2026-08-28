@@ -22,16 +22,16 @@ cfb/
 │   ├── cli.py                      # the `cfb` entrypoint, subcommands below
 │   ├── calendar.py                 # season/week resolution
 │   ├── storage.py                  # SnapshotStore protocol + S3/File/Memory impls
-│   ├── manifest.py                 # manifest models, key construction
+│   ├── manifest.py                 # snapshot_key(), manifest_key(); the two-phase build (§4.3)
 │   ├── logging.py                  # key=value structured lines to stdout
 │   ├── errors.py                   # the exception hierarchy in §9
 │   ├── collectors/
-│   │   ├── sagarin.py              # fetch, encoding sniff, snapshot, freshness
+│   │   ├── sagarin.py              # fetch_sagarin(): encoding sniff, snapshot, freshness
 │   │   └── cfbd.py                 # budgeted client, incremental sync
 │   ├── parsers/
 │   │   ├── sagarin_ratings.py      # section 1 only
 │   │   └── sagarin_predictions.py  # Predictions_with_Totals_and_Moneylines
-│   ├── models.py                   # pydantic: TeamRating, SagarinSnapshot, GamePrediction
+│   ├── models.py                   # pydantic: TeamRating, SagarinSnapshot, GamePrediction, Manifest
 │   └── crosswalk/
 │       ├── __init__.py             # load(season) -> Crosswalk; resolve() raises
 │       └── bootstrap.py            # one-off candidate generator, NEVER imported by runtime
@@ -119,14 +119,25 @@ ever in the append-a-field direction.
   "page_state": "in-season",           // from the title line: "preseason" | "in-season"
   "team_count": 266,
   "fbs_count": 138,                    // division A; 138 on the 2026 page, not 134
-  "hfa": { "rating": 2.41, "predictor": 2.41, "golden_mean": 2.41, "recent": 2.41 },
+  "hfa": { "rating": 2.41, "predictor": 2.41, "golden_mean": 2.41,
+           "recent": 2.41, "strong_recent": 2.41 },   // all five columns, §4.7
   "predictions_count": 61,
   "unmapped": []
 }
 ```
 
 `hfa` is captured per rating column from the page, per snapshot. It is never a constant anywhere in the
-codebase — there is no default value to fall back to.
+codebase — there is no default value to fall back to. All five columns are carried: the page prints five
+bracketed values and `parse_hfa` raises if it finds any other number (§4.7). They read identically today
+and Sagarin does not promise they will.
+
+**`http_status` currently records an inference, not an observation.** The fetch seam of §8 hands
+`fetch_sagarin` bytes and nothing else, so no status line ever reaches the code that builds the manifest.
+What the field asserts is that the fetcher of §4.1 turned every non-2xx into a `FetchError` before
+returning, and therefore that `200` is the only thing bytes at this point could have come from. That is
+true, and it is not the same claim as "the server said 200" — a manifest is evidence, and a field inferred
+from control flow is weaker evidence than one read off the wire. Widening the seam to carry the response
+is the fix; until then, do not read this field as a record of what the server sent.
 
 ### 2.3 The storage seam
 
@@ -158,10 +169,39 @@ CFBD's `/calendar?year=YYYY` is authoritative, fetched **once per season** and c
 
 ```python
 # calendar.py
-def load_calendar(season: int) -> Calendar: ...
-def resolve(now: datetime) -> WeekRef: ...       # -> WeekRef(season=2026, week="04", how="calendar")
-def in_season(now: datetime) -> bool: ...        # preseason start .. postseason end
+def load_calendar(season: int, *, data_dir: Path | None = None) -> Calendar: ...
+def resolve(now: datetime, *, calendar: Calendar) -> WeekRef: ...
+def in_season(now: datetime, *, calendar: Calendar) -> bool: ...
 ```
+
+`data_dir` defaults to the packaged `cfb/data/calendar/`; the tests point it at a fixture. `resolve` and
+`in_season` take the calendar rather than loading it, so one run loads once and a test can hand them a
+truncated or malformed calendar without touching the filesystem.
+
+**`resolve` does not raise.** A date it cannot place returns `WeekRef(season=…, week="unknown",
+how="unknown")`. This is stated here rather than left to be inferred from the `"calendar" | "unknown"`
+union in §2.2, because the inference runs backwards: the union is the consequence of this decision, not
+the evidence for it. `load_calendar` still raises `WeekResolutionError` on a missing, malformed,
+empty, or wrong-season file — the file being unreadable is a different fact from a date being
+unplaceable. The non-zero exit §3.3 requires is still owed, and the collector owes it, after the write.
+
+The distinction `resolve` draws: a **complete** calendar (one carrying a postseason entry) places a
+March date in `offseason`, because it knows where the season ended. A calendar **truncated** at week 10
+says nothing at all about December, so December resolves to `unknown`. Answering `offseason` there
+would be a guess dressed as an answer, and a snapshot filed under a confidently wrong partition is
+never re-partitioned, while one filed under `unknown` is.
+
+**`in_season` opens 21 days before the first calendar entry's start** and closes at the last entry's
+`lastGameStart`, inclusive. Both ends are derived from the loaded calendar; **no date is ever
+hardcoded**, because a hardcoded boundary is wrong every year and wrong silently.
+
+21 is arbitrary. It is not a claim about when preseason ratings appear — the CFBD calendar has no
+preseason boundary to read, so some number had to be picked. It is chosen for the shape of the two
+failure modes, which are not symmetric: opening too early costs one wasted fetch of a page that has not
+changed, and §4.6's freshness check already skips rather than alerts when `page_date_stamp` is null,
+which is exactly the preseason case. Opening too late loses a snapshot permanently. Given a cheap error
+on one side and an unrecoverable one on the other, the boundary belongs on the cheap side, and 21 days
+buys three weeks of margin for a guess nobody has to revisit.
 
 ### 3.2 Partition values
 
@@ -193,10 +233,21 @@ re-partitioned later by copy — nothing under `raw/` is deleted, so the origina
 - URL pinned to `http://sagarin.com/sports/cfsend.htm`. httpx with `follow_redirects=False`. A redirect to
   HTTPS is a `FetchError`, not something to follow — the site 302s HTTPS to HTTP and a client that upgrades
   loops forever.
-- Timeout 30s connect + read. Three attempts, backoff 2s / 8s / 30s. Retry on timeout, connection error,
-  and 5xx. Do not retry 4xx.
+- Timeout 30s connect + read. **Three requests at most — the initial one plus two retries — with backoff
+  2s then 8s between them.** Retry on timeout, connection error, and 5xx. Do not retry 4xx.
 - Total failure: no snapshot written, `FetchError` raised, workflow red. There is a full day of margin
   before the week's data is at risk, so a manual re-run covers a multi-hour outage.
+
+**"Requests", never "attempts".** An earlier draft said "three attempts, backoff 2s / 8s / 30s", and those
+two halves cannot both be true: three attempts leave room for only two backoffs and the third rung is
+never reached. The word was the ambiguity — "attempt" reads as either the initial request or only the
+retries after it, and an implementation can satisfy the sentence with three requests or with four. This
+spec counts **requests**, initial one included, everywhere it bounds a retry loop.
+
+The count that survived is three, and the third rung went with it. The margin argument above is the reason:
+a full day of slack means a manual re-run covers a multi-hour outage, so a 30s wait buys resilience this
+design does not want and delays a red run that should already be red. §5.3 drops its last rung for a
+sharper reason — every CFBD retry spends a call from a 25-request budget.
 
 ### 4.2 Encoding
 
@@ -287,13 +338,23 @@ It parses and is flagged, so Phase 1 cannot treat week-zero ratings as carrying 
 ### 4.6 Freshness
 
 ```python
-def check_freshness(store, source, now) -> None:
+# collectors/sagarin.py
+def check_freshness(*, store: SnapshotStore, source: str, now: datetime,
+                    data_dir: Path | None = None) -> None:
     """Raise StaleSourceError if the page's internal stamp has not advanced."""
 ```
 
+`data_dir` is the one addition to the signature this section originally gave, and it matches
+`fetch_sagarin`: the `in_season` gate needs a calendar, and a function that loads its own from a fixed
+path cannot be tested without one on disk. A calendar that will not load **raises** rather than being
+skipped past — not knowing whether it is February is not grounds to fall through to the comparison, and
+still less to stay quiet.
+
 - Compare this snapshot's `page_date_stamp` against the newest manifest whose `fetched_at` date is
-  **strictly earlier than today (UTC)**. Same-day snapshots are ignored, so a manual re-run compares
-  against last Tuesday exactly as the scheduled run did.
+  **strictly earlier than today (UTC)**, and which is not the current snapshot itself. Same-day snapshots
+  are ignored, so a manual re-run compares against last Tuesday exactly as the scheduled run did — and a
+  check run on a day with no fetch compares the newest snapshot against the one before it, rather than
+  against itself.
 - Previous state is derived from the manifests in S3. There is no state file, SSM parameter, or counter
   that could drift out of sync with the snapshots.
 - No prior-date manifest (first ever run) → pass, and log that the comparison was skipped.
@@ -302,6 +363,29 @@ def check_freshness(store, source, now) -> None:
 - Stamp advanced → pass. Stamp unchanged → `StaleSourceError` naming both stamps and the days elapsed.
 - The check runs only when `calendar.in_season(now)` is true. Sagarin does not update from roughly February
   through August; alerting through the off-season is how alerting dies.
+- **An empty store passes and logs a skip.** §8 makes `fetch` and `check-freshness` separate commands with
+  nothing ordering them, so a check can run before anything has ever been fetched. Passing is the only
+  answer that does not turn an empty bucket into a permanently red workflow. The *reason* string logged for
+  this case is deliberately not contractual — it is outside what this section specifies, and an
+  implementation may fold it in with "no prior manifest" or name it separately.
+
+**Every skip logs why, and the vocabulary is fixed.** Three of the four paths through this function are a
+pass, and a pass here is byte-identical to a healthy run from outside the process: same exit code, same
+green workflow, nothing written. The log line is the only thing separating "there was nothing to compare"
+from "the comparison ran and the source is alive", so it is output the check owes, not diagnostics. The
+strings live in `logging.py` as constants — a skip logging `reason=no_stamp` in one place and
+`reason=missing_date` in another is not a vocabulary — and the tests import them rather than restating
+them, because a test that spells the strings out itself passes against an implementation that logs
+something else entirely.
+
+| Line | When |
+|---|---|
+| `event=freshness source=… result=skip reason=not_in_season` | `in_season(now)` is false |
+| `event=freshness source=… result=skip reason=no_prior_manifest` | first run, or an empty store |
+| `event=freshness source=… result=skip reason=no_page_date_stamp key=…` | either stamp null |
+| `event=freshness source=… result=ok stamp=… prior_stamp=… days=…` | the stamp advanced |
+
+The stale case logs nothing: it raises, and §9 puts the message on stderr with exit 1.
 
 ### 4.7 The golden fixture, and what the page actually contains
 
@@ -339,8 +423,9 @@ ratings table and every 50 rows in the predictions table. A parser must skip the
 one header at the top.
 
 **HFA.** The page prints **five** bracketed values (`RATING`, `PREDICTOR`, `GOLDEN_MEAN`, `RECENT`,
-`STRONG RECENT`); the `hfa` dict in §2.2 names four. All five read `2.41` on this capture. Only the ratings
-header uses the bracketed `[  2.41]` form — the predictions header prints the same numbers unbracketed.
+`STRONG RECENT`), and the `hfa` dict in §2.2 now names all five. All five read `2.41` on this capture.
+Only the ratings header uses the bracketed `[  2.41]` form — the predictions header prints the same
+numbers unbracketed.
 
 **No date stamp on a preseason page.** The title line is `2026 College Football STARTING ratings` — season
 and state, no date. In-season pages carry a "through games of …" date. Hence `date | None` in §4.5 and the
@@ -383,9 +468,17 @@ A per-run hard cap, enforced in the client, not a shared counter:
 CALL_BUDGET_PER_RUN = 25          # the 26th call raises CallBudgetExceeded
 ```
 
-Stateless and testable, and it bounds the month at cap × runs (~200 worst case against 1,000). There is no
-cross-run counter to race or to leave wrong after a crash. Every call is logged with a running count, so
-the real monthly figure is recoverable from Actions logs for the write-up.
+Stateless and testable, and it bounds the month at cap × runs (~200 worst case). There is no cross-run
+counter to race or to leave wrong after a crash. Every call is logged with a running count, so the real
+monthly figure is recoverable from Actions logs for the write-up.
+
+**The 1,000 calls/month figure is not vendor-backed and must never become a runtime check.** CFBD's
+current documentation deliberately declines to state limits, pointing at the API tiers page and noting
+that the details change. 1,000 is a number this repo copied down once. The per-run cap above is the
+defence precisely because it holds whatever the tier turns out to be; a guard that compared against a
+remembered monthly total would be both stale and unenforceable. The `info` operations
+(`/api/info`) report account information and recent usage and are the only current source for the real
+figure — at the cost of a call.
 
 ### 5.2 What Sunday pulls
 
@@ -400,9 +493,26 @@ the real monthly figure is recoverable from Actions logs for the write-up.
 
 ### 5.3 Rate limits and retries
 
-429 → respect `Retry-After` when present, otherwise backoff 5s / 20s / 60s, maximum 3 attempts, each retry
-counting against the budget. 5xx follows §4.1. Exhausted → `FetchError`, red run. CFBD history is
-backfillable, so a lost Sunday is an inconvenience, not a hole.
+429 → respect `Retry-After` when present, otherwise backoff 5s then 20s. **Three requests at most — the
+initial one plus two retries — and every one of them counts against the budget of §5.1.** 5xx follows
+§4.1, which is a different and shorter ladder on purpose: a 429 is the server asking for room, a 500 is
+the server failing. Exhausted → `FetchError`, red run. CFBD history is backfillable, so a lost Sunday is
+an inconvenience, not a hole.
+
+The retry budget is tighter here than anywhere else in this spec for a reason that is arithmetic rather
+than taste. §5.1 caps a run at 25 requests and §5.2 spends about 2 of them per in-season week. A four-
+request ladder on a bad Sunday turns one weekly pull into 4 of that 25, and two of them into 8 — the
+retries would be a larger share of the budget than the data. A third retry buys one more chance at a
+source whose history is backfillable anyway, at a price paid from the one resource that is not
+replenishable within the month.
+
+**`429` is no longer in CFBD's documented response list**, which names `400`, `401`, `404`, `500` and an
+unnamed "quota or entitlement response". Keep the `429` branch — the vendor removing it from a docs page
+is not evidence the server stopped sending it — but do not assume it is the only over-quota signal. An
+unrecognised quota or entitlement response is **non-retryable**: retrying a request the account is not
+entitled to make burns budget to earn the same answer. Log the status and the response body on every
+non-2xx, without exception. The one thing that makes this decidable is a real response, and a run that
+discarded the body leaves nothing to decide from.
 
 ### 5.4 Re-runs
 
@@ -412,8 +522,26 @@ existing snapshot with no network at all.
 
 ### 5.5 Credentials
 
+**The AWS account is `679878703800`, and the profile is `tp-site`.** Nothing in this spec said so until
+an hour was spent on it. The trap is that a second account, `100611042748`, is reachable under a
+similarly-named profile (`jtravisp`), and every command aimed at it succeeds — it lists buckets, reads
+parameters, assumes roles — while pointing at the wrong account. The failure is never an access error;
+it is an empty result set, or a parameter that does not exist, or a bucket that is not there. Same
+nickname, different account, and no error message distinguishes them.
+
+So: **always name the profile explicitly**, and confirm it before believing an empty result:
+
+```bash
+aws sts get-caller-identity --profile tp-site --query Account --output text
+# expect: 679878703800
+```
+
+Regions are also split, and only in one place. Everything is **us-east-1** — the data bucket, SSM, the
+publisher role — except the Terraform state bucket `travispollard.com-tf-state`, which is **us-west-2**
+(§10.1). That is the only us-west-2 resource in the project.
+
 `/travispollard/cfb/cfbd_api_key`, SSM **SecureString**. CI reads it after assuming the publisher role via
-OIDC; locally it is read with `AWS_PROFILE=tpollard`. No API key in a GitHub secret, no `.env` file.
+OIDC; locally it is read with `AWS_PROFILE=tp-site`. No API key in a GitHub secret, no `.env` file.
 
 The publisher policy covers `ssm:GetParameter` on `/travispollard/*` and, as of this spec, a `kms:Decrypt`
 statement scoped by `kms:ViaService = ssm.<region>.amazonaws.com` (`DecryptParametersViaSSM` in
@@ -557,6 +685,25 @@ uv run cfb crosswalk verify --season 2026     # the §6.5 assertions against the
 `--store` accepts `s3://travispollard-cfb-data` (default) or `file://./local-snapshots`.
 `--force` bypasses the `in_season` guard for manual testing.
 
+The CLI is a thin shell over functions that take their dependencies as arguments, because a command
+that constructs its own client and reads its own credential cannot be tested without both:
+
+```python
+# manifest.py
+def snapshot_key(*, source: str, season: int, week: str,
+                 fetched_at: datetime, resource: str | None = None) -> str: ...
+def manifest_key(snapshot_key: str) -> str: ...          # idempotent
+
+# collectors/sagarin.py
+def fetch_sagarin(*, store: SnapshotStore, now: datetime,
+                  fetch: Callable[[], bytes], data_dir: Path | None = None) -> SagarinSnapshot: ...
+```
+
+`fetch` is a zero-argument callable returning the raw response bytes. The CLI passes the real pinned-HTTP
+fetcher of §4.1; the tests pass a lambda over a fixture, which is how the suite exercises §4.3's ordering
+with no network. Any non-2xx is a `FetchError` inside the fetcher, so bytes reaching `fetch_sagarin` are
+by construction a 200.
+
 ---
 
 ## 9. Errors and exit codes
@@ -565,6 +712,8 @@ uv run cfb crosswalk verify --season 2026     # the §6.5 assertions against the
 class CfbError(Exception): ...
 class FetchError(CfbError): ...              # network, timeout, redirect, non-2xx after retries
 class EncodingError(CfbError): ...
+class SnapshotExistsError(CfbError): ...    # a raw key already holds an object; raw is write-once
+class SnapshotNotFoundError(CfbError): ...  # a read targeted a key the store does not hold
 class ParseError(CfbError): ...
 class DuplicateRankError(ParseError): ...
 class ValidationError(CfbError): ...         # wraps pydantic
@@ -587,6 +736,15 @@ Actions log is greppable and every failure message carries the source, season/we
 ## 10. Infrastructure
 
 ### 10.1 `cfb/terraform`
+
+**Account `679878703800`, profile `tp-site`** — see §5.5 for why naming it matters and how to confirm
+you are in it. Both Terraform roots target that account.
+
+**Two regions, and the split is deliberate.** All resources are **us-east-1**. The remote state bucket
+`travispollard.com-tf-state` is **us-west-2**, which is why the `backend "s3"` block below carries a
+`region` that disagrees with the provider's. That is not a mistake to normalise: the state bucket predates
+this project and both roots already use it. An `init` pointed at us-east-1 finds no bucket and offers to
+create one, which is how a project ends up with two state files and no error.
 
 `cfb/terraform/main.tf` is drafted and correct in substance. The `kms:Decrypt` statement (§5.5) is applied;
 `terraform validate` passes. Still needed before the first apply — a `terraform` block with both a backend
@@ -617,8 +775,21 @@ reaches for a provider-versioned attribute will hit it again.
 
 - `github_repo` default → **`jtravisp/travispollard.com`**. The draft says `travispollard/…`, which does not
   exist; the OIDC trust condition would never match and every scheduled run would fail to assume the role.
-- The GitHub OIDC provider already exists in the account, so the `data "aws_iam_openid_connect_provider"`
-  lookup is correct as drafted. Confirm once with `aws iam list-open-id-connect-providers`.
+- ~~The GitHub OIDC provider already exists in the account, so the `data` lookup is correct as drafted.~~
+  **Wrong, and an apply proved it.** `aws iam list-open-id-connect-providers --profile tp-site` returns an
+  empty list: account `679878703800` has no OIDC provider at all, so the data source could never resolve
+  and the publisher role could never be created. `cfb/terraform` now **creates** it —
+  `resource "aws_iam_openid_connect_provider" "github"`, url `https://token.actions.githubusercontent.com`,
+  `client_id_list = ["sts.amazonaws.com"]`, no `thumbprint_list` (AWS stopped requiring one for its own
+  trusted issuers, and a pinned thumbprint is a value that rotates without warning and breaks every
+  assume-role when it does).
+
+  **This resource is account-scoped, not cfb-scoped**, and that is a seam worth naming. An account holds
+  exactly one provider per issuer URL, so it is a singleton every future GitHub Actions consumer in this
+  account will share — a second root creating its own is an error, not a merge. `cfb` owns it because
+  `cfb` is the only consumer today and something has to. **When a second consumer appears, this moves to
+  a shared root and both read it back as a data source.** Owning it here beats a data source pointing at
+  something nothing creates, which is the state this spec described until now.
 - ~~Add `kms:Decrypt` to the publisher policy for the SecureString API key (§5.5).~~ Applied.
 - Everything else stands: private versioned bucket, `raw/` lifecycle to STANDARD_IA at 90 days, no
   `s3:DeleteObject` on `raw/`, CloudFront read scoped to `cfb/data/*` only.
@@ -709,18 +880,18 @@ with no `workflow_dispatch`, no local run, and no hand-edited object. Then verif
 
 ```bash
 # 1. Both snapshots exist, with manifests, under the right partitions
-aws s3 ls --recursive s3://travispollard-cfb-data/raw/sagarin/season=2026/ --profile tpollard
-aws s3 ls --recursive s3://travispollard-cfb-data/raw/cfbd/season=2026/    --profile tpollard
+aws s3 ls --recursive s3://travispollard-cfb-data/raw/sagarin/season=2026/ --profile tp-site
+aws s3 ls --recursive s3://travispollard-cfb-data/raw/cfbd/season=2026/    --profile tp-site
 
 # 2. The Sagarin manifest shows a completed parse and real HFA read from the page
 aws s3 cp s3://travispollard-cfb-data/raw/sagarin/season=2026/week=04/<ts>.meta.json - \
-  --profile tpollard | python -m json.tool
+  --profile tp-site | python -m json.tool
 #    expect: parse_ok true, page_date_stamp advanced from the prior week,
 #            hfa non-empty, team_count 266, fbs_count 138, unmapped []
 
 # 3. Nothing was overwritten: every snapshot object has exactly one version
 aws s3api list-object-versions --bucket travispollard-cfb-data \
-  --prefix raw/sagarin/season=2026/week=04/ --profile tpollard \
+  --prefix raw/sagarin/season=2026/week=04/ --profile tp-site \
   --query 'Versions[?ends_with(Key, `.txt`)].[Key,VersionId]'
 
 # 4. The snapshot replays offline and still parses

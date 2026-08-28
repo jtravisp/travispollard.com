@@ -5,14 +5,43 @@ strict and frozen: a parsed row is evidence about what a page said at a moment i
 time, and nothing downstream has any business editing it.
 """
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ValidationError as PydanticValidationError
 
-from cfb.errors import DuplicateRankError, ParseError
+from cfb.errors import DuplicateRankError, ParseError, ValidationError
 
 _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+
+@contextmanager
+def validating(context: str) -> Iterator[None]:
+    """Turn a pydantic failure inside this block into a ``cfb`` ``ValidationError``.
+
+    SPEC 9 declares ``ValidationError`` as the one that "wraps pydantic", and this
+    is the wrapping. It matters because ``pydantic_core.ValidationError`` is not a
+    ``CfbError``: unwrapped, it misses the CLI's exit-1 clause entirely and
+    surfaces as a traceback, which is the one shape SPEC 9 says a failure never
+    takes.
+
+    ``context`` is not decoration. These boundaries are model constructions inside
+    loops over hundreds of rows, and "1 validation error for TeamRating" does not
+    say which row -- it sends whoever reads the red run back to the page to find
+    it by hand.
+
+    Only pydantic's error is converted. Our own validators raise ``ParseError``
+    and ``DuplicateRankError``, which are already ``CfbError`` and say far more
+    than "a model failed"; anything else is a bug in this package, and a bug
+    wearing a clean exit code is a bug nobody finds.
+    """
+    try:
+        yield
+    except PydanticValidationError as exc:
+        raise ValidationError(f"{context}: {exc}") from exc
 
 
 class TeamRating(BaseModel):
@@ -127,6 +156,31 @@ class SagarinSnapshot(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def state_and_stamp_agree(self) -> "SagarinSnapshot":
+        """An in-season page with no date stamp is contradicting itself.
+
+        ``page_date_stamp`` is nullable for one reason: the preseason page has no
+        stamp at all (SPEC 4.7). That nullability is also the quietest hole in the
+        project, because SPEC 4.6 skips the freshness comparison on a null -- so
+        any path that produces ``None`` for a page that does carry a stamp
+        disables the check permanently, and every run stays green while the source
+        goes cold.
+
+        ``parse_page_date_stamp`` raises rather than returning ``None`` on a stamp
+        it cannot read, which closes the paths anyone has thought of. This closes
+        the rest. It is defence in depth of the same kind as ``ranks_are_unique``:
+        the parser should already have made it unreachable, and a future parser
+        change should not be able to make it reachable again.
+        """
+        if self.page_state == "in-season" and self.page_date_stamp is None:
+            raise ParseError(
+                "page_state is 'in-season' but page_date_stamp is None. An in-season page "
+                "carries a 'through games of' date; a null here would make the freshness "
+                "check (SPEC 4.6) skip its comparison silently and forever"
+            )
+        return self
+
+    @model_validator(mode="after")
     def preseason_degeneracy_is_flagged(self) -> "SagarinSnapshot":
         """A preseason page must actually be degenerate.
 
@@ -151,3 +205,65 @@ class SagarinSnapshot(BaseModel):
                     f"{team.wins}-{team.losses} record"
                 )
         return self
+
+
+class Manifest(BaseModel):
+    """One ``.meta.json`` describing a stored snapshot (SPEC-phase0 2.2).
+
+    Written twice per successful run (SPEC 4.3): once after the bytes land, with
+    the fetch-only fields, and once after the parse succeeds, with the block below
+    the divider filled in. Both writes go to the same key, so a manifest whose
+    ``parse_ok`` is ``None`` is not corrupt -- it is the honest record of a run
+    that fetched successfully and then failed at step 4, 5, 6 or 7. SPEC 4.3 calls
+    that state detectable and replayable, and it is never a reason to discard the
+    bytes it points at.
+
+    ``extra="forbid"`` is deliberate. ``schema_version`` is how this document
+    grows a field; an unrecognised key means the writer and the reader disagree
+    about the schema, and quietly accepting it is how a manifest starts lying
+    about the object it describes.
+    """
+
+    model_config = _STRICT
+
+    schema_version: int = Field(ge=1)
+    source: Literal["sagarin", "cfbd"]
+    resource: str = Field(min_length=1)
+    source_url: str = Field(min_length=1)
+    http_status: int
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bytes: int = Field(ge=0)
+    encoding: str | None
+    fetched_at: datetime
+    season: int = Field(ge=1869)
+    week: str
+    week_resolution: Literal["calendar", "unknown"]
+    snapshot_key: str = Field(min_length=1)
+
+    # Added by the post-parse write only; absent on a fetch-only manifest.
+    parse_ok: bool | None = None
+    page_date_stamp: date | None = None
+    page_state: Literal["preseason", "in-season"] | None = None
+    team_count: int | None = None
+    fbs_count: int | None = None
+    hfa: dict[str, float] | None = None
+    predictions_count: int | None = None
+    unmapped: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _week_is_a_known_partition(self) -> "Manifest":
+        """``week`` is a partition value, not a number (SPEC 3.2).
+
+        It reaches S3 as a literal path segment, so a stray ``"4"`` where ``"04"``
+        belongs silently creates a second partition for the same week and the
+        freshness check compares a prefix against nothing.
+        """
+        legal = {"preseason", "postseason", "offseason", "season", "unknown"}
+        if self.week in legal:
+            return self
+        if len(self.week) == 2 and self.week.isdigit() and 1 <= int(self.week) <= 15:
+            return self
+        raise ParseError(
+            f"week {self.week!r} is not a legal partition value: expected "
+            f"'01'-'15' zero-padded or one of {sorted(legal)}"
+        )

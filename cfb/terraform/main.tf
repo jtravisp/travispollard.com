@@ -142,8 +142,26 @@ resource "aws_s3_bucket_policy" "cfb_data" {
 # This role can write football data and invalidate football paths. It has no
 # access to the site bucket at all.
 
-data "aws_iam_openid_connect_provider" "github" {
-  url = "https://token.actions.githubusercontent.com"
+# Account-scoped, not cfb-scoped. An account holds exactly one OIDC provider per
+# issuer URL, so this is a singleton that every future GitHub Actions consumer in
+# 679878703800 will share -- and creating a second one is an error, not a merge.
+#
+# It lives here because cfb is the only consumer today and something has to own
+# it. The moment a second root needs GitHub OIDC, this moves to a shared root and
+# both read it back as a data source. Until then, owning it here is better than a
+# data source pointing at something nothing creates.
+#
+# It was a data source until an apply proved the assumption wrong: SPEC 10.1 said
+# the provider already existed in the account and `aws iam
+# list-open-id-connect-providers` returned an empty list.
+#
+# No thumbprint_list. AWS stopped requiring a thumbprint for its own trusted
+# issuers, and the provider treats the argument as optional -- a pinned thumbprint
+# is a value that rotates without warning and breaks every assume-role when it
+# does.
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
 }
 
 data "aws_iam_policy_document" "publisher_trust" {
@@ -153,7 +171,7 @@ data "aws_iam_policy_document" "publisher_trust" {
 
     principals {
       type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
     }
 
     condition {

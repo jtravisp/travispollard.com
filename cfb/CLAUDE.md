@@ -41,4 +41,22 @@ terraform -chdir=terraform plan  # infra
 - CFBD free tier is 1,000 calls/month. Sync incrementally, back off on 429, and never call it from a test.
 - Sagarin's page 302s HTTPS to HTTP. Pin the scheme or the fetch loops forever.
 - Tests use fixtures in `tests/fixtures/`. No network calls in tests, ever.
-- 
+
+## AWS: set `AWS_PROFILE` in every shell
+
+**Account `679878703800`, profile `tp-site`, region `us-east-1`** — except the Terraform state bucket
+`travispollard.com-tf-state`, which is `us-west-2` and is the only thing that is.
+
+`AWS_PROFILE` does not persist between commands here: each shell starts without it, so anything touching
+AWS needs it set on the command or exported in that shell first.
+
+```bash
+export AWS_PROFILE=tp-site
+aws sts get-caller-identity --query Account --output text   # expect 679878703800
+```
+
+**Confirm the account before believing an empty result.** A second account, `100611042748`, is reachable
+under the similarly-named `jtravisp` profile. Commands aimed at it succeed — they list, read and assume
+without error — and simply return nothing, because the buckets and parameters are not there. There is no
+access-denied to tell you. An unexpectedly empty `s3 ls` or a missing SSM parameter is the symptom to
+check this first, not last.
