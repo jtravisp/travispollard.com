@@ -34,7 +34,7 @@ from datetime import date, datetime
 from typing import Literal
 
 from cfb.errors import DuplicateRankError, ParseError
-from cfb.models import TeamRating
+from cfb.models import TeamRating, validating
 
 __all__ = [
     "HFA_COLUMNS",
@@ -199,20 +199,21 @@ def parse_ratings(text: str) -> list[TeamRating]:
             )
         seen[rank] = (lineno, name)
 
-        teams.append(
-            TeamRating(
-                rank=rank,
-                name=name,
-                rating=float(row["rating"]),
-                predictor=float(row["predictor"]),
-                golden_mean=float(row["golden_mean"]),
-                recent=float(row["recent"]),
-                division=division,
-                conference=row["conference"],
-                wins=int(row["wins"]),
-                losses=int(row["losses"]),
+        with validating(f"line {lineno}: team rank {rank} ({name!r})"):
+            teams.append(
+                TeamRating(
+                    rank=rank,
+                    name=name,
+                    rating=float(row["rating"]),
+                    predictor=float(row["predictor"]),
+                    golden_mean=float(row["golden_mean"]),
+                    recent=float(row["recent"]),
+                    division=division,
+                    conference=row["conference"],
+                    wins=int(row["wins"]),
+                    losses=int(row["losses"]),
+                )
             )
-        )
 
     if not teams:
         raise ParseError("section 1 contained no team rows")

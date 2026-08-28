@@ -53,7 +53,7 @@ from cfb.logging import (
     log,
 )
 from cfb.manifest import manifest_key, snapshot_key
-from cfb.models import Manifest, SagarinSnapshot
+from cfb.models import Manifest, SagarinSnapshot, validating
 from cfb.parsers.sagarin_predictions import parse_predictions
 from cfb.parsers.sagarin_ratings import (
     parse_hfa,
@@ -220,51 +220,51 @@ def fetch_sagarin(
     # recoverable by re-running; the bytes are not.
     store.put_bytes(key, data, "text/plain")
 
-    manifest = Manifest(
-        schema_version=1,
-        source="sagarin",
-        resource="ratings",
-        source_url=SOURCE_URL,
-        # Any non-2xx is a FetchError inside the fetcher (SPEC 4.1), so bytes
-        # reaching this function are by construction a 200.
-        http_status=200,
-        sha256=hashlib.sha256(data).hexdigest(),
-        bytes=len(data),
-        encoding=encoding,
-        fetched_at=now,
-        season=week_ref.season,
-        week=week_ref.week,
-        week_resolution=week_ref.how,
-        snapshot_key=key,
-    )
+    with validating(f"fetch-only manifest for {key}"):
+        manifest = Manifest(
+            schema_version=1,
+            source="sagarin",
+            resource="ratings",
+            source_url=SOURCE_URL,
+            # Any non-2xx is a FetchError inside the fetcher (SPEC 4.1), so bytes
+            # reaching this function are by construction a 200.
+            http_status=200,
+            sha256=hashlib.sha256(data).hexdigest(),
+            bytes=len(data),
+            encoding=encoding,
+            fetched_at=now,
+            season=week_ref.season,
+            week=week_ref.week,
+            week_resolution=week_ref.how,
+            snapshot_key=key,
+        )
     store.put_json(meta_key, _dump(manifest, fetch_only=True))
 
-    snapshot = SagarinSnapshot(
-        fetched_at=now,
-        page_date_stamp=parse_page_date_stamp(text),
-        page_state=parse_page_state(text),
-        hfa=parse_hfa(text),
-        teams=parse_ratings(text),
-        predictions=parse_predictions(text),
-    )
+    # The parsers raise ParseError on a page they cannot read; `validating` is here
+    # for the model's own constraints, which the parsers do not check.
+    with validating(f"snapshot parsed from {key}"):
+        snapshot = SagarinSnapshot(
+            fetched_at=now,
+            page_date_stamp=parse_page_date_stamp(text),
+            page_state=parse_page_state(text),
+            hfa=parse_hfa(text),
+            teams=parse_ratings(text),
+            predictions=parse_predictions(text),
+        )
 
-    store.put_json(
-        meta_key,
-        _dump(
-            manifest.model_copy(
-                update={
-                    "parse_ok": True,
-                    "page_date_stamp": snapshot.page_date_stamp,
-                    "page_state": snapshot.page_state,
-                    "hfa": snapshot.hfa,
-                    "team_count": len(snapshot.teams),
-                    "fbs_count": sum(1 for team in snapshot.teams if team.division == "A"),
-                    "predictions_count": len(snapshot.predictions),
-                }
-            ),
-            fetch_only=False,
-        ),
-    )
+    with validating(f"post-parse manifest for {key}"):
+        full = manifest.model_copy(
+            update={
+                "parse_ok": True,
+                "page_date_stamp": snapshot.page_date_stamp,
+                "page_state": snapshot.page_state,
+                "hfa": snapshot.hfa,
+                "team_count": len(snapshot.teams),
+                "fbs_count": sum(1 for team in snapshot.teams if team.division == "A"),
+                "predictions_count": len(snapshot.predictions),
+            }
+        )
+    store.put_json(meta_key, _dump(full, fetch_only=False))
 
     if week_ref.how == "unknown":
         # The write is done, the manifest says so, and the object is findable by

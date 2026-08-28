@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Protocol
 
 from cfb.errors import SnapshotExistsError, SnapshotNotFoundError
-from cfb.models import Manifest
+from cfb.models import Manifest, validating
 
 __all__ = [
     "FileSnapshotStore",
@@ -81,6 +81,18 @@ def _exists(key: str) -> SnapshotExistsError:
     )
 
 
+def _load(key: str, data: bytes) -> Manifest:
+    """One manifest, validated, with the key in the error if it does not validate.
+
+    These bytes were written by an earlier run, not by the code reading them, so
+    nothing about this path guarantees they still match the schema the reader was
+    built against. A bucket holds thousands of them; "a manifest failed" is not
+    something anyone can act on.
+    """
+    with validating(f"manifest at {key}"):
+        return Manifest.model_validate_json(data)
+
+
 def _missing(key: str) -> SnapshotNotFoundError:
     return SnapshotNotFoundError(f"no object at {key}")
 
@@ -108,7 +120,7 @@ class MemorySnapshotStore:
     def list_manifests(self, prefix: str) -> list[Manifest]:
         return _newest_first(
             [
-                Manifest.model_validate_json(data)
+                _load(key, data)
                 for key, data in self._objects.items()
                 if key.startswith(prefix) and key.endswith(_MANIFEST_SUFFIX)
             ]
@@ -151,7 +163,7 @@ class FileSnapshotStore:
     def list_manifests(self, prefix: str) -> list[Manifest]:
         root = self._root.resolve()
         found = [
-            Manifest.model_validate_json(path.read_bytes())
+            _load(path.resolve().relative_to(root).as_posix(), path.read_bytes())
             for path in self._root.rglob(f"*{_MANIFEST_SUFFIX}")
             if path.resolve().relative_to(root).as_posix().startswith(prefix)
         ]
@@ -215,5 +227,5 @@ class S3SnapshotStore:
         for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
             for entry in page.get("Contents", ()):
                 if entry["Key"].endswith(_MANIFEST_SUFFIX):
-                    found.append(Manifest.model_validate_json(self.get_bytes(entry["Key"])))
+                    found.append(_load(entry["Key"], self.get_bytes(entry["Key"])))
         return _newest_first(found)

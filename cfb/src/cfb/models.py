@@ -5,14 +5,43 @@ strict and frozen: a parsed row is evidence about what a page said at a moment i
 time, and nothing downstream has any business editing it.
 """
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ValidationError as PydanticValidationError
 
-from cfb.errors import DuplicateRankError, ParseError
+from cfb.errors import DuplicateRankError, ParseError, ValidationError
 
 _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+
+@contextmanager
+def validating(context: str) -> Iterator[None]:
+    """Turn a pydantic failure inside this block into a ``cfb`` ``ValidationError``.
+
+    SPEC 9 declares ``ValidationError`` as the one that "wraps pydantic", and this
+    is the wrapping. It matters because ``pydantic_core.ValidationError`` is not a
+    ``CfbError``: unwrapped, it misses the CLI's exit-1 clause entirely and
+    surfaces as a traceback, which is the one shape SPEC 9 says a failure never
+    takes.
+
+    ``context`` is not decoration. These boundaries are model constructions inside
+    loops over hundreds of rows, and "1 validation error for TeamRating" does not
+    say which row -- it sends whoever reads the red run back to the page to find
+    it by hand.
+
+    Only pydantic's error is converted. Our own validators raise ``ParseError``
+    and ``DuplicateRankError``, which are already ``CfbError`` and say far more
+    than "a model failed"; anything else is a bug in this package, and a bug
+    wearing a clean exit code is a bug nobody finds.
+    """
+    try:
+        yield
+    except PydanticValidationError as exc:
+        raise ValidationError(f"{context}: {exc}") from exc
 
 
 class TeamRating(BaseModel):
