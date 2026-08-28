@@ -327,13 +327,23 @@ It parses and is flagged, so Phase 1 cannot treat week-zero ratings as carrying 
 ### 4.6 Freshness
 
 ```python
-def check_freshness(store, source, now) -> None:
+# collectors/sagarin.py
+def check_freshness(*, store: SnapshotStore, source: str, now: datetime,
+                    data_dir: Path | None = None) -> None:
     """Raise StaleSourceError if the page's internal stamp has not advanced."""
 ```
 
+`data_dir` is the one addition to the signature this section originally gave, and it matches
+`fetch_sagarin`: the `in_season` gate needs a calendar, and a function that loads its own from a fixed
+path cannot be tested without one on disk. A calendar that will not load **raises** rather than being
+skipped past — not knowing whether it is February is not grounds to fall through to the comparison, and
+still less to stay quiet.
+
 - Compare this snapshot's `page_date_stamp` against the newest manifest whose `fetched_at` date is
-  **strictly earlier than today (UTC)**. Same-day snapshots are ignored, so a manual re-run compares
-  against last Tuesday exactly as the scheduled run did.
+  **strictly earlier than today (UTC)**, and which is not the current snapshot itself. Same-day snapshots
+  are ignored, so a manual re-run compares against last Tuesday exactly as the scheduled run did — and a
+  check run on a day with no fetch compares the newest snapshot against the one before it, rather than
+  against itself.
 - Previous state is derived from the manifests in S3. There is no state file, SSM parameter, or counter
   that could drift out of sync with the snapshots.
 - No prior-date manifest (first ever run) → pass, and log that the comparison was skipped.
@@ -342,6 +352,29 @@ def check_freshness(store, source, now) -> None:
 - Stamp advanced → pass. Stamp unchanged → `StaleSourceError` naming both stamps and the days elapsed.
 - The check runs only when `calendar.in_season(now)` is true. Sagarin does not update from roughly February
   through August; alerting through the off-season is how alerting dies.
+- **An empty store passes and logs a skip.** §8 makes `fetch` and `check-freshness` separate commands with
+  nothing ordering them, so a check can run before anything has ever been fetched. Passing is the only
+  answer that does not turn an empty bucket into a permanently red workflow. The *reason* string logged for
+  this case is deliberately not contractual — it is outside what this section specifies, and an
+  implementation may fold it in with "no prior manifest" or name it separately.
+
+**Every skip logs why, and the vocabulary is fixed.** Three of the four paths through this function are a
+pass, and a pass here is byte-identical to a healthy run from outside the process: same exit code, same
+green workflow, nothing written. The log line is the only thing separating "there was nothing to compare"
+from "the comparison ran and the source is alive", so it is output the check owes, not diagnostics. The
+strings live in `logging.py` as constants — a skip logging `reason=no_stamp` in one place and
+`reason=missing_date` in another is not a vocabulary — and the tests import them rather than restating
+them, because a test that spells the strings out itself passes against an implementation that logs
+something else entirely.
+
+| Line | When |
+|---|---|
+| `event=freshness source=… result=skip reason=not_in_season` | `in_season(now)` is false |
+| `event=freshness source=… result=skip reason=no_prior_manifest` | first run, or an empty store |
+| `event=freshness source=… result=skip reason=no_page_date_stamp key=…` | either stamp null |
+| `event=freshness source=… result=ok stamp=… prior_stamp=… days=…` | the stamp advanced |
+
+The stale case logs nothing: it raises, and §9 puts the message on stderr with exit 1.
 
 ### 4.7 The golden fixture, and what the page actually contains
 

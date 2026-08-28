@@ -41,8 +41,17 @@ from pathlib import Path
 
 import httpx
 
-from cfb.calendar import WeekRef, load_calendar, resolve
-from cfb.errors import EncodingError, FetchError, WeekResolutionError
+from cfb.calendar import WeekRef, in_season, load_calendar, resolve
+from cfb.errors import EncodingError, FetchError, StaleSourceError, WeekResolutionError
+from cfb.logging import (
+    EVENT_FRESHNESS,
+    REASON_NO_PAGE_DATE_STAMP,
+    REASON_NO_PRIOR_MANIFEST,
+    REASON_NOT_IN_SEASON,
+    RESULT_OK,
+    RESULT_SKIP,
+    log,
+)
 from cfb.manifest import manifest_key, snapshot_key
 from cfb.models import Manifest, SagarinSnapshot
 from cfb.parsers.sagarin_predictions import parse_predictions
@@ -54,7 +63,7 @@ from cfb.parsers.sagarin_ratings import (
 )
 from cfb.storage import SnapshotStore
 
-__all__ = ["SOURCE_URL", "decode_page", "fetch_page", "fetch_sagarin"]
+__all__ = ["SOURCE_URL", "check_freshness", "decode_page", "fetch_page", "fetch_sagarin"]
 
 SOURCE_URL = "http://sagarin.com/sports/cfsend.htm"
 
@@ -268,6 +277,91 @@ def fetch_sagarin(
         )
 
     return snapshot
+
+
+def check_freshness(
+    *,
+    store: SnapshotStore,
+    source: str,
+    now: datetime,
+    data_dir: Path | None = None,
+) -> None:
+    """Raise ``StaleSourceError`` if the page's internal stamp has not advanced (SPEC 4.6).
+
+    **Every skip logs why.** Three of the four paths through this function are a
+    pass, and a pass here is byte-identical to a healthy run from outside the
+    process: same exit code, same green workflow, nothing written. The log line is
+    the only thing that distinguishes "there was nothing to compare" from "the
+    comparison ran and the source is alive", so it is not optional output.
+
+    Previous state comes from the manifests in the store and nowhere else. No
+    state file, no SSM parameter, no counter -- anything of that sort can drift out
+    of sync with the snapshots it claims to describe, and then the check is
+    reporting on its own bookkeeping rather than on the source.
+
+    ``data_dir`` is the one addition to SPEC 4.6's signature, matching
+    ``fetch_sagarin``: the ``in_season`` gate needs a calendar, and a function that
+    loads its own from a fixed path cannot be tested without one on disk. A
+    calendar that will not load raises rather than being skipped past -- not
+    knowing whether it is February is not a reason to fall through to the
+    comparison, and it is certainly not a reason to stay quiet.
+    """
+    calendar = load_calendar(_season_of(now), data_dir=data_dir)
+    if not in_season(now, calendar=calendar):
+        # Sagarin does not update from roughly February through August. A check
+        # that ran anyway would raise every week of it, and alerting that cries
+        # wolf for six months is alerting nobody reads in September.
+        log(EVENT_FRESHNESS, source=source, result=RESULT_SKIP, reason=REASON_NOT_IN_SEASON)
+        return
+
+    manifests = store.list_manifests(f"raw/{source}/")
+    current = manifests[0] if manifests else None
+
+    # Strictly earlier *date*, and never the current snapshot itself. Same-day
+    # manifests are ignored so a manual re-run compares against last Tuesday
+    # exactly as the scheduled run did -- otherwise re-running an hour later finds
+    # its own stamp unchanged and turns every re-run red.
+    prior = next((m for m in manifests[1:] if m.fetched_at.date() < now.date()), None)
+
+    if current is None or prior is None:
+        # An empty store lands here too: SPEC 8 makes `fetch` and `check-freshness`
+        # separate commands with nothing ordering them, so a check can run before
+        # anything has ever been fetched. Passing is the only answer that does not
+        # turn an empty bucket into a permanently red workflow.
+        log(EVENT_FRESHNESS, source=source, result=RESULT_SKIP, reason=REASON_NO_PRIOR_MANIFEST)
+        return
+
+    if current.page_date_stamp is None or prior.page_date_stamp is None:
+        # The preseason page carries no stamp at all (SPEC 4.7). Either side being
+        # null means there is nothing to compare, not that something is wrong.
+        log(
+            EVENT_FRESHNESS,
+            source=source,
+            result=RESULT_SKIP,
+            reason=REASON_NO_PAGE_DATE_STAMP,
+            key=current.snapshot_key,
+        )
+        return
+
+    days = (now.date() - prior.fetched_at.date()).days
+
+    if current.page_date_stamp > prior.page_date_stamp:
+        log(
+            EVENT_FRESHNESS,
+            source=source,
+            result=RESULT_OK,
+            stamp=current.page_date_stamp.isoformat(),
+            prior_stamp=prior.page_date_stamp.isoformat(),
+            days=days,
+        )
+        return
+
+    raise StaleSourceError(
+        f"{source} page_date_stamp has not advanced: prior stamp "
+        f"{prior.page_date_stamp.isoformat()} ({prior.snapshot_key}), current stamp "
+        f"{current.page_date_stamp.isoformat()} ({current.snapshot_key}), {days} days "
+        f"elapsed. The fetch is working and the source is not updating."
+    )
 
 
 def _resolve_week(now: datetime, *, data_dir: Path | None) -> WeekRef:
