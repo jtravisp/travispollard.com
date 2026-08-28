@@ -22,8 +22,8 @@ never been applied.
 | | |
 |---|---|
 | Tests | 460 passing, 16 skipped, no collection errors; `ruff check .` clean |
-| Landed | `2fa6833..deecb1a` — everything through the CFBD budgeted client, plus the real `data/calendar/2026.json` |
-| Uncommitted | `cli.py` and its 83 tests, the `ValidationError` wrap and its 20, the CFBD credential path and its 20, the calendar re-parametrization, the roster fixture and its 8. Counted in the 460 above |
+| Landed | `2fa6833..4cbde93` — everything through the CLI, the CFBD credential path, the real calendar and the roster fixture |
+| Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
 | Next | §6, the crosswalk. Its CFBD half is now a committed fixture; the Sagarin half is one function call away, and nothing else blocks it |
 | Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions, `terraform apply` — see the bottom of this file |
 
