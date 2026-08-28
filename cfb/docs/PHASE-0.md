@@ -12,56 +12,68 @@
 
 ## Where this stands (2026-08-28)
 
-The Sagarin path is complete in code, end to end: pinned-HTTP fetch, snapshot, both parsers,
-manifest, freshness check. The CFBD budgeted client is written. **Nothing has run against the
-network or against AWS**, so none of it is verified against anything but fixtures, and the two
-gaps that keep it that way are an unwritten `cli.py` and an unapplied Terraform stack.
+Every module SPEC §1 plans except the crosswalk now exists, and **both sources have been fetched
+for real**. The Sagarin page returns bytes whose sha256 matches the golden fixture in §4.7 exactly.
+CFBD authenticated from SSM and served `/calendar` and `/teams/fbs`, which between them produced
+the committed `data/calendar/2026.json` and the CFBD half of the §6.5 roster fixture. **Nothing has
+touched S3**: every byte so far went to `file://./local-snapshots`, because the bucket in §6 has
+never been applied.
 
 | | |
 |---|---|
-| Tests | 299 passing, 16 skipped, no collection errors; `ruff check .` clean |
-| Landed | `2fa6833..e918907` — scaffolding, both parsers, models, storage, calendar, key construction, the Sagarin collector and fetcher, freshness, `logging.py` |
-| Uncommitted | the CFBD client and its 42 tests, the §4.1/§5.3 ladder change, extra freshness coverage. Counted in the 299 above; not yet in a commit |
-| Next | `cli.py` (SPEC §8). Nothing in this project can be run end to end today — the fetcher exists and no command drives it |
-| Blocked on a human | an in-season Sagarin capture, the CFBD calendar, the crosswalk — see the bottom of this file |
+| Tests | 460 passing, 16 skipped, no collection errors; `ruff check .` clean |
+| Landed | `2fa6833..deecb1a` — everything through the CFBD budgeted client, plus the real `data/calendar/2026.json` |
+| Uncommitted | `cli.py` and its 83 tests, the `ValidationError` wrap and its 20, the CFBD credential path and its 20, the calendar re-parametrization, the roster fixture and its 8. Counted in the 460 above |
+| Next | §6, the crosswalk. Its CFBD half is now a committed fixture; the Sagarin half is one function call away, and nothing else blocks it |
+| Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions, `terraform apply` — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
 | Command | Result |
 |---|---|
-| `uv run pytest` | `299 passed, 16 skipped in 1.67s` |
+| `uv run pytest` | `460 passed, 16 skipped in 3.4s` |
 | `uv run ruff check .` | `All checks passed!` |
 | `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
+| `uv run cfb fetch sagarin --store file://./local-snapshots` | exit 0, `sha256 ba40d836…`, 148793 bytes — the §4.7 hash |
+| `uv run cfb fetch cfbd --resource calendar --season 2026` | exit 0, 16 entries, `sha256 94f31795…` |
+| `uv run cfb fetch cfbd --resource teams --season 2026` | exit 0, 138 FBS teams, `sha256 15611e4d…` |
 
-Every `[x]` below is backed by one of those three. Nothing here has been applied to AWS or run
-against the network, so every `[~]` and `[ ]` stays that way regardless of how complete the code
-reads — a module with exhaustive offline tests and no live run is `[~]`, not `[x]`.
+Every `[x]` below is backed by one of those four. The rule that decides the marks: a module with
+exhaustive offline tests and no live run is `[~]`, not `[x]`. As of today exactly one path has
+cleared that bar — the Sagarin fetch — and **nothing has been applied to AWS**, so every item that
+needs a bucket, a role or a credential stays `[~]` regardless of how complete the code reads.
 
-Where the 299 sit:
+Where they sit. The counts are tests *collected*, so they total 476: the 16 that skip are the
+S3 parametrization in `test_storage.py`, which needs `CFB_INTEGRATION=1` and a bucket.
 
 | File | Tests | Covers |
 |---|---|---|
+| `test_cli.py` | 83 | SPEC §8's four commands and §9's error contract |
 | `test_storage.py` | 48 | the `SnapshotStore` contract, over three stores (16 skip without AWS) |
 | `test_sagarin_fetch.py` | 46 | SPEC §4.1, via `httpx.MockTransport` |
 | `test_cfbd.py` | 42 | SPEC §5.1 and §5.3 — budget, both retry ladders |
 | `test_manifest.py` | 42 | key construction, SPEC §2.1 and §3.2 |
 | `test_sagarin_parser.py` | 40 | the ratings table and the date stamp |
-| `test_calendar.py` | 34 | season/week resolution, SPEC §3 |
+| `test_calendar.py` | 64 | season/week resolution, SPEC §3 — every test over both calendars |
 | `test_sagarin_predictions.py` | 30 | the predictions block |
 | `test_freshness.py` | 22 | SPEC §4.6, skip paths in full |
+| `test_cfbd_auth.py` | 20 | SPEC §5.5 — the bearer header, and that the key never leaks |
+| `test_roster_fixtures.py` | 8 | the §6.5 roster contract, as far as it can run without §6 |
+| `test_validation_boundary.py` | 20 | SPEC §9's `ValidationError`, at every model boundary |
 | `test_models.py` | 11 | the `SagarinSnapshot` validators |
 
 ### How much of SPEC §1 exists
 
-Everything except the CLI and the crosswalk:
+Everything except the crosswalk:
 
 ```
-src/cfb/  __init__.py  calendar.py  errors.py  logging.py  manifest.py  models.py  storage.py
-          collectors/{sagarin,cfbd}.py         parsers/{sagarin_ratings,sagarin_predictions}.py
+src/cfb/  __init__.py  calendar.py  cli.py  errors.py  logging.py  manifest.py  models.py
+          storage.py   collectors/{sagarin,cfbd}.py    parsers/{sagarin_ratings,sagarin_predictions}.py
 ```
 
-Absent: `cli.py`, and `crosswalk/` (both `__init__.py` and `bootstrap.py`). The CLI is what makes
-§8 and every "run it for real" item reachable; the crosswalk is §6 and blocks step 5 of §4.3.
+Absent: `crosswalk/` (both `__init__.py` and `bootstrap.py`), which is §6 and blocks step 5 of
+§4.3. `pyproject.toml` now registers the `cfb` console script; it was deliberately absent until
+`cli.py` existed, because an entry point naming a missing module breaks `uv sync` itself.
 
 The exception hierarchy is no longer the illustration it was. `errors.py` declares twelve and ten
 are now raised somewhere: `ParseError` (26 sites), `WeekResolutionError` (8), `FetchError` (7),
@@ -69,13 +81,14 @@ are now raised somewhere: `ParseError` (26 sites), `WeekResolutionError` (8), `F
 `_missing` factories), `DuplicateRankError` (3), and one each for `EncodingError`,
 `StaleSourceError` and `CallBudgetExceeded`.
 
-Two are still declared and unused, and they are unused for different reasons:
+One is still declared and unused: `UnmappedTeamError` belongs to `crosswalk/`, which does not
+exist. Expected.
 
-- `UnmappedTeamError` belongs to `crosswalk/`, which does not exist. Expected.
-- `ValidationError` is specified in §9 as the one that "wraps pydantic", and nothing wraps
-  anything — pydantic's own `ValidationError` propagates from every model boundary instead. That
-  is a real gap between §9 and the code, not a module waiting to be written, and it should either
-  be used or dropped from the hierarchy.
+`ValidationError` was the other, and it is now used. §9 specifies it as the one that "wraps
+pydantic" and nothing wrapped anything, so a model failure escaped as `pydantic_core.ValidationError`
+— which is not a `CfbError`, misses the CLI's exit-1 clause entirely, and surfaces as a traceback.
+`models.validating()` wraps it at every model boundary: both parsers, the snapshot, both manifest
+builds, and the three `list_manifests` implementations.
 
 ---
 
@@ -142,7 +155,7 @@ Still open in this section:
 
 ## 3. Sagarin collector
 
-- [~] Fetch with scheme pinned to HTTP, no upgrade
+- [x] Fetch with scheme pinned to HTTP, no upgrade
   - Written. `fetch_page()` in `collectors/sagarin.py`: URL pinned, `follow_redirects=False`, 30s
     connect and read, retry on timeout / connection error / 5xx and never on 4xx or 3xx.
     `fetch_sagarin`'s `fetch` argument now defaults to it, so the seam survives for tests and
@@ -152,9 +165,13 @@ Still open in this section:
     than stubbed. Every 3xx to HTTPS raises with exactly one request issued — the https branch of
     the handler answers a plausible 200 on purpose, so a fetcher that followed it would return
     those bytes instead of raising
-  - `[~]` and not `[x]` for one reason: **it has never issued a real request.** The scheme pin
-    exists because sagarin.com 302s HTTPS down to HTTP, and no test in this repo has ever seen
-    that 302. Everything asserted about it is asserted against a transport we wrote
+  - **Run for real 2026-08-28**, which is what moved this to `[x]`:
+    `cfb fetch sagarin --store file://./local-snapshots` fetched the live page over plain HTTP and
+    stored 148,793 bytes hashing to `ba40d836…` — the golden fixture's sha256 from §4.7, captured
+    by hand the day before. The fetcher reproduces a known-good capture byte for byte
+  - One branch of it is still synthetic. The scheme pin exists because sagarin.com 302s HTTPS down
+    to HTTP, and the live request went straight to HTTP and got a 200, so no run in this repo has
+    ever seen that 302. The redirect refusal is asserted only against a transport we wrote
 - [x] Encoding sniff, raise on failure — `decode_page()` in `collectors/sagarin.py`. SPEC §4.2
       order (`utf-8`, `cp1252`, `latin-1`), first candidate that decodes **and** contains both
       markers wins, `EncodingError` when none qualifies. The golden capture resolves to `utf-8`
@@ -313,11 +330,104 @@ documented departure from "validation failures raise", and §3.3 carves it out e
 
 ## 4. CFBD collector
 
-- [ ] API key in SSM, not env files
-- [ ] Incremental sync with a call-budget guard
-- [ ] Backoff on 429
-- [ ] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
-- [ ] Pull: teams, games, betting lines
+**Two real calls have now been made.** `/calendar?year=2026` and `/teams/fbs?year=2026`
+both succeeded on 2026-08-28, which is the first time any code in this repo has
+authenticated to CFBD. That closes the credential item outright and moves the pull
+item halfway. The rest stays `[~]`: the retry ladders have still never seen a real
+non-2xx, and every byte so far went to `file://`, not to a bucket that does not
+exist.
+
+- [x] API key in SSM, not env files
+  - `ssm_secret()` reads the SecureString at `/travispollard/cfb/cfbd_api_key`
+    with `WithDecryption=True`, and `http_fetch()` turns whatever it returns into
+    `Authorization: Bearer <key>`. The key source is an injected `get_secret`
+    callable, so the header-building half is exercised offline —
+    `tests/test_cfbd_auth.py`, 20 tests
+  - Covered: the header shape (the space after `Bearer` is what the vendor names
+    as the usual cause of a 401 that looks like a bad key); a trailing newline
+    stripped, because a SecureString set from a file keeps one; a blank key
+    refusing to send rather than spending a request to earn a 401; the key never
+    appearing in a log line, an exception, a `repr`, or a query string; the secret
+    read once per run rather than per request, and never at construction, so
+    `cfb --help` needs no credentials
+  - **The scheme pin is inverted from Sagarin's, deliberately.** `fetch_page` pins
+    to plain HTTP because sagarin.com 302s HTTPS down to HTTP. Carrying that
+    across would put a bearer token on the wire in the clear, so `http_fetch`
+    refuses to send at all if the base URL is ever not https — a refused request
+    costs a Sunday CFBD can backfill, a transmitted key costs a rotation
+  - **Verified for real 2026-08-28.** The key is in SSM and `ssm_secret` read it
+    twice — once per call below — decrypted it, and the resulting bearer header
+    was accepted by CFBD. That is the one function on this path no offline test
+    can cover, and the only thing that was ever going to settle it is a 200. Its
+    docstring still says it is untested, which remains true of the *test suite*
+    and no longer of the code
+  - The key never entered this repo, a shell history, or a conversation: it went
+    into SSM directly from a file, which is also the case the whitespace-stripping
+    test exists for
+- [~] Incremental sync with a call-budget guard
+  - **Two things, and only one of them is done.** The guard is complete: a per-run
+    cap of 25 enforced inside the client, checked before each request, retries
+    included, with no cross-run state to race or be left wrong by a crash. 42
+    tests in `tests/test_cfbd.py`, and the budget assertions are written against
+    what the seam actually saw rather than what the client says it did — three
+    mutations confirmed they catch a guard that counts after sending, one that
+    lets retries through free, and a process-wide counter
+  - **Incremental sync is not written.** `fetch_cfbd` pulls exactly the resource
+    and week it is told to; nothing works out which weeks are already in the
+    bucket and syncs forward. SPEC 5.2 describes the cadence and SPEC 5.4 forbids
+    caching, but the "which week just completed" logic lives in the workflow that
+    does not exist yet (§7). This checkbox conflates the two and should probably
+    be split
+  - The guard has now run for real, twice, and spent 2 of its 25. Nothing about
+    that was in doubt, but it is no longer only a claim about a mock
+- [~] Backoff on 429
+  - `Retry-After` is honoured when it parses as positive seconds, and the ladder
+    is the fallback — including for the legal HTTP-date form, which this client
+    does not parse and falls back on rather than guessing
+  - 429 gets its own ladder (5/20) rather than sharing the 5xx one (2/8), because
+    a 429 is the server asking for room and a 5xx is the server failing. A test
+    fails if the two are ever merged
+  - Both stop at three requests, the initial one plus two retries. That number is
+    arithmetic, not taste: at 25 requests a run and ~2 per in-season week, a
+    four-request ladder would make retries a larger share of the budget than the
+    data
+  - `[~]` because no real non-2xx of any kind has been seen. Both real calls
+    returned 200 on the first request, so not one line of the retry, backoff or
+    error-logging path has executed against the vendor. Every response these tests
+    classify was written by us — and the status that actually means "over quota"
+    is one the vendor has stopped documenting, so the first real one may not be a
+    429 at all. That is exactly why the body of every non-2xx is logged
+- [~] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
+  - `fetch_cfbd` stores the bytes verbatim under
+    `raw/cfbd/season=YYYY/week=NN/<resource>/<timestamp>.json` with a `.meta.json`
+    beside it, and writes nothing at all when the pull fails — asserted for both
+    an exhausted retry and a budget refusal, because `raw/` is write-once and a
+    truncated object at the right key is permanent
+  - `[~]` on the same terms as the Sagarin write: the bucket in §6 has never been
+    applied. The two real pulls went to `file://./local-snapshots`, so the write
+    path and the manifest are exercised end to end against real vendor bytes and
+    no object has ever reached S3
+  - One field is weaker than it looks. `week_resolution` reads `"calendar"` on a
+    CFBD manifest, but the week came from the CLI rather than from resolving a
+    date. SPEC 2.2 allows only `"calendar"` or `"unknown"` and `"calendar"` is the
+    closer of the two — it is known, not guessed — so the field now means
+    something slightly different for CFBD than for Sagarin. Worth a spec decision
+- [~] Pull: teams, games, betting lines
+  - All four SPEC 5.2 resources are wired and reachable from the CLI:
+    `/games` and `/lines` week-scoped, `/teams/fbs` and `/calendar` season-scoped
+    under the `week=season` partition. An unknown resource is an argparse usage
+    error rather than a request that finds out from the vendor at the cost of
+    quota
+  - **Two of the four pulled for real 2026-08-28**, both landing under
+    `week=season` with a manifest beside them: `/calendar` (3,386 bytes, sha256
+    `94f31795…`) and `/teams/fbs` (202,966 bytes, sha256 `15611e4d…`)
+  - `/games` and `/lines` are the two still `[ ]` in substance. Both are
+    week-scoped and there is no completed week yet — the season opens 2026-08-29 —
+    so the first meaningful pull is the Sunday after week 1
+  - The two that ran were the two worth running first. `/calendar` generated
+    `data/calendar/2026.json`, which is what stops the Sagarin fetch filing under
+    `week=unknown`; `/teams/fbs` generated
+    `tests/fixtures/rosters/cfbd-2026.json`, the CFBD half of the §6.5 contract
 
 ## 5. Crosswalk
 
@@ -357,45 +467,45 @@ documented departure from "validation failures raise", and §3.3 carves it out e
 
 ## What closes the remaining §3 items
 
-Every §3 item is now written. Three are `[~]` rather than `[x]`, and each is waiting on a *run*
-rather than on more code — which is a different kind of open than this list used to describe.
-`storage.py`, the previous entry here, landed and is gone from it.
+Two `[~]` items remain, both waiting on a *run* rather than on more code. Two entries have left
+this list since it was written: `cli.py`, which landed and immediately turned the fetch item `[x]`
+and found a bug — the CLI's `in_season` guard raised on a missing calendar and skipped the fetch
+entirely, which is the clean failure SPEC §3.3 prefers a messy artifact to — and
+`data/calendar/2026.json`, which is now committed from a real `/calendar?year=2026` call. A Sagarin
+fetch today resolves a real week instead of filing under `week=unknown`.
 
-1. **`cli.py` — the `cfb` entrypoint (SPEC §8).** The one item startable right now with no
-   dependency on anything or anyone. Nothing in this project can be run end to end today: the
-   fetcher, the collector, the freshness check and the CFBD client all exist and no command drives
-   any of them. It also gates the two `[~]` items below in practice — `cfb fetch sagarin --store
-   file://./local-snapshots` needs no AWS and no key, and would turn the first of them `[x]` in a
-   single run. `pyproject.toml` still registers no console script, deliberately: an entry point to
-   a missing module breaks the install.
-2. **An in-season capture, by hand, once the first weekend's games are played.** Still the only
+1. **An in-season capture, by hand, once the first weekend's games are played.** Still the only
    real wait, and the gate is the title line rather than a week number — the page becomes usable
    the moment it drops `STARTING`. It closes four things at once: the date formats in
    `parse_page_date_stamp`, the `"in-season"` branch of `parse_page_state`, the two PROVISIONAL
    assertions in `test_freshness.py`, and — only maybe — the PREDICTOR column question in the
    deviation note above, which needs the specific rows checked rather than the file merely
    existing.
-3. **`terraform apply`, root stack before `cfb/`.** Unchanged, and the order is still forced:
+2. **`terraform apply`, root stack before `cfb/`.** Unchanged, and the order is still forced:
    `cfb/terraform` reads `/travispollard/cdn/` parameters that the root stack's `cfb-wiring.tf`
    publishes. Until this happens the S3 write stays unit-tested and never run, the 16 skipped
    tests stay skipped, and §7's scheduled job has no role to assume.
 
-§4 and §5 are blocked on the two human items below, not on §3.
+§5 is blocked on the human item below, not on §3.
 
 ---
 
 ## Blocked on a human, not on code
 
-Two items cannot be finished by writing code, and both sit on the critical path for §4 and §5:
+One item is left that cannot be finished by writing code, and it sits on the critical path for §5.
+`data/calendar/2026.json` used to be the other; it is committed, generated from a real
+`/calendar?year=2026` call now that the key is in SSM.
 
-- **`data/calendar/2026.json`** — one CFBD `/calendar?year=2026` call, committed to the repo
-  (SPEC §3.1). The key is in SSM at `/travispollard/cfb/cfbd_api_key`. `calendar.py` can be written
-  and tested against a synthetic fixture before this exists, but it cannot resolve a real week
-  without it.
-- **`data/crosswalk/teams-2026.yaml`** — needs a `/teams/fbs` call for the CFBD side, and then
-  roughly 25 mappings decided by hand. SPEC §6.3 is explicit that similarity scoring orders those
-  decisions and never makes one: `"Southern California" ~ USC (0.09)`. The Sagarin half of the
-  roster fixture can be generated from the golden capture today — all 266 names parse clean.
+- **`data/crosswalk/teams-2026.yaml`** — roughly 25 mappings decided by hand. The `/teams/fbs` call
+  it needed has been made: `tests/fixtures/rosters/cfbd-2026.json` holds all 138 FBS teams with
+  their ids. SPEC §6.3 is explicit that similarity scoring orders those decisions and never makes
+  one — `"Southern California" ~ USC (0.09)` — so the machine can rank the list and a person has to
+  work down it.
+- Two things about the shape of that job are now known rather than assumed. CFBD spells the three
+  SPEC §6.1 examples `USC`, `UCF` and `Texas A&M`, pinned by a fixture test so a vendor rename
+  shows up there rather than as an `UnmappedTeamError` in a scheduled run. And the 128 FCS names
+  Sagarin rates have **no** counterpart in `/teams/fbs`, so §6.5's "every Sagarin name resolves"
+  needs either an FCS roster or a decision that the crosswalk is FBS-only. §6 has not made it.
 
 ---
 
