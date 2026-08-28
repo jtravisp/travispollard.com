@@ -1,0 +1,47 @@
+# SPEC-phase0 §11. Lint and test every PR that touches cfb/.
+#
+# Offline by construction, not by convention: this job configures no AWS
+# credentials at all. There is no `configure-aws-credentials` step, no
+# `id-token: write` permission, and no profile. A test that reached for AWS
+# would fail here rather than quietly succeeding on someone's laptop
+# credentials, which is what `cfb/CLAUDE.md`'s "no network calls in tests, ever"
+# is worth only if something enforces it.
+#
+# `uv sync` without `--extra s3` for the same reason. boto3 is an optional extra
+# (SPEC §2.3), so the 16 S3 contract tests skip and `storage.py` proves it still
+# imports without the dependency installed.
+name: cfb-ci
+
+on:
+  pull_request:
+    paths:
+      - "cfb/**"
+      - ".github/workflows/cfb-ci.yml"
+
+# Read-only. Nothing in Phase 0 writes to the repo, and no OIDC token is issued
+# for this job because nothing in it talks to AWS.
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test
+        run: uv run pytest -q
