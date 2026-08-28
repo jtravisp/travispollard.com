@@ -114,6 +114,17 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("key", help="a key within the store")
     _add_store(replay)
 
+    # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
+    # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
+    # fix loop already tells you to type. A second way to run the same checks is
+    # a second thing to keep in step with them.
+    crosswalk = commands.add_parser("crosswalk", help="crosswalk tooling")
+    crosswalk_actions = crosswalk.add_subparsers(dest="action", required=True)
+    boot = crosswalk_actions.add_parser(
+        "bootstrap", help="write the exact matches and rank the rest for review"
+    )
+    boot.add_argument("--season", type=int, required=True)
+
     return parser
 
 
@@ -144,6 +155,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _fetch_cfbd(args, moment=moment, fetch=fetch)
     if args.command == "check-freshness":
         return _check_freshness(args, moment=moment)
+    if args.command == "crosswalk":
+        return _crosswalk_bootstrap(args)
     return _replay(args)
 
 
@@ -284,6 +297,32 @@ def _replay(args) -> int:
         fbs=sum(1 for team in snapshot.teams if team.division == "A"),
         predictions=len(snapshot.predictions),
     )
+    return 0
+
+
+def _crosswalk_bootstrap(args) -> int:
+    """SPEC 6.3. Imported here, not at module scope, and that is the point.
+
+    ``bootstrap`` is the only module in this package that scores string
+    similarity, and SPEC 6.3 quarantines it from the runtime path so a score can
+    never become a mapping. A top-level import would put it one refactor away
+    from the collectors; a function-local one keeps the CLI the only caller, and
+    ``tests/test_crosswalk.py`` asserts the quarantine holds.
+    """
+    from cfb.crosswalk.bootstrap import bootstrap, candidates_path
+
+    rosters = Path(__file__).parent.parent.parent / "tests" / "fixtures" / "rosters"
+    data_dir = Path(__file__).parent.parent.parent / "data" / "crosswalk"
+
+    matched, undecided = bootstrap(
+        season=args.season,
+        sagarin_roster=rosters / f"sagarin-{args.season}.txt",
+        cfbd_roster=rosters / f"cfbd-{args.season}.json",
+        data_dir=data_dir,
+    )
+    print(f"  auto-matched exactly: {matched}")
+    print(f"  needs review -> {candidates_path(args.season, data_dir=data_dir)}")
+    print(f"    {undecided} names, ranked best-first; scoring orders them and decides none")
     return 0
 
 
