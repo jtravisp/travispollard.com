@@ -39,18 +39,50 @@ SYNTHETIC = FIXTURES / "calendar_2026_synthetic.json"
 KEYED_AT = datetime(2026, 9, 16, 11, 3, 2, tzinfo=UTC)
 
 
-@pytest.fixture(scope="module")
-def entries() -> list[dict]:
-    return json.loads(SYNTHETIC.read_bytes())
+#: The committed calendar, one real `/calendar?year=2026` call (SPEC 3.1).
+REAL = Path(__file__).parent.parent / "data" / "calendar" / "2026.json"
+
+
+@pytest.fixture(scope="module", params=["synthetic", "real"])
+def entries(request) -> list[dict]:
+    """Both calendars, because the fixture was a guess and the guess was wrong.
+
+    Every test in this file ran against the synthetic file alone until the real
+    one existed. They agree on entry count, ``seasonType`` values and week
+    numbering, and they disagree on what ``firstGameStart`` and ``lastGameStart``
+    *mean*: CFBD sets both equal to the week's window boundaries at midnight
+    Pacific, so real weeks are wall to wall, where the fixture invented multi-day
+    gaps between one week's last kickoff and the next week's first.
+
+    Nothing below may hardcode a date-to-week mapping as a result. Anything that
+    needs a moment inside week N derives it from the calendar, which is a better
+    test than the literals it replaces -- those asserted the fixture, not the
+    resolver.
+    """
+    source = SYNTHETIC if request.param == "synthetic" else REAL
+    return json.loads(source.read_bytes())
 
 
 @pytest.fixture
 def data_dir(tmp_path, entries) -> Path:
-    """A `data/calendar/` directory holding the synthetic 2026 calendar."""
+    """A `data/calendar/` directory holding whichever 2026 calendar is in play."""
     root = tmp_path / "calendar"
     root.mkdir()
     (root / "2026.json").write_bytes(json.dumps(entries).encode("utf-8"))
     return root
+
+
+def _partition_of(entry) -> str:
+    """The ``week=`` value one calendar entry should resolve to (SPEC 3.2)."""
+    return "postseason" if entry.is_postseason else f"{entry.week:02d}"
+
+
+def midweek(calendar, week: int) -> datetime:
+    """A moment safely inside regular week ``week``, whichever calendar this is."""
+    entry = next(
+        e for e in calendar.entries if not e.is_postseason and e.week == week
+    )
+    return entry.first_game_start + (entry.last_game_start - entry.first_game_start) / 2
 
 
 @pytest.fixture
@@ -124,18 +156,8 @@ class TestResolvePartitionValues:
         assert ref.how == "calendar"
         assert ref.season == 2026
 
-    @pytest.mark.parametrize(
-        ("moment", "expected"),
-        [
-            (at(2026, 8, 30, 12), "01"),
-            (at(2026, 9, 6, 12), "02"),
-            (at(2026, 9, 20, 12), "04"),
-            (at(2026, 10, 25, 12), "09"),
-            (at(2026, 11, 15, 12), "12"),
-            (at(2026, 12, 6, 12), "15"),
-        ],
-    )
-    def test_regular_season_weeks_are_zero_padded(self, calendar, moment, expected):
+    @pytest.mark.parametrize("week", [1, 2, 4, 9, 12, 15])
+    def test_regular_season_weeks_are_zero_padded(self, calendar, week):
         """SPEC 3.2 says ``01``-``15``, not ``1``-``15``.
 
         The value is a literal S3 path segment. A stray ``"4"`` opens a second
@@ -147,20 +169,28 @@ class TestResolvePartitionValues:
         builder does with it downstream, and the docstring above is a claim about
         the path, which is the only end of that trip anyone ever reads back.
         """
-        ref = resolve(moment, calendar=calendar)
+        expected = f"{week:02d}"
+        ref = resolve(midweek(calendar, week), calendar=calendar)
         assert ref.week == expected
         assert ref.how == "calendar"
 
         key = snapshot_key(source="sagarin", season=2026, week=ref.week, fetched_at=KEYED_AT)
         assert key == f"raw/sagarin/season=2026/week={expected}/2026-09-16T110302Z.txt"
 
-    def test_the_gap_between_weeks_belongs_to_the_week_that_opened_it(self, calendar):
-        """Sagarin is fetched on a Tuesday (SPEC 11), which is nobody's game day.
+    def test_a_week_owns_everything_up_to_the_moment_the_next_one_opens(self, calendar):
+        """Stated as the boundary, because on the real calendar there is no gap.
 
-        Every scheduled run lands in one of these gaps, so this is the ordinary
-        case and not an edge one.
+        The fixture invented multi-day gaps between weeks and this test used to
+        assert a date inside one. CFBD's windows are wall to wall -- adjacent
+        entries are exactly 60 seconds apart -- so the only version of this claim
+        that holds for both calendars is about the instant before the handover.
         """
-        assert resolve(at(2026, 9, 22, 12), calendar=calendar).week == "04"
+        for entry, following in zip(calendar.entries, calendar.entries[1:], strict=False):
+            just_before = following.first_game_start - timedelta(seconds=1)
+            assert resolve(just_before, calendar=calendar).week == _partition_of(entry)
+            assert resolve(following.first_game_start, calendar=calendar).week == _partition_of(
+                following
+            )
 
     def test_bowls_are_postseason(self, calendar):
         ref = resolve(at(2026, 12, 28, 12), calendar=calendar)
@@ -416,14 +446,19 @@ class TestResolutionFailureKeepsTheSnapshot:
         assert missing.snapshot_key == truncated.snapshot_key
         assert missing_store.get_bytes(missing.snapshot_key) == page
 
-    def test_a_resolvable_run_is_unaffected(self, page, data_dir):
+    def test_a_resolvable_run_is_unaffected(self, page, data_dir, calendar):
         """The control. Without it every assertion above is satisfied by a
         collector that files everything under ``unknown`` and always raises.
+
+        The moment comes from the calendar rather than a literal. ``2026-09-20``
+        was hardcoded here and is week 04 on the synthetic fixture and week 03 on
+        the real one -- the assertion was about the fixture, not about the
+        collector, and only running both calendars showed it.
         """
         from cfb.storage import MemorySnapshotStore
 
         store = MemorySnapshotStore()
-        self.run(store, page, data_dir, at(2026, 9, 20, 12))  # must not raise
+        self.run(store, page, data_dir, midweek(calendar, 4))  # must not raise
 
         [manifest] = store.list_manifests("raw/sagarin/")
         assert manifest.week == "04"
