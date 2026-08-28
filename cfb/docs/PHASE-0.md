@@ -22,11 +22,11 @@ dispatched successfully with the publisher role assumed by GitHub Actions rather
 
 | | |
 |---|---|
-| Tests | 492 passing, 17 skipped, no collection errors; `ruff check .` clean |
+| Tests | 521 passing, 18 skipped, 2 failing **by design** — the crosswalk coverage tests are the worklist for the 32 undecided names; `ruff check .` clean |
 | Landed | `2fa6833..4db2934`. PR #43 merged to `main`; the workflows have run |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | §5, the crosswalk — the last section with no code. Then the two unattended scheduled runs that Phase 0 is "done when" |
-| Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions — see the bottom of this file |
+| Next | the 32 crosswalk decisions (yours), then the two unattended scheduled runs that Phase 0 is "done when" |
+| Blocked on a human | an in-season Sagarin capture, the 32 crosswalk decisions — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
@@ -442,10 +442,39 @@ exist.
 
 ## 5. Crosswalk
 
-- [ ] Generate the initial mapping from both sources
-- [ ] Store as a versioned data file, not code
-- [ ] Test: every FBS team in either source resolves
-- [ ] Test: an unknown name raises
+**The FCS question is settled and it changed the shape of this section.** SPEC §6.5's "every Sagarin
+name resolves" was unsatisfiable as written: Sagarin rates 266 teams, 128 of them FCS, and
+`/teams/fbs` returns none. Scoping the crosswalk to FBS-only does not rescue it — `/games` returns
+FCS opponents by CFBD name, so the first FBS-vs-FCS game of September needs the join or the game
+vanishes. The season pull is now `/teams?year=2026` and the crosswalk spans both divisions.
+
+- [x] Generate the initial mapping from both sources — `uv run cfb crosswalk bootstrap --season 2026`
+      writes 234 exact matches to `data/crosswalk/teams-2026.yaml` and ranks the other 32 in
+      `_candidates-2026.yaml`
+  - Both roster fixtures are 266 rows and their two 128s were counted independently by two vendors
+    who do not talk to each other — the best evidence available that neither side drops rows
+  - Similarity scoring orders the 32 and decides none of them (SPEC §6.3). `"Southern California" ~
+    USC` scores 0.09, so any threshold low enough to catch it would map half the FCS by accident
+- [x] Store as a versioned data file, not code — YAML, one file per season, canonical slug as the
+      key. `cfbd_id` rides along and a test checks it against the roster, so an id pasted from the
+      wrong row is caught rather than trusted
+- [~] Test: every FBS team in either source resolves — **the two coverage tests fail by design until
+      the 32 are decided**, and their failure message is the worklist. SPEC §6.4's fix loop ends
+      "Then: `uv run pytest cfb/tests/test_crosswalk.py`", so a red run here *is* the interface. The
+      other 18 crosswalk tests pass
+- [x] Test: an unknown name raises — plus five near-miss cases (`ohio state`, `Ohio  State`,
+      leading/trailing space, `OhioState`) that must raise rather than be normalized. Every one is a
+      plausible typo *and* a plausible vendor rename; absorbing them silently means the day CFBD
+      really renames a team, nobody learns the mapping is wrong
+- [x] Bootstrap quarantined from the runtime (SPEC §6.3) — asserted three ways: importing each
+      data-path module and checking `bootstrap` did not come with it, grepping those modules for an
+      import of it, and asserting the CLI's own import is function-local. The CLI is the one
+      sanctioned caller
+
+**Left for a human: the 32 decisions in `data/crosswalk/_candidates-2026.yaml`.** Each carries the
+four closest unclaimed CFBD names with scores. Some are near-misses a threshold would catch
+(`'Appalachian State'` ~ `'App State'`, 0.69); some are not (`'Central Florida(UCF)'`,
+`'Southern California'`) and need someone who knows what those teams are called.
 
 ## 6. Infrastructure
 
