@@ -200,6 +200,56 @@ almost entirely prior. So: capture the page anyway — it unblocks the other thr
 specific rows an assertion would target before closing this item. If PREDICTOR still agrees with
 its neighbours on those rows, the fixture has not settled anything and the item stays open.
 
+### Season/week resolution and key construction — tests written 2026-08-28
+
+Tests only, no implementation, per the session scope. `uv run pytest` now reports
+`96 passed, 16 skipped, 2 errors` — the two errors are `test_calendar.py` and `test_manifest.py`
+failing at collection on `No module named 'cfb.calendar'` / `'cfb.manifest'`. **58 assertions are
+waiting**: 31 in `test_calendar.py`, 27 in `test_manifest.py`.
+
+- [x] `tests/fixtures/calendar_2026_synthetic.json` — a hand-built calendar in the CFBD
+      `/calendar` shape, 16 entries: fifteen regular weeks a week apart from 2026-08-29, plus one
+      postseason entry running 2026-12-19 to 2027-01-11. Stands in for `data/calendar/2026.json`,
+      which is still blocked on a CFBD key. Broken variants (truncated, malformed, wrong season,
+      empty) are built by mutating it in memory, following the `test_models.py` idiom
+- [x] Every SPEC §3.2 partition value is covered: `preseason`, `01`–`15`, `postseason`,
+      `offseason` and `unknown` in `test_calendar.py`; `season` in `test_manifest.py`, because it
+      comes from what is being fetched rather than from when, and no date resolves to it
+- [x] SPEC §3.3 — seven tests. The class asserts what *survives* the failure, not just that it
+      failed: an implementation that resolves first, raises, and never fetches satisfies "the run
+      exits non-zero" perfectly while destroying the thing the run exists to collect. So each test
+      that expects the raise also asserts the bytes are in the store, the key is partitioned under
+      `week=unknown`, and `week_resolution` reads `"unknown"` so a later re-partition sweep can
+      find it. One control test proves a resolvable run still lands under `week=04`
+- [ ] `calendar.py` — `load_calendar`, `resolve`, `in_season`
+- [ ] `manifest.py` — `snapshot_key`, `manifest_key`
+- [ ] `collectors/sagarin.py` — `fetch_sagarin`
+
+**Signatures the tests propose, none of which SPEC pins.** These are the decision to make before
+implementing, and changing them means changing the tests:
+
+- SPEC §3.1 writes `load_calendar(season)`, `resolve(now)`, `in_season(now)`. None can be pointed
+  at a fixture, so each grew one keyword argument: `data_dir=` on the loader, `calendar=` on the
+  other two
+- SPEC §1 assigns "key construction" to `manifest.py` but names no functions. The tests assume
+  `snapshot_key(source=, season=, week=, fetched_at=, resource=None)` and `manifest_key(key)`
+- SPEC §8 gives the CLI surface and §4.3 the order of operations, but no collector signature that
+  runs without a network or a bucket. The tests assume
+  `fetch_sagarin(store=, now=, fetch=, data_dir=)`, with `fetch` a zero-argument callable
+
+**A design decision the tests encode, derived rather than stated.** `resolve()` does not raise on a
+date it cannot place; it returns `WeekRef(week="unknown", how="unknown")`. SPEC §2.2 types
+`week_resolution` as `"calendar" | "unknown"`, and `"unknown"` could never appear if resolution
+raised instead of returning. `load_calendar` still raises `WeekResolutionError` on a missing or
+malformed file, and the collector still owes the non-zero exit — after the write. This is the one
+documented departure from "validation failures raise", and §3.3 carves it out explicitly.
+
+**Left underspecified on purpose.** `in_season` is "preseason start .. postseason end" (SPEC §3.1),
+but nothing defines preseason start — the CFBD calendar's first entry is week 1's first game, not
+a preseason boundary. The tests assert the unambiguous half (true during the regular season and
+the postseason, false in the offseason and the month after) and do not invent a threshold for the
+preseason edge. That boundary needs a decision before `in_season` is written.
+
 ## 4. CFBD collector
 
 - [ ] API key in SSM, not env files
