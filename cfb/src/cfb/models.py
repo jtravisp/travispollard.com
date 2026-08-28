@@ -151,3 +151,65 @@ class SagarinSnapshot(BaseModel):
                     f"{team.wins}-{team.losses} record"
                 )
         return self
+
+
+class Manifest(BaseModel):
+    """One ``.meta.json`` describing a stored snapshot (SPEC-phase0 2.2).
+
+    Written twice per successful run (SPEC 4.3): once after the bytes land, with
+    the fetch-only fields, and once after the parse succeeds, with the block below
+    the divider filled in. Both writes go to the same key, so a manifest whose
+    ``parse_ok`` is ``None`` is not corrupt -- it is the honest record of a run
+    that fetched successfully and then failed at step 4, 5, 6 or 7. SPEC 4.3 calls
+    that state detectable and replayable, and it is never a reason to discard the
+    bytes it points at.
+
+    ``extra="forbid"`` is deliberate. ``schema_version`` is how this document
+    grows a field; an unrecognised key means the writer and the reader disagree
+    about the schema, and quietly accepting it is how a manifest starts lying
+    about the object it describes.
+    """
+
+    model_config = _STRICT
+
+    schema_version: int = Field(ge=1)
+    source: Literal["sagarin", "cfbd"]
+    resource: str = Field(min_length=1)
+    source_url: str = Field(min_length=1)
+    http_status: int
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bytes: int = Field(ge=0)
+    encoding: str | None
+    fetched_at: datetime
+    season: int = Field(ge=1869)
+    week: str
+    week_resolution: Literal["calendar", "unknown"]
+    snapshot_key: str = Field(min_length=1)
+
+    # Added by the post-parse write only; absent on a fetch-only manifest.
+    parse_ok: bool | None = None
+    page_date_stamp: date | None = None
+    page_state: Literal["preseason", "in-season"] | None = None
+    team_count: int | None = None
+    fbs_count: int | None = None
+    hfa: dict[str, float] | None = None
+    predictions_count: int | None = None
+    unmapped: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _week_is_a_known_partition(self) -> "Manifest":
+        """``week`` is a partition value, not a number (SPEC 3.2).
+
+        It reaches S3 as a literal path segment, so a stray ``"4"`` where ``"04"``
+        belongs silently creates a second partition for the same week and the
+        freshness check compares a prefix against nothing.
+        """
+        legal = {"preseason", "postseason", "offseason", "season", "unknown"}
+        if self.week in legal:
+            return self
+        if len(self.week) == 2 and self.week.isdigit() and 1 <= int(self.week) <= 15:
+            return self
+        raise ParseError(
+            f"week {self.week!r} is not a legal partition value: expected "
+            f"'01'-'15' zero-padded or one of {sorted(legal)}"
+        )

@@ -22,7 +22,7 @@ cfb/
 │   ├── cli.py                      # the `cfb` entrypoint, subcommands below
 │   ├── calendar.py                 # season/week resolution
 │   ├── storage.py                  # SnapshotStore protocol + S3/File/Memory impls
-│   ├── manifest.py                 # manifest models, key construction
+│   ├── manifest.py                 # key construction, the two-phase manifest build (§4.3)
 │   ├── logging.py                  # key=value structured lines to stdout
 │   ├── errors.py                   # the exception hierarchy in §9
 │   ├── collectors/
@@ -31,7 +31,7 @@ cfb/
 │   ├── parsers/
 │   │   ├── sagarin_ratings.py      # section 1 only
 │   │   └── sagarin_predictions.py  # Predictions_with_Totals_and_Moneylines
-│   ├── models.py                   # pydantic: TeamRating, SagarinSnapshot, GamePrediction
+│   ├── models.py                   # pydantic: TeamRating, SagarinSnapshot, GamePrediction, Manifest
 │   └── crosswalk/
 │       ├── __init__.py             # load(season) -> Crosswalk; resolve() raises
 │       └── bootstrap.py            # one-off candidate generator, NEVER imported by runtime
@@ -565,6 +565,8 @@ uv run cfb crosswalk verify --season 2026     # the §6.5 assertions against the
 class CfbError(Exception): ...
 class FetchError(CfbError): ...              # network, timeout, redirect, non-2xx after retries
 class EncodingError(CfbError): ...
+class SnapshotExistsError(CfbError): ...    # a raw key already holds an object; raw is write-once
+class SnapshotNotFoundError(CfbError): ...  # a read targeted a key the store does not hold
 class ParseError(CfbError): ...
 class DuplicateRankError(ParseError): ...
 class ValidationError(CfbError): ...         # wraps pydantic

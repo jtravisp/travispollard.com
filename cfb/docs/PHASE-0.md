@@ -129,17 +129,32 @@ Still open in this section:
         repo and deleted immediately: **32 passed, 16 skipped** (memory and file run; the S3
         parametrization skips without `CFB_INTEGRATION=1` and `CFB_TEST_BUCKET`). Tests only —
         no implementation landed
-  - **This file red-lights the whole suite until `storage.py` exists.** The import fails at
-    collection, and pytest reports `Interrupted: 1 error during collection` — the other 64 tests
-    do not run. `uv run pytest --ignore=tests/test_storage.py` still shows `64 passed`, and
-    `--continue-on-collection-errors` shows `64 passed, 1 error`. Use either until the module lands
-  - What the implementation must supply, none of which exists yet:
-    - `errors.py`: `SnapshotExistsError` and `SnapshotNotFoundError`. The hierarchy has nine
-      exceptions and neither of these; this is the first §9 addition since it landed
-    - `models.py`: a `Manifest` model. SPEC §2.2 specifies the JSON but no model was ever written,
-      and `list_manifests` is typed `list[Manifest]`
-    - `storage.py`: `MemorySnapshotStore()`, `FileSnapshotStore(root)`, `S3SnapshotStore(bucket,
-      region)`. SPEC §2.3 names all three; the suite holds all three to identical assertions
+  - [x] Implemented 2026-08-28. `uv run pytest` with `CFB_INTEGRATION` unset:
+        **`96 passed, 16 skipped in 0.82s`**; `uv run ruff check .` → `All checks passed!`
+        Nothing under `cfb/tests/` was touched
+    - `errors.py`: `SnapshotExistsError` and `SnapshotNotFoundError`, placed between
+      `EncodingError` and `ParseError` so the hierarchy reads in the order of operations of
+      SPEC §4.3. First additions since §9 landed, and SPEC §9 was updated in the same commit
+    - `models.py`: `Manifest`, strict and frozen like its neighbours, `extra="forbid"` with the
+      post-parse fields declared optional — a fetch-only manifest is `parse_ok=None`, not invalid.
+      A validator rejects a `week` that is not a SPEC §3.2 partition value, because `week` reaches
+      S3 as a literal path segment and a stray `"4"` where `"04"` belongs silently opens a second
+      partition for the same week
+    - `storage.py`: the `SnapshotStore` Protocol plus all three implementations. `put_bytes` on S3
+      is a conditional write (`IfNoneMatch="*"`), not head-then-put: two runs racing on one key
+      would both see it absent and the loser would clobber the winner
+  - **Module ownership decided:** `Manifest` lives in `models.py`, not `manifest.py`. SPEC §1 said
+    "manifest models, key construction" for `manifest.py`; it now reads "key construction, the
+    two-phase manifest build (§4.3)" and `models.py` lists `Manifest`. Rationale: `models.py` is
+    the one place every pydantic schema lives and every one is validated at a boundary, which is
+    exactly what `list_manifests` does to bytes out of the bucket. Splitting schemas across two
+    modules gives "where is the model for X" two answers. `manifest.py` keeps real work — key
+    construction and the step 3 / step 6 builders — the same schema/behaviour split the package
+    already uses for `models.py` and `parsers/`
+  - boto3 is an optional extra (`uv sync --extra s3`), not a base dependency, and `storage.py`
+    imports it inside `S3SnapshotStore.__init__`. Verified: `boto3 installed: False` in the
+    default environment, and `from cfb.storage import S3SnapshotStore` still succeeds. The offline
+    suite installs neither boto3 nor botocore
   - Two contract points the suite takes from the spec over the intuitive reading, both worth
     re-reading before implementing:
     - Write-once is a property of `put_bytes` alone. `put_json` **must permit** rewriting a
