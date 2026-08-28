@@ -124,6 +124,35 @@ Still open in this section:
     ahead of the code that uses it
 - [ ] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
   - Blocked twice over: `storage.py` does not exist, and the bucket in §6 has never been applied
+  - [x] `tests/test_storage.py` — the `SnapshotStore` contract, 16 assertions parametrized over
+        three stores. Verified 2026-08-28 against a throwaway implementation written outside the
+        repo and deleted immediately: **32 passed, 16 skipped** (memory and file run; the S3
+        parametrization skips without `CFB_INTEGRATION=1` and `CFB_TEST_BUCKET`). Tests only —
+        no implementation landed
+  - **This file red-lights the whole suite until `storage.py` exists.** The import fails at
+    collection, and pytest reports `Interrupted: 1 error during collection` — the other 64 tests
+    do not run. `uv run pytest --ignore=tests/test_storage.py` still shows `64 passed`, and
+    `--continue-on-collection-errors` shows `64 passed, 1 error`. Use either until the module lands
+  - What the implementation must supply, none of which exists yet:
+    - `errors.py`: `SnapshotExistsError` and `SnapshotNotFoundError`. The hierarchy has nine
+      exceptions and neither of these; this is the first §9 addition since it landed
+    - `models.py`: a `Manifest` model. SPEC §2.2 specifies the JSON but no model was ever written,
+      and `list_manifests` is typed `list[Manifest]`
+    - `storage.py`: `MemorySnapshotStore()`, `FileSnapshotStore(root)`, `S3SnapshotStore(bucket,
+      region)`. SPEC §2.3 names all three; the suite holds all three to identical assertions
+  - Two contract points the suite takes from the spec over the intuitive reading, both worth
+    re-reading before implementing:
+    - Write-once is a property of `put_bytes` alone. `put_json` **must permit** rewriting a
+      manifest key — SPEC §2.2 and steps 3 and 6 of §4.3 write the same `.meta.json` twice on
+      every successful run. A store that refused it could not execute the normal path
+    - `list_manifests` orders by `fetched_at`, not by key (SPEC §2.3 "newest first by
+      fetched_at"). The suite's fixture deliberately reverses the two orders so a store that
+      sorts by key fails
+  - Deliberate, narrow deviation from `cfb/CLAUDE.md`'s "no network calls in tests, ever": the S3
+    parametrization can reach AWS, but only when two env vars are set, so a bare `uv run pytest`
+    is still fully offline. Its objects go under a `test/` prefix, never `raw/` — the publisher
+    role is denied `s3:DeleteObject`, so an integration run cannot clean up after itself and
+    would otherwise leave permanent garbage in the immutable prefix
 - [x] Parser passing all tests from step 2 — `parsers/sagarin_ratings.py`. Section 1 only, anchored
       on the `=` and `|` tokens; rank is the identity; HFA read per column from the page; a bad row,
       an unrecognised line, a duplicate rank, or a gap in the rank sequence all raise
