@@ -154,6 +154,16 @@ class StateMismatchError(CfbError):
     """
 
 
+class UnknownProviderError(CfbError):
+    """A ``/lines`` entry names a sportsbook this project has no mapping for.
+
+    Skipping it would drop a line silently, and a book that has never appeared
+    before is precisely when someone should look before its number reaches a
+    published prediction. The message names the provider and the table to add it
+    to, because the fix is one line and the reader should not have to find it.
+    """
+
+
 class WeekResolutionError(CfbError):
     """Season/week could not be resolved from the committed calendar."""
 

@@ -17,17 +17,17 @@ generated, written write-once and indexed.
 
 | | |
 |---|---|
-| Tests | **741 passing, 22 skipped**, `ruff check .` clean, `terraform validate` clean |
+| Tests | **790 passing, 22 skipped**, `ruff check .` clean, `terraform validate` clean |
 | Landed | `fa40c16` (§3.1–§3.5), `c9c1d85` (the state writer). This session's §4 work is uncommitted |
-| Next | §5, scoring. It needs predictions to join against, which now exist |
-| Blocked | `closing_line` only — no `/lines` capture exists. One CFBD call unblocks it; see below |
+| Next | §5, scoring. Predictions exist to join against, and `market_home_margin` is the conversion it must use |
+| Blocked | nothing. `/lines` is captured and joined; §4 is complete |
 | Blocked on a human | nothing in Phase 1. Phase 0's in-season Sagarin capture still stands |
 
 Verified this session, in `cfb/`:
 
 | Command | Result |
 |---|---|
-| `uv run pytest` | `741 passed, 22 skipped in 13.54s` |
+| `uv run pytest` | `790 passed, 22 skipped in 13.11s` |
 | `uv run ruff check .` | `All checks passed!` |
 | `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
 | `uv run cfb elo seed --season 2026 --store file://…` | exit 0, `week=preseason teams=266` |
@@ -121,23 +121,38 @@ with two implementations.
       mutable object
 - [x] `cfb predict --season 2026 --week N`, defaulting to `calendar.coming_week`
 - [x] IAM: `s3:PutObject` on `predictions/*` with no `s3:DeleteObject`
-- [ ] **Closing lines from CFBD `/lines`.** The only unfinished part of §4 — see below
+- [x] **Market lines from CFBD `/lines`**, joined on `cfbd_game_id`, provider-normalized and signed verbatim. See the four findings below
 
-### `closing_line` is null, deliberately, and this is what unblocks it
+### What the real `/lines` capture changed
 
-There is no `/lines` capture anywhere in this project and no fixture, and `cfb/CLAUDE.md` forbids
-calling CFBD from a test. Writing a parser against a remembered response shape would put an
-unverified reader on the Thursday critical path, where a wrong guess either raises on a shape
-mismatch or — worse — returns `None` for every game and silently deletes the headline benchmark the
-PRD names. §4.2 makes the field nullable, so a null is a legal document rather than a hole.
+The capture is `tests/fixtures/cfbd_lines_2026_week01.json` — a verbatim
+`/lines?year=2026&week=1` response, 143 games, 194 line entries. It contradicted the spec in three
+places and confirmed a fourth. All four are now in SPEC-phase1 §4.3.
 
-To finish it, in order:
+1. **There is no closing line.** The fields are `spread` (the price at capture) and `spreadOpen`;
+   nothing in the response has "clos" in its name. §4.2, §5.3 and §6.3 all said "closing line" and
+   none of them could have had one — a Thursday generate cannot know a number that does not exist
+   until kickoff. Renamed to `market_line` throughout, and the spec now says what it is.
+2. **The sign is opposite to `predicted_margin`.** `spread: -29.5` with
+   `formattedSpread: "Iowa State -29.5"`, Iowa State home — so negative favours the home team, while
+   `predicted_margin` positive favours the home team. Verified across all 194 entries in both
+   directions with no exceptions. The value is stored verbatim and `sources.market_home_margin` is
+   the **single** conversion site. Without the flip every §5.3 ATS record is complete, plausible and
+   backwards.
+3. **Providers need normalizing before selection.** One book, two spellings: `DraftKings` (131) and
+   `Draft Kings` (12). Selecting first drops the 12 games whose only line uses the second. And
+   selection is a real decision — the two books **disagree on 21 of 143 games** — so
+   `PROVIDER_PREFERENCE` changes the published number. DraftKings leads on coverage (143 of 143 vs
+   Bovada's 51), and the resolved book is carried into the row so §6.3's `line_source` is a fact
+   rather than the `"consensus"` guess it used to be. An unrecognised provider raises.
+4. **Null stays legal and is never a zero.** In *this* capture every game has a line and no `spread`
+   is null, so the null path is the join: a slate game with no entry in the `/lines` response.
+   Asserted at both the selection and document level, because zero is a pick'em and conflating them
+   would put unpriced games into the ATS record as pushes against a spread nobody quoted.
 
-1. `uv run cfb fetch cfbd --resource lines --season 2026 --week 1` — one CFBD call, one snapshot
-2. Commit the capture as `tests/fixtures/cfbd_lines_2026_week01.json`
-3. Implement `predict._closing_line`, which is the single place the join belongs
-4. Decide §6.3's `line_source` — it says a provider has to be named, and that decision wants a real
-   response in front of it rather than a guess
+Verified end to end: `cfb predict` over the real capture produced
+`games=4 benchmarked=1 priced=3`, with Portland State reading `model=-12.91, market=+24.5` — both
+saying the away team is favoured, which is only true once the sign is converted.
 
 ### What §4 confirmed about §3.6
 
@@ -158,6 +173,12 @@ So **§3.6's Pearson correlation opens the season at exactly 1.0**, not near it,
 - [ ] §5.3's figures, for Texas and the full slate separately, with sample sizes attached
 - [ ] The Elo advance moves into `cfb score` — see the batch-partition decision below
 - [ ] `scored/season=2026/week=NN/<ts>.json`
+- [ ] **Beating the line goes through `sources.market_home_margin`.** §5.3 says so now. Comparing
+      `market_line` against `predicted_margin` directly inverts every ATS record, and the result
+      looks entirely normal — `test_lines.py::TestTheSign` is what fails if the conversion is
+      dropped, in both directions and across all 194 entries of the capture
+- [ ] **A null `market_line` is excluded from the ATS record and counted as excluded**, never scored
+      against a zero
 - [x] **The HFA rule is already shared and cannot drift.** `sources.hfa_at` is the single
       implementation of §3.3, and `hfa_for` (a game's own kickoff) and `predict` (a slate's first
       kickoff) are two boundaries into it. `cfb score` uses `hfa_for` by importing it, not by
@@ -227,6 +248,17 @@ silently added:
 ---
 
 ## Found this session
+
+- **`cfb/lines-wk1.json` is a stray in the repo root.** It is the raw capture, untracked, and it has
+  been copied to `tests/fixtures/cfbd_lines_2026_week01.json`. Safe to delete; left alone because it
+  is not this session's to remove.
+- **A `/lines` response read as *text* on Windows mangles accented team names.** `San José State`
+  decodes to `San JosÃ© State` under the cp1252 default and then fails to resolve against a crosswalk
+  that has the name correctly. Production was never affected — `sources._rows` is handed bytes and
+  `json.loads` detects UTF-8 — but a diagnostic script written the obvious way reports a crosswalk
+  gap that does not exist. `_rows` now says why it takes bytes.
+
+## Also found this session
 
 - **A bare `uv sync` prunes boto3, and every S3-backed command then died with a raw
   `ModuleNotFoundError`** from inside `S3SnapshotStore.__init__` — no traceback contract, no mention of

@@ -18,9 +18,15 @@ manifest the HFA came from, the exact page the season was seeded from, and the
 exact Elo state object the run started from -- so any number in here can be
 recomputed from ``raw/`` months later, by someone who does not trust it.
 
-**Everything is from the home team's perspective**, including at neutral sites
-where "home" is whatever CFBD says (§4.2). One convention, stated once, so
-nothing downstream carries sign-flipping logic.
+**Everything the model produces is from the home team's perspective**, including
+at neutral sites where "home" is whatever CFBD says (§4.2). One convention,
+stated once, so nothing downstream carries sign-flipping logic.
+
+**The one exception is ``market_line``, and it is deliberate.** CFBD signs a
+spread the other way -- negative favours the home team -- and the value is stored
+exactly as published rather than converted on the way in, so the document records
+what the vendor said. ``sources.market_home_margin`` is the single place the two
+conventions meet.
 """
 
 from datetime import UTC, datetime
@@ -38,11 +44,12 @@ from cfb.errors import ReplayError, UnmappedTeamError
 from cfb.models import SagarinSnapshot, validating
 from cfb.sources import (
     HFA_COLUMN,
-    RawGame,
     hfa_at,
     hfa_manifests,
+    market_line_for,
     sagarin_manifests,
     sagarin_snapshot,
+    week_lines,
     week_position,
     week_slate,
 )
@@ -90,6 +97,9 @@ class ModelBlock(BaseModel):
     #: number whose source the document cannot name is the thing the model block
     #: exists to prevent.
     sagarin_predictions_from: str = Field(min_length=1)
+    #: The ``/lines`` capture the market lines came from, or ``None`` when the week
+    #: has none stored. Same reasoning as the field above.
+    market_lines_from: str | None = None
 
 
 class PredictedGame(BaseModel):
@@ -112,9 +122,23 @@ class PredictedGame(BaseModel):
     #: would make the row unable to reproduce its own margin.
     elo_home: float
     elo_away: float
-    #: CFBD, home perspective. ``None`` until a ``/lines`` capture exists -- see
-    #: ``_closing_line``.
-    closing_line: float | None
+    #: The market spread **exactly as CFBD published it**, which is the opposite
+    #: sign convention to ``predicted_margin``: negative here means the home team
+    #: is favoured. Stored verbatim so the document records what the vendor said;
+    #: ``sources.market_home_margin`` is the only place the two are reconciled.
+    #:
+    #: Named ``market_line`` rather than ``closing_line`` because there is no
+    #: closing line to have. The response carries ``spread`` (the price at the
+    #: moment of capture) and ``spreadOpen``, and nothing else -- a Thursday fetch
+    #: cannot know a number that does not exist until kickoff.
+    #:
+    #: ``None`` when no book priced the game. **Never zero**: zero is a pick'em,
+    #: which is a real and very different claim.
+    market_line: float | None
+    #: Which book ``market_line`` came from, resolved through
+    #: ``sources.PROVIDERS``. ``None`` exactly when ``market_line`` is. This is
+    #: what makes §6.3's ``line_source`` a fact rather than a guess.
+    market_line_source: str | None
     #: Sagarin PREDICTOR, home perspective, benchmark only and an input to
     #: nothing (§1.2). ``None`` when the game is not on the page.
     sagarin_predictor_margin: float | None
@@ -229,6 +253,8 @@ def predict_week(
     slate.sort(key=lambda pair: (pair[0].start_date, pair[0].id))
     first_kickoff = slate[0][0].start_date
 
+    lines, lines_keys = week_lines(store, season, lambda record: record.order == target)
+
     manifests = hfa_manifests(sagarin_manifests(store, season))
     hfa_manifest = hfa_at(
         manifests,
@@ -253,6 +279,10 @@ def predict_week(
             kickoff=raw.start_date,
         )
         prediction = forecast(ratings, game, hfa=hfa)
+        # Joined on the game id, for SPEC-phase1 5.1's reasons: a game moves week
+        # for weather and the two sources disagree about who is home at a neutral
+        # site, and the id survives both. A game no book priced is simply absent.
+        market = market_line_for(lines[raw.id]) if raw.id in lines else None
         games.append(
             PredictedGame(
                 cfbd_game_id=raw.id,
@@ -264,7 +294,8 @@ def predict_week(
                 win_probability=prediction.win_probability,
                 elo_home=ratings[home],
                 elo_away=ratings[away],
-                closing_line=_closing_line(raw),
+                market_line=market[0] if market else None,
+                market_line_source=market[1] if market else None,
                 sagarin_predictor_margin=_benchmark_for(benchmark, home, away),
             )
         )
@@ -287,6 +318,7 @@ def predict_week(
                 seeded_from=state.state.seeded_from,
                 elo_state=state.key,
                 sagarin_predictions_from=hfa_manifest.snapshot_key,
+                market_lines_from=lines_keys[0] if lines_keys else None,
             ),
             games=games,
         )
@@ -347,29 +379,6 @@ def rebuild_index(store: SnapshotStore, *, now: datetime) -> PredictionIndex:
     return index
 
 
-def _closing_line(raw: RawGame) -> float | None:
-    """The closing line for a game, home perspective (§4.2). Always ``None`` today.
-
-    **Deliberately unimplemented, and this is the one place to implement it.**
-    §4.2 makes the field nullable ("null if not yet posted"), so a null here is a
-    legal document rather than a hole.
-
-    The blocker is evidence, not effort. CFBD's ``/lines`` has never been captured
-    by this project -- there is no snapshot under ``raw/cfbd/.../lines/`` and no
-    fixture -- and ``cfb/CLAUDE.md`` forbids calling CFBD from a test. Writing a
-    parser against a remembered response shape would put an unverified reader on
-    the Thursday critical path, where a wrong guess either raises on a shape
-    mismatch or, worse, silently yields ``None`` for every game and quietly
-    deletes the headline benchmark of the whole project.
-
-    To finish it: ``uv run cfb fetch cfbd --resource lines --season 2026 --week N``
-    once, commit the capture as a fixture, then read the provider spread here.
-    §6.3's ``line_source`` says a provider has to be chosen, which is a decision
-    that also wants a real response in front of it.
-    """
-    return None
-
-
 def _sagarin_margins(
     snapshot: SagarinSnapshot, resolver: Crosswalk
 ) -> dict[frozenset[str], tuple[str, float]]:
@@ -404,7 +413,7 @@ def _benchmark_for(
 
     ``None`` is ordinary: the page carries about 106 rows against a ~130-game FBS
     slate, so most weeks have games it does not cover. §4.2 says as much, and the
-    benchmark being partial is why §5.3 reports it beside the closing line rather
+    benchmark being partial is why §5.3 reports it beside the market line rather
     than instead of it.
     """
     found = margins.get(frozenset({home, away}))

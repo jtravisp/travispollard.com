@@ -26,7 +26,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.collectors.sagarin import decode_page
-from cfb.errors import ReplayError
+from cfb.errors import ReplayError, UnknownProviderError
 from cfb.models import Manifest, SagarinSnapshot, validating
 from cfb.parsers.sagarin_predictions import parse_predictions
 from cfb.parsers.sagarin_ratings import (
@@ -39,14 +39,22 @@ from cfb.storage import SnapshotStore
 
 __all__ = [
     "HFA_COLUMN",
+    "PROVIDERS",
+    "PROVIDER_PREFERENCE",
     "RawGame",
+    "RawGameLines",
+    "RawLine",
     "completed_games",
+    "market_home_margin",
+    "market_line_for",
+    "normalize_provider",
     "hfa_at",
     "hfa_for",
     "hfa_manifests",
     "sagarin_manifests",
     "sagarin_snapshot",
     "seed_manifest",
+    "week_lines",
     "week_position",
     "week_slate",
 ]
@@ -290,7 +298,7 @@ def week_slate(
     found: list[tuple[RawGame, str]] = []
     read_keys: list[str] = []
 
-    for manifest in _newest_games_manifest_per_week(store, season):
+    for manifest in _newest_manifest_per_week(store, season, "games"):
         key = manifest.snapshot_key
         read_keys.append(key)
         for raw_game in _rows(store.get_bytes(key), key):
@@ -335,8 +343,10 @@ def completed_games(
     return [(game, key) for game, key in games if game.is_complete], read_keys
 
 
-def _newest_games_manifest_per_week(store: SnapshotStore, season: int) -> list[Manifest]:
-    """One ``/games`` manifest per week partition, newest capture of each.
+def _newest_manifest_per_week(
+    store: SnapshotStore, season: int, resource: str
+) -> list[Manifest]:
+    """One manifest per week partition for ``resource``, newest capture of each.
 
     Returned newest-capture-first across weeks so that when the same game id
     appears under two partitions, the first sighting -- which the callers keep --
@@ -346,20 +356,206 @@ def _newest_games_manifest_per_week(store: SnapshotStore, season: int) -> list[M
     # `list_manifests` is newest first, so the first sighting of a week is its
     # newest capture.
     for manifest in store.list_manifests(f"raw/cfbd/season={season}/"):
-        if manifest.resource == "games" and manifest.week not in newest:
+        if manifest.resource == resource and manifest.week not in newest:
             newest[manifest.week] = manifest
     return sorted(newest.values(), key=lambda m: (m.fetched_at, m.snapshot_key), reverse=True)
 
 
-def _rows(data: bytes, key: str) -> Iterable[RawGame]:
+def _rows(data: bytes, key: str, model=RawGame, what: str = "games") -> Iterable:
+    """Parse one stored CFBD list response.
+
+    ``json.loads`` is handed bytes rather than text on purpose: it detects UTF-8
+    itself, and the responses carry accented team names (``San Jos\u00e9 State``)
+    that a text read under a non-UTF-8 default locale silently mangles into a name
+    the crosswalk cannot resolve.
+    """
     try:
         rows = json.loads(data)
     except json.JSONDecodeError as exc:
         raise ReplayError(f"{key} is not valid JSON: {exc}") from exc
     if not isinstance(rows, list):
         raise ReplayError(
-            f"{key} holds {type(rows).__name__}, expected the list of games CFBD /games "
+            f"{key} holds {type(rows).__name__}, expected the list CFBD /{what} "
             f"returns; an error body stored with a 200 looks exactly like this"
         )
-    with validating(f"games in {key}"):
-        return [RawGame.model_validate(row) for row in rows]
+    with validating(f"{what} in {key}"):
+        return [model.model_validate(row) for row in rows]
+
+
+# --- CFBD lines ---------------------------------------------------------------
+#
+# Everything below was written against a verbatim `/lines?year=2026&week=1`
+# capture (`tests/fixtures/cfbd_lines_2026_week01.json`), not against a
+# remembered response shape. Four things that capture settled are recorded where
+# they apply.
+
+
+#: Vendor spelling -> the book it means. **Exact lookup, and it raises otherwise**,
+#: which is the crosswalk's rule (SPEC-phase0 6.2) applied to a much smaller set
+#: and for the same reason.
+#:
+#: The capture spells one book two ways -- `DraftKings` 131 times and
+#: `Draft Kings` 12 -- so something has to reconcile them before selection can
+#: prefer one book over another. A whitespace-collapsing normalizer would do it
+#: automatically and would also silently merge two genuinely different books that
+#: differed by a space; a table cannot make that mistake.
+#:
+#: Only spellings this project has actually seen are here. A new one raises, which
+#: is the point: an unrecognised book is when someone should look, not when a line
+#: should quietly vanish.
+PROVIDERS = {
+    "DraftKings": "DraftKings",
+    "Draft Kings": "DraftKings",
+    "Bovada": "Bovada",
+}
+
+#: Which book wins when a game has more than one, most preferred first.
+#:
+#: **This is a decision, not a tidy-up.** In the capture the two books disagree on
+#: 21 of 143 games, so the order changes the number that gets stored and published.
+#: DraftKings leads because it priced every game in the capture (143 of 143) while
+#: Bovada priced 51 -- a coverage fact, not a judgement about either book. The
+#: resolved provider travels with the line so a published number can always say
+#: which book it came from.
+PROVIDER_PREFERENCE = ("DraftKings", "Bovada")
+
+
+class RawLine(BaseModel):
+    """One sportsbook's numbers for one game.
+
+    **There is no closing line.** The response carries `spread` -- the price at the
+    moment of capture -- and `spreadOpen`. Nothing in it has "clos" in the name.
+    SPEC-phase1 4.2, 5.3 and 6.3 all said "closing line" before this capture
+    existed, and none of them could have had one: a Thursday fetch cannot know a
+    line that does not exist until kickoff.
+
+    **`spread` is signed opposite to `predicted_margin`.** Negative means the home
+    team is favoured; `predicted_margin` positive means the home team wins by that
+    much. The value is carried verbatim and `market_home_margin` is the single
+    place the two conventions are reconciled.
+    """
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    provider: str = Field(min_length=1)
+    #: Nullable: a book can list a game without pricing it.
+    spread: float | None = None
+    #: The vendor's own words for who is favoured, e.g. ``"Iowa State -29.5"``.
+    #: Kept because it is the only independent check on the sign convention that
+    #: does not depend on believing the sign convention.
+    formatted_spread: str | None = Field(default=None, alias="formattedSpread")
+    spread_open: float | None = Field(default=None, alias="spreadOpen")
+
+
+class RawGameLines(BaseModel):
+    """One game's entry in a stored ``/lines`` response."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    id: int
+    season: int
+    week: int = Field(ge=1)
+    season_type: str = Field(min_length=1, alias="seasonType")
+    home_team: str = Field(min_length=1, alias="homeTeam")
+    away_team: str = Field(min_length=1, alias="awayTeam")
+    lines: list[RawLine] = Field(default_factory=list)
+
+    @property
+    def order(self) -> tuple[int, int]:
+        return (1 if self.season_type.lower() == "postseason" else 0, self.week)
+
+
+def normalize_provider(name: str) -> str:
+    """The book a vendor spelling means, or ``UnknownProviderError``."""
+    try:
+        return PROVIDERS[name]
+    except KeyError:
+        raise UnknownProviderError(
+            f"unknown sportsbook {name!r} in a CFBD /lines response.\n"
+            f"Known spellings: {sorted(PROVIDERS)}.\n"
+            f"Add it to PROVIDERS in cfb/src/cfb/sources.py, and to "
+            f"PROVIDER_PREFERENCE if it should ever be selected. Skipping it "
+            f"instead would drop a line silently."
+        ) from None
+
+
+def market_line_for(record: RawGameLines) -> tuple[float, str] | None:
+    """``(spread, book)`` for a game, or ``None`` when nothing priced it.
+
+    Normalizes every provider first and only then applies ``PROVIDER_PREFERENCE``.
+    Doing it the other way round misses a game whose only line is spelled
+    ``Draft Kings`` -- 12 of them in the capture -- and drops it as unpriced.
+
+    A ``None`` spread is skipped rather than selected: a book can list a game
+    without pricing it, and preferring that entry would return no line while a
+    usable one from another book sat beside it.
+
+    The spread is returned **verbatim**, in the vendor's sign convention. Callers
+    that need it as a home margin go through ``market_home_margin``.
+    """
+    priced = {
+        normalize_provider(line.provider): line.spread
+        for line in record.lines
+        if line.spread is not None
+    }
+    for book in PROVIDER_PREFERENCE:
+        if book in priced:
+            return priced[book], book
+    return None
+
+
+def market_home_margin(market_line: float) -> float:
+    """A vendor spread as a margin from the home team's perspective.
+
+    **The one place the two sign conventions meet, and the reason it is a named
+    function rather than a minus sign at the call site.** CFBD signs a spread so
+    that negative favours the home team (`spread: -29.5`, `"Iowa State -29.5"`,
+    Iowa State home). This project signs every margin so that positive favours the
+    home team (SPEC-phase1 4.2). Comparing the two without converting produces an
+    against-the-spread record that is complete, plausible and exactly backwards --
+    a failure with no symptom, which is the kind this project is built to catch
+    before it happens rather than after.
+
+    ``tests/test_lines.py::TestTheSign`` fails if this is dropped, in both
+    directions and across all 194 entries of the real capture.
+    """
+    return -market_line
+
+
+def week_lines(
+    store: SnapshotStore, season: int, keep: Callable[[RawGameLines], bool]
+) -> tuple[dict[int, RawGameLines], list[str]]:
+    """Stored ``/lines`` for a season, keyed by ``cfbd_game_id``.
+
+    Keyed by id because that is what the prediction rows join on (SPEC-phase1
+    5.1): the pair `(season, week, home, away)` fails when a game moves week and
+    at neutral sites where the sources disagree about which team is home, and the
+    game id survives both.
+
+    **The newest capture of a week wins outright.** Lines move, so an older pull is
+    a different moment rather than extra evidence, and merging two would blend two
+    markets into one number that was never quoted.
+    """
+    found: dict[int, RawGameLines] = {}
+    read_keys: list[str] = []
+
+    for manifest in _newest_manifest_per_week(store, season, "lines"):
+        key = manifest.snapshot_key
+        contributed = False
+        for record in _rows(store.get_bytes(key), key, RawGameLines, "lines"):
+            if record.season != season:
+                raise ReplayError(
+                    f"{key} is filed under season {season} and holds game {record.id} "
+                    f"from season {record.season}"
+                )
+            if not keep(record) or record.id in found:
+                continue
+            found[record.id] = record
+            contributed = True
+        # Only captures a kept record came from. A prediction names the snapshot
+        # behind its numbers (SPEC-phase1 4.2), and listing every week's file
+        # merely because it was opened would name snapshots it did not use.
+        if contributed:
+            read_keys.append(key)
+
+    return found, read_keys

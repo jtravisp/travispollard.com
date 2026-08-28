@@ -75,7 +75,7 @@ class GamePrediction(BaseModel):
 
     The page frames every row as FAVORITE over UNDERDOG and marks the nominal home
     team with ``@``. This model reframes it as home/away, which is how a prediction
-    is scored against a closing line, and signs ``predicted_margin`` from the home
+    is scored against a market line, and signs ``predicted_margin`` from the home
     team's perspective: positive means the home team is favored.
 
     Two fields beyond the five SPEC-phase0 4.5 lists, both because the five cannot

@@ -23,10 +23,10 @@ file and silently returns `None` for every neutral-site game.
 
 ## What is not asserted here
 
-`closing_line`. There is no `/lines` capture in this project and no fixture, so
-there is nothing to test a parser against and `cfb/CLAUDE.md` forbids fetching one
-from a test. §4.2 makes the field nullable and `predict._closing_line` documents
-the single place to implement it once a capture exists.
+The market line join. `test_lines.py` owns it, against a verbatim `/lines`
+capture. This file's store holds no lines snapshot, so the only thing asserted
+here is the null path — a week with no stored lines yields `None` rather than a
+zero.
 """
 
 from datetime import UTC, datetime
@@ -285,7 +285,7 @@ class TestTheSagarinBenchmark:
 
     def test_a_game_not_on_the_page_is_none_not_an_error(self, log):
         """The page carries 53 rows against a full FBS slate. Partial is normal,
-        and §4.2 says so — which is why §5.3 reports it beside the closing line
+        and §4.2 says so — which is why §5.3 reports it beside the market line
         rather than instead of it.
         """
         assert by_id(log)[303].sagarin_predictor_margin is None
@@ -654,16 +654,21 @@ class TestTheWeekOneContamination:
         assert ours == pytest.approx(theirs, abs=1e-9)
 
 
-def test_closing_line_is_null_until_a_lines_capture_exists(log):
-    """Documented absence, asserted so it cannot be forgotten (§4.2).
+def test_a_week_with_no_stored_lines_is_null_not_zero(log):
+    """§4.2's null, at the document level. This store holds no `/lines` capture.
 
-    CFBD `/lines` has never been captured by this project — no snapshot, no
-    fixture — and `cfb/CLAUDE.md` forbids calling CFBD from a test. A parser
-    written against a remembered response shape would either raise on the first
-    real Thursday or, worse, return `None` for every game and silently delete the
-    headline benchmark of the whole project.
+    Superseded `test_closing_line_is_null_until_a_lines_capture_exists`, which
+    asserted the field was *always* null because no capture existed anywhere. One
+    does now (`fixtures/cfbd_lines_2026_week01.json`) and the field is populated
+    from it — `test_lines.py` owns the join. What survives is the half that is
+    still true and still load-bearing: a week with no lines yields `None`.
 
-    §4.2 makes the field nullable, so this is a legal document rather than a hole.
-    `predict._closing_line` is the one place to change.
+    **Not `0.0`.** Zero is a pick'em, a real line saying the market has no
+    favourite. If a missing line ever became a zero, every unpriced game would
+    enter §5.3's against-the-spread record as a push against a spread nobody
+    quoted.
     """
-    assert all(game.closing_line is None for game in log.games)
+    assert all(game.market_line is None for game in log.games)
+    assert all(game.market_line_source is None for game in log.games)
+    assert not any(game.market_line == 0.0 for game in log.games)
+    assert log.model.market_lines_from is None

@@ -379,7 +379,9 @@ site do not have to list a prefix. It is derived and rebuildable from a listing.
     "hfa": 2.41,                       // from the Sagarin manifest this run read
     "hfa_source": "raw/sagarin/season=2026/week=03/2026-09-15T120302Z.meta.json",
     "seeded_from": "raw/sagarin/season=2026/week=preseason/2026-08-28T172006Z.txt",
-    "elo_state": "elo/season=2026/week=03/2026-09-14T120500Z.json"
+    "elo_state": "elo/season=2026/week=03/2026-09-14T120500Z.json",
+    "sagarin_predictions_from": "raw/sagarin/season=2026/week=03/2026-09-15T120302Z.txt",
+    "market_lines_from": "raw/cfbd/season=2026/week=04/lines/2026-09-17T120000Z.json"
   },
   "games": [
     {
@@ -392,7 +394,8 @@ site do not have to list a prefix. It is derived and rebuildable from a listing.
       "win_probability": 0.756,        // home, unclamped
       "elo_home": 2486,
       "elo_away": 2301,
-      "closing_line": -7.5,            // CFBD, home perspective; null if not yet posted
+      "market_line": -7.5,             // CFBD verbatim: NEGATIVE favours home. null if unpriced
+      "market_line_source": "DraftKings",
       "sagarin_predictor_margin": 8.0  // benchmark only; null if the game is not on the page
     }
   ]
@@ -400,12 +403,50 @@ site do not have to list a prefix. It is derived and rebuildable from a listing.
 ```
 
 The `model` block is what makes a prediction reproducible: it names the exact snapshot the HFA came from,
-the exact page the season was seeded from, and the exact state object it started from. A prediction that
-cannot be re-derived is an assertion, not a record.
+the exact page the season was seeded from, the exact state object it started from, and the exact captures
+the benchmark and the market line were read out of. A prediction that cannot be re-derived is an
+assertion, not a record.
 
 `predicted_margin` and `win_probability` are always from the **home** team's perspective, including at
 neutral sites where "home" is whatever CFBD says. One convention, stated once, and no sign-flipping logic
 anywhere downstream.
+
+### 4.3 `market_line`, and the three things the first real capture changed
+
+An earlier draft of this section called this field `closing_line` and described it as "CFBD, home
+perspective; null if not yet posted". **All three halves of that were wrong**, and the first verbatim
+`/lines?year=2026&week=1` capture — now `tests/fixtures/cfbd_lines_2026_week01.json`, 143 games and 194
+line entries — is what settled it.
+
+**There is no closing line.** The response carries `spread`, the price at the moment of capture, and
+`spreadOpen`. There is no field with "clos" anywhere in its name. A Thursday generate could not have a
+closing line even if one were published, because the closing line does not exist until kickoff. So the
+field is `market_line` and it means exactly one thing: *the market price when this run read it*. §5.3 and
+§6.3 use the same name for the same reason.
+
+**The sign is the opposite of ours.** `spread: -29.5` with `formattedSpread: "Iowa State -29.5"` and Iowa
+State at home, so **negative favours the home team**, while `predicted_margin` positive means the home
+team wins by that much. Verified across all 194 entries, both directions, no exceptions.
+
+The vendor value is stored **verbatim**, so the document records what CFBD published rather than an
+interpretation of it, and `sources.market_home_margin` is the single place the two conventions are
+reconciled. Comparing the two without converting yields an against-the-spread record that is complete,
+plausible and exactly backwards — a failure with no symptom, which is why the conversion is a named
+function with a test that fails in both directions rather than a minus sign at a call site.
+
+**A book is not a string.** The capture spells one book two ways, `DraftKings` (131) and `Draft Kings`
+(12), so providers are normalized through an exact alias table before anything selects among them —
+selecting first drops the 12 games whose only line is the second spelling. And selection is a real
+decision, not a tidy-up: DraftKings and Bovada disagree on **21 of the 143 games**, so preference order
+changes the published number. `PROVIDER_PREFERENCE` is `("DraftKings", "Bovada")`, DraftKings first
+because it priced 143 of 143 against Bovada's 51 — a coverage fact rather than a judgement about either
+book. An unrecognised provider raises; skipping it would drop a line silently, and a book nobody has seen
+before is exactly when a person should look.
+
+**`null` is legal and is never a zero.** A game no book priced has `market_line: null` and
+`market_line_source: null`. Zero is a pick'em — a real line saying the market has no favourite — and
+anything that conflates the two puts unpriced games into the §5.3 ATS record as pushes against a spread
+nobody quoted.
 
 ---
 
@@ -444,11 +485,18 @@ failure the accuracy page cannot survive.
 ### 5.3 What gets computed
 
 Per game: `actual_margin`, `error = predicted_margin - actual_margin`, `abs_error`, whether the pick beat
-the closing line, and the Brier contribution `(win_probability - outcome)²`.
+the market line, and the Brier contribution `(win_probability - outcome)²`.
+
+**Beating the line is computed through `sources.market_home_margin`, never against the stored value.**
+`market_line` is CFBD's sign convention and `predicted_margin` is ours; §4.3 has the detail. A comparison
+that skips the conversion produces an ATS record that looks entirely normal and is inverted.
+
+A game with `market_line: null` is **excluded from the ATS record and counted as excluded**, rather than
+scored against a zero. The sample size travels with the record for this reason.
 
 Per week and per season, for **Texas** and for the **full slate** separately, as the PRD requires:
 
-- MAE against actual margin, and the same figure for the closing line and for Sagarin PREDICTOR
+- MAE against actual margin, and the same figure for the market line and for Sagarin PREDICTOR
 - Brier score and a calibration curve (predicted probability bucket vs observed win rate)
 - Record against the spread, **always with the sample size attached**
 - The week's Pearson correlation against Sagarin PREDICTOR (§3.6)
@@ -504,8 +552,8 @@ deploy independently (PRD), so the two versions genuinely can differ for a few m
     "home": true,
     "predicted_margin": 9.5,
     "win_probability": 0.78,
-    "closing_line": -7.5,
-    "line_source": "consensus"
+    "market_line": -7.5,
+    "line_source": "DraftKings"
   },
   "as_of": { "week": "04", "elo": 2358, "national_rank": 5 }
 }
@@ -513,6 +561,10 @@ deploy independently (PRD), so the two versions genuinely can differ for a few m
 
 Rendered team names appear here rather than canonical ids: this document is consumed by a page, and the
 crosswalk's job ends at the boundary of the pipeline.
+
+`line_source` is the resolved book from §4.3, carried through from the prediction row. It said
+`"consensus"` in an earlier draft, which was a guess — CFBD publishes per-book prices and no consensus,
+so the page would have been attributing a DraftKings number to something that does not exist.
 
 ### 6.4 `accuracy.json`
 

@@ -431,6 +431,10 @@ def _predict(args, *, moment: datetime) -> int:
         benchmarked=sum(
             1 for game in log_document.games if game.sagarin_predictor_margin is not None
         ),
+        # How many of the slate a book actually priced. A Thursday run where this
+        # collapses is a /lines pull that did not happen, and §5.3's ATS record
+        # would quietly shrink rather than fail.
+        priced=sum(1 for game in log_document.games if game.market_line is not None),
         indexed=len(index.weeks),
     )
     return 0
