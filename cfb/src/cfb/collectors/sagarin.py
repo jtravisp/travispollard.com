@@ -71,12 +71,11 @@ SOURCE_URL = "http://sagarin.com/sports/cfsend.htm"
 #: left at the httpx default, because a stall in either is the same outage.
 TIMEOUT = httpx.Timeout(30.0)
 
-#: SPEC 4.1, one rung slept before each retry. The spec's prose says "three
-#: attempts" beside a three-rung ladder, which cannot both hold -- three attempts
-#: leave room for two backoffs and the 30s rung is never reached. The ladder is
-#: taken as authoritative: three retries after the initial request, four requests
-#: at worst, and every rung used. See tests/test_sagarin_fetch.py.
-BACKOFF = (2, 8, 30)
+#: SPEC 4.1, one rung slept before each retry. Three requests at worst -- the
+#: initial one plus two retries -- so two rungs. The spec counts requests, the
+#: initial one included, and says so explicitly: an earlier draft said "three
+#: attempts" beside a three-rung ladder, which cannot both hold.
+BACKOFF = (2, 8)
 
 #: SPEC 4.2. Deterministic, in this order, with no detection dependency.
 CANDIDATES = ("utf-8", "cp1252", "latin-1")

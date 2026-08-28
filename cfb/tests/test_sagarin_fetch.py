@@ -26,13 +26,12 @@ accepting one is deliberate: if a test constructed the client, the redirect
 policy and the timeout would be the test's decisions, and the assertions below
 would be checking their own setup.
 
-**One conflict with SPEC 4.1, flagged rather than papered over.** The spec says
-"Three attempts, backoff 2s / 8s / 30s", and those cannot both hold: three
-attempts leave room for two backoffs and the 30s rung is never reached. These
-tests take the ladder as authoritative -- three *retries* after the initial
-attempt, so four requests and sleeps of 2, 8, 30. If three requests total was
-the intent, ``LADDER`` is the one line to change here and SPEC 4.1 should lose
-the 30.
+**SPEC 4.1 counts requests, the initial one included.** It used to say "three
+attempts, backoff 2s / 8s / 30s", which could not hold both ways -- three
+attempts leave room for two backoffs and the third rung was unreachable. The word
+was the ambiguity and the spec has dropped it: three *requests* at worst, so the
+initial one plus two retries, sleeping 2 then 8. ``LADDER`` is the single line
+here that encodes that, and everything below derives from it.
 """
 
 from datetime import UTC, datetime
@@ -54,8 +53,8 @@ PAGE = b"FINAL 2026 COLLEGE FOOTBALL \x92 CONFERENCE AVERAGES \r\n Hawai\x92i"
 
 HTTPS_URL = "https://sagarin.com/sports/cfsend.htm"
 
-#: See the module docstring: the ladder is authoritative, "three attempts" is not.
-LADDER = [2, 8, 30]
+#: SPEC 4.1: three requests at worst, the initial one plus two retries.
+LADDER = [2, 8]
 ATTEMPTS = len(LADDER) + 1
 
 #: Inside week 3 of the synthetic 2026 calendar. Only the snapshot key depends on

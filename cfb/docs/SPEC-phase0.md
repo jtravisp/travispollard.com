@@ -233,10 +233,21 @@ re-partitioned later by copy — nothing under `raw/` is deleted, so the origina
 - URL pinned to `http://sagarin.com/sports/cfsend.htm`. httpx with `follow_redirects=False`. A redirect to
   HTTPS is a `FetchError`, not something to follow — the site 302s HTTPS to HTTP and a client that upgrades
   loops forever.
-- Timeout 30s connect + read. Three attempts, backoff 2s / 8s / 30s. Retry on timeout, connection error,
-  and 5xx. Do not retry 4xx.
+- Timeout 30s connect + read. **Three requests at most — the initial one plus two retries — with backoff
+  2s then 8s between them.** Retry on timeout, connection error, and 5xx. Do not retry 4xx.
 - Total failure: no snapshot written, `FetchError` raised, workflow red. There is a full day of margin
   before the week's data is at risk, so a manual re-run covers a multi-hour outage.
+
+**"Requests", never "attempts".** An earlier draft said "three attempts, backoff 2s / 8s / 30s", and those
+two halves cannot both be true: three attempts leave room for only two backoffs and the third rung is
+never reached. The word was the ambiguity — "attempt" reads as either the initial request or only the
+retries after it, and an implementation can satisfy the sentence with three requests or with four. This
+spec counts **requests**, initial one included, everywhere it bounds a retry loop.
+
+The count that survived is three, and the third rung went with it. The margin argument above is the reason:
+a full day of slack means a manual re-run covers a multi-hour outage, so a 30s wait buys resilience this
+design does not want and delays a red run that should already be red. §5.3 drops its last rung for a
+sharper reason — every CFBD retry spends a call from a 25-request budget.
 
 ### 4.2 Encoding
 
@@ -482,9 +493,18 @@ figure — at the cost of a call.
 
 ### 5.3 Rate limits and retries
 
-429 → respect `Retry-After` when present, otherwise backoff 5s / 20s / 60s, maximum 3 attempts, each retry
-counting against the budget. 5xx follows §4.1. Exhausted → `FetchError`, red run. CFBD history is
-backfillable, so a lost Sunday is an inconvenience, not a hole.
+429 → respect `Retry-After` when present, otherwise backoff 5s then 20s. **Three requests at most — the
+initial one plus two retries — and every one of them counts against the budget of §5.1.** 5xx follows
+§4.1, which is a different and shorter ladder on purpose: a 429 is the server asking for room, a 500 is
+the server failing. Exhausted → `FetchError`, red run. CFBD history is backfillable, so a lost Sunday is
+an inconvenience, not a hole.
+
+The retry budget is tighter here than anywhere else in this spec for a reason that is arithmetic rather
+than taste. §5.1 caps a run at 25 requests and §5.2 spends about 2 of them per in-season week. A four-
+request ladder on a bad Sunday turns one weekly pull into 4 of that 25, and two of them into 8 — the
+retries would be a larger share of the budget than the data. A third retry buys one more chance at a
+source whose history is backfillable anyway, at a price paid from the one resource that is not
+replenishable within the month.
 
 **`429` is no longer in CFBD's documented response list**, which names `400`, `401`, `404`, `500` and an
 unnamed "quota or entitlement response". Keep the `429` branch — the vendor removing it from a docs page
