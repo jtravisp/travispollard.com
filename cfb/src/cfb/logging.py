@@ -25,7 +25,9 @@ import sys
 from typing import Any
 
 __all__ = [
+    "EVENT_CFBD_CALL",
     "EVENT_FRESHNESS",
+    "EVENT_HTTP_ERROR",
     "EVENT_SNAPSHOT_WRITTEN",
     "REASON_NOT_IN_SEASON",
     "REASON_NO_PAGE_DATE_STAMP",
@@ -38,6 +40,14 @@ __all__ = [
 # --- events -------------------------------------------------------------------
 EVENT_SNAPSHOT_WRITTEN = "snapshot_written"
 EVENT_FRESHNESS = "freshness"
+#: One per CFBD request, carrying the running count against the per-run budget.
+#: SPEC 5.1 recovers the real monthly figure from these lines.
+EVENT_CFBD_CALL = "cfbd_call"
+#: Every non-2xx, with status and body. SPEC 5.3 requires this without exception:
+#: the vendor no longer documents which status means "over quota", so a real
+#: response body is the only thing that will ever settle it, and a run that threw
+#: it away leaves nothing to decide from.
+EVENT_HTTP_ERROR = "http_error"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
