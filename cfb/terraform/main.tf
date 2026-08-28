@@ -208,6 +208,34 @@ data "aws_iam_policy_document" "publisher" {
   # Note: no s3:DeleteObject on raw/. Snapshots are immutable and the
   # pipeline has no business removing them.
 
+  # The derived write-once prefixes (SPEC-phase1 3.5, 4.1, 5.3). Same discipline
+  # as raw/ and for the same reason: SPEC-phase1 1.1 reversed the PRD's plan to
+  # commit predictions to git, and what replaced the tamper-evidence is *this* --
+  # a prediction written Thursday at 12:00 cannot be replaced by one written
+  # Sunday at 18:00, because a regenerate is a new timestamped key and there is no
+  # verb here that removes the first.
+  #
+  # No s3:DeleteObject, deliberately and per SPEC-phase1 4.1. Note that PutObject
+  # alone still permits overwriting an existing key -- the write-once guarantee is
+  # enforced by the conditional PUT (IfNoneMatch) in S3SnapshotStore.put_bytes,
+  # and this statement is the second layer rather than the first.
+  #
+  # elo/ was missing until now, which meant `cfb elo seed` and `cfb elo advance`
+  # would have been denied against the real bucket. They have only ever run
+  # against file:// stores, so nothing was broken in production -- but the first
+  # scheduled Sunday would have failed on AccessDenied.
+  statement {
+    sid     = "WriteDerivedWriteOnce"
+    effect  = "Allow"
+    actions = ["s3:PutObject", "s3:GetObject"]
+    resources = [
+      "${aws_s3_bucket.cfb_data.arn}/elo/*",
+      "${aws_s3_bucket.cfb_data.arn}/predictions/*",
+      "${aws_s3_bucket.cfb_data.arn}/scored/*",
+      "${aws_s3_bucket.cfb_data.arn}/notes/*",
+    ]
+  }
+
   statement {
     sid       = "WritePublishedData"
     effect    = "Allow"

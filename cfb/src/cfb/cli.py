@@ -33,7 +33,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from cfb.calendar import in_season, last_completed_week, load_calendar
+from cfb.calendar import coming_week, in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
 from cfb.errors import CfbError, SeedStateError, WeekResolutionError
@@ -41,7 +41,9 @@ from cfb.logging import (
     EVENT_ELO_REPLAY,
     EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
+    EVENT_PREDICTIONS_WRITTEN,
     EVENT_SNAPSHOT_WRITTEN,
+    REASON_NO_COMING_WEEK,
     REASON_NO_COMPLETED_WEEK,
     REASON_NO_STORED_STATE,
     REASON_NOT_IN_SEASON,
@@ -161,6 +163,22 @@ def build_parser() -> argparse.ArgumentParser:
     elo_advance.add_argument("--week", metavar="N", required=True)
     _add_store(elo_advance)
 
+    predict = commands.add_parser(
+        "predict", help="write a week's predictions (SPEC-phase1 4)"
+    )
+    predict.add_argument("--season", type=int)
+    predict.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week about to be played",
+    )
+    predict.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
+    _add_store(predict)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -206,6 +224,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _crosswalk_bootstrap(args)
     if args.command == "elo":
         return _elo(args, moment=moment)
+    if args.command == "predict":
+        return _predict(args, moment=moment)
     return _replay(args)
 
 
@@ -345,6 +365,73 @@ def _replay(args) -> int:
         teams=len(snapshot.teams),
         fbs=sum(1 for team in snapshot.teams if team.division == "A"),
         predictions=len(snapshot.predictions),
+    )
+    return 0
+
+
+def _predict(args, *, moment: datetime) -> int:
+    """SPEC-phase1 4: write the coming week's predictions, once, before kickoff.
+
+    **The index is rebuilt in the same command.** §4.1 keeps
+    ``predictions/index.json`` so the publish step and the site never list a
+    prefix, and an index that lags the objects it describes is worse than no index
+    -- the site would serve a key that is not the newest generation. It is a pure
+    projection of the listing, so rebuilding costs one LIST and cannot disagree
+    with what it describes.
+
+    The week default is the calendar's, not this module's: `coming_week` is the
+    mirror of `last_completed_week` that `fetch cfbd` already uses, and SPEC 11
+    wants the workflow running the command a human runs rather than a week
+    expression in YAML.
+    """
+    from cfb.predict import predict_week, rebuild_index, write_predictions
+
+    season = args.season or _season_of(moment)
+    calendar = load_calendar(season, data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        log(
+            EVENT_PREDICTIONS_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else coming_week(moment, calendar=calendar)
+    )
+    if week is None:
+        # Past the last regular week's first kickoff. Nothing is ahead to predict,
+        # and raising would redden every December Thursday.
+        log(
+            EVENT_PREDICTIONS_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMING_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+    log_document = predict_week(store=store, season=season, week=week, now=moment)
+    key = write_predictions(store, log_document)
+    index = rebuild_index(store, now=moment)
+
+    log(
+        EVENT_PREDICTIONS_WRITTEN,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        key=key,
+        games=len(log_document.games),
+        hfa=log_document.model.hfa,
+        elo_state=log_document.model.elo_state,
+        benchmarked=sum(
+            1 for game in log_document.games if game.sagarin_predictor_margin is not None
+        ),
+        indexed=len(index.weeks),
     )
     return 0
 

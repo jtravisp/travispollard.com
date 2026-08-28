@@ -31,11 +31,13 @@ __all__ = [
     "EVENT_ELO_VERIFY",
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
+    "EVENT_PREDICTIONS_WRITTEN",
     "EVENT_SNAPSHOT_WRITTEN",
     "REASON_NOT_IN_SEASON",
     "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
+    "REASON_NO_COMING_WEEK",
     "REASON_NO_STORED_STATE",
     "RESULT_OK",
     "RESULT_SKIP",
@@ -60,6 +62,11 @@ EVENT_ELO_VERIFY = "elo_verify"
 #: response body is the only thing that will ever settle it, and a run that threw
 #: it away leaves nothing to decide from.
 EVENT_HTTP_ERROR = "http_error"
+#: One per week of predictions written (SPEC-phase1 4.1), with the key. The
+#: Friday publish is the SLO (SPEC-phase1 8), so this line is what says a
+#: prediction existed before kickoff -- the thing step 1 of SPEC-phase1 11 checks
+#: from the bucket side.
+EVENT_PREDICTIONS_WRITTEN = "predictions_written"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
@@ -83,6 +90,12 @@ REASON_NO_COMPLETED_WEEK = "no_completed_week"
 #: SPEC-phase1 8 has the Sunday run write these and nothing orders a replay after
 #: it. The rebuilt ratings are still on the `elo_replay` line above.
 REASON_NO_STORED_STATE = "no_stored_state"
+
+# --- why a prediction run had nothing to do (SPEC-phase1 4) -------------------
+#: No regular week is still ahead of us. Normal from the last week's first
+#: kickoff onward, and a skip rather than an error for the same reason
+#: `no_completed_week` is: every December Thursday would otherwise be red.
+REASON_NO_COMING_WEEK = "no_coming_week"
 
 
 def log(event: str, **fields: Any) -> None:

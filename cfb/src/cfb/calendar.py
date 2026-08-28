@@ -27,6 +27,7 @@ __all__ = [
     "Calendar",
     "CalendarEntry",
     "WeekRef",
+    "coming_week",
     "in_season",
     "last_completed_week",
     "load_calendar",
@@ -207,6 +208,37 @@ def last_completed_week(now: datetime, *, calendar: Calendar) -> str | None:
     if not completed:
         return None
     return _partition(max(completed, key=lambda entry: entry.last_game_start))
+
+
+def coming_week(now: datetime, *, calendar: Calendar) -> str | None:
+    """The regular week about to be played, or ``None`` if none is left.
+
+    SPEC-phase1 9's default for ``cfb predict``: "the week that is *about to* be
+    played", which is the mirror of ``last_completed_week`` and lives here for the
+    same reason -- a ``--week`` expression in YAML would be calendar arithmetic in
+    the one place nothing tests it.
+
+    The first week whose first game has not kicked off yet, so a Thursday run
+    picks that Saturday's slate rather than the one three days gone. At exactly
+    ``first_game_start`` the week has begun and predicting it is too late, which
+    is what SPEC-phase1 8 means by the Friday publish deadline being first
+    kickoff.
+
+    **``None`` is a normal answer**, not a failure: from the last regular week's
+    first kickoff onward there is no next week to predict, and every December
+    Thursday would otherwise be a red run. Postseason is excluded for the same
+    reason ``last_completed_week`` excludes it -- nothing here knows how to express
+    a bowl slate as a CFBD week number, and inventing one would file real
+    predictions under a wrong partition.
+    """
+    upcoming = [
+        entry
+        for entry in calendar.entries
+        if not entry.is_postseason and now < entry.first_game_start
+    ]
+    if not upcoming:
+        return None
+    return _partition(min(upcoming, key=lambda entry: entry.first_game_start))
 
 
 def in_season(now: datetime, *, calendar: Calendar) -> bool:
