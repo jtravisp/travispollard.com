@@ -26,13 +26,13 @@ spends budget, so a longer ladder would make a bad Sunday cost more of the run
 than the data does.
 
 ``fetch`` is injected rather than built here, the same seam ``fetch_sagarin``
-uses. The credential path of SPEC 5.5 -- read the key from SSM, build the bearer
-header -- is not wired yet, so there is no production fetcher in this module
-today; the tests pass a callable over synthetic responses, which is how the suite
-honours ``cfb/CLAUDE.md``'s absolute ban on calling CFBD from a test.
+uses. ``http_fetch`` is what production injects; the tests pass a callable over
+synthetic responses, which is how the suite honours ``cfb/CLAUDE.md``'s absolute
+ban on calling CFBD from a test.
 """
 
 import hashlib
+import re
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -43,7 +43,7 @@ import httpx
 from cfb.errors import CallBudgetExceeded, FetchError
 from cfb.logging import EVENT_CFBD_CALL, EVENT_HTTP_ERROR, log
 from cfb.manifest import manifest_key, snapshot_key
-from cfb.models import Manifest
+from cfb.models import Manifest, validating
 from cfb.storage import SnapshotStore
 
 __all__ = [
@@ -51,8 +51,11 @@ __all__ = [
     "BACKOFF_429",
     "BASE_URL",
     "CALL_BUDGET_PER_RUN",
+    "SSM_PARAMETER",
     "CfbdClient",
     "fetch_cfbd",
+    "http_fetch",
+    "ssm_secret",
 ]
 
 #: HTTPS, and that is not a contradiction with Sagarin's pinned HTTP. That pin is
@@ -69,6 +72,16 @@ BACKOFF = (2, 8)
 #: SPEC 5.3, for 429 only. Longer than the 5xx ladder on purpose.
 BACKOFF_429 = (5, 20)
 
+#: SPEC 5.5. Not configurable: the publisher IAM policy is scoped to the prefix
+#: this sits under, so a different path is a permission failure, not an option.
+SSM_PARAMETER = "/travispollard/cfb/cfbd_api_key"
+
+#: SPEC 2: passed explicitly, never inherited from ambient env.
+REGION = "us-east-1"
+
+#: Matching SPEC 4.1's fetcher. A stalled connection is a stalled run either way.
+TIMEOUT = httpx.Timeout(30.0)
+
 #: SPEC 5.2. The four calls this project makes, and whether each is week-scoped.
 _RESOURCES = {
     "games": ("/games", True),
@@ -76,6 +89,88 @@ _RESOURCES = {
     "teams": ("/teams/fbs", False),
     "calendar": ("/calendar", False),
 }
+
+
+def ssm_secret(parameter: str = SSM_PARAMETER, *, region: str = REGION) -> str:
+    """Read the CFBD key from SSM (SPEC 5.5). **The one thing here no test covers.**
+
+    Everything else on this path is exercised offline through an injected
+    ``get_secret``. This function is not, and cannot be: whether the parameter
+    exists, is a SecureString, is readable by the publisher role and comes back
+    decrypted are facts about an AWS account rather than about this code. The
+    seam exists so that the untested part is exactly one function whose whole body
+    is the call -- read it as unverified until a real run says otherwise.
+
+    ``WithDecryption`` is the point of a SecureString. Without it the call
+    succeeds and returns ciphertext, which then goes out as a bearer token and
+    comes back 401 -- a failure that looks like a bad key and is not.
+
+    boto3 is imported here, not at module scope, so the offline suite imports this
+    module without the optional dependency (``uv sync --extra s3``).
+    """
+    import boto3
+
+    client = boto3.client("ssm", region_name=region)
+    return client.get_parameter(Name=parameter, WithDecryption=True)["Parameter"]["Value"]
+
+
+def http_fetch(
+    *,
+    get_secret: Callable[[], str] = ssm_secret,
+    transport: httpx.BaseTransport | None = None,
+) -> Callable[[str, dict], httpx.Response]:
+    """The production ``fetch`` callable for ``CfbdClient``.
+
+    **HTTPS, and the scheme is checked before every send.** Sagarin is pinned to
+    plain HTTP because that site 302s HTTPS down to HTTP and a client that
+    upgrades loops forever; carrying that rule here would put a bearer token on
+    the wire in the clear. So this pins the other way and refuses to send at all
+    if the base URL is ever not https. A refused request costs a Sunday that CFBD
+    history can backfill. A transmitted key costs a rotation.
+
+    Redirects are not followed, for the same reason: a 3xx could hand the
+    ``Authorization`` header to another host. The response comes back to
+    ``CfbdClient``, which does not have 3xx in its retryable whitelist.
+
+    The secret is read once, on the first request, and reused for the rest of the
+    run -- a run makes at most ``CALL_BUDGET_PER_RUN`` requests and needs one
+    credential. Reading it at construction instead would mean the CLI touched AWS
+    while parsing arguments, so ``cfb --help`` would need credentials.
+    """
+    cached: list[str] = []
+
+    def fetch(path: str, params: dict) -> httpx.Response:
+        if not BASE_URL.startswith("https://"):
+            raise FetchError(
+                f"refusing to send the CFBD bearer token to {BASE_URL!r}: SPEC 5.5 requires "
+                f"https. Sagarin's http pin (SPEC 4.1) is about a site that downgrades "
+                f"redirects and must not be carried across to an authenticated API"
+            )
+
+        if not cached:
+            # Stripped: a SecureString set from a file keeps its trailing newline,
+            # which makes a malformed header and a 401 that reads as a bad key.
+            key = get_secret().strip()
+            if not key:
+                raise FetchError(
+                    f"the CFBD key at {SSM_PARAMETER} is empty; sending 'Bearer ' would "
+                    f"spend a request to earn a 401 indistinguishable from a revoked key"
+                )
+            cached.append(key)
+
+        with httpx.Client(
+            transport=transport, follow_redirects=False, timeout=TIMEOUT
+        ) as client:
+            return client.get(
+                f"{BASE_URL}{path}",
+                params=params,
+                # One header, and the space after Bearer is load-bearing: the
+                # vendor names a missing one as the usual cause of a 401 that
+                # looks like a bad key.
+                headers={"Authorization": f"Bearer {cached[0]}"},
+            )
+
+    return fetch
 
 
 class CfbdClient:
@@ -211,9 +306,8 @@ def fetch_cfbd(
     )
     store.put_bytes(key, data, "application/json")
 
-    store.put_json(
-        manifest_key(key),
-        Manifest(
+    with validating(f"manifest for {key}"):
+        manifest = Manifest(
             schema_version=1,
             source="cfbd",
             resource=resource,
@@ -237,8 +331,8 @@ def fetch_cfbd(
             # the two values SPEC 2.2 allows: it is known, not guessed.
             week_resolution="calendar",
             snapshot_key=key,
-        ).model_dump(mode="json", exclude={"unmapped"}),
-    )
+        )
+    store.put_json(manifest_key(key), manifest.model_dump(mode="json", exclude={"unmapped"}))
 
     return data
 
@@ -297,6 +391,13 @@ def _retry_after(response: httpx.Response) -> float | None:
     return seconds if seconds > 0 else None
 
 
+#: Anything that reads as a bearer token in a response body. SPEC 5.3 requires the
+#: body of every non-2xx to be logged, which means an API that echoes the request
+#: header into an error payload would put our credential in the Actions log. This
+#: is not a general secret scrubber -- it is the one leak this path actually has.
+_BEARER = re.compile(r'(?i)\bbearer\s+[^]\s",}]+')
+
+
 def _excerpt(response: httpx.Response, limit: int = 200) -> str:
     """The start of a response body, as one whitespace-free log field.
 
@@ -308,4 +409,7 @@ def _excerpt(response: httpx.Response, limit: int = 200) -> str:
     nobody here has seen yet.
     """
     body = response.content[:limit].decode("utf-8", errors="replace")
-    return quote(body) + ("..." if len(response.content) > limit else "")
+    # Redact before encoding: percent-encoding a leaked key would hide it from a
+    # careless read and not at all from anyone who decodes the line.
+    safe = _BEARER.sub("Bearer [redacted]", body)
+    return quote(safe) + ("..." if len(response.content) > limit else "")
