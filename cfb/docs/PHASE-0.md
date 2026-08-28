@@ -22,10 +22,10 @@ dispatched successfully with the publisher role assumed by GitHub Actions rather
 
 | | |
 |---|---|
-| Tests | 523 passing, 18 skipped, no failures; `ruff check .` clean |
+| Tests | 536 passing, 18 skipped, no failures; `ruff check .` clean |
 | Landed | `2fa6833..4db2934`. PR #43 merged to `main`; the workflows have run |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | wire the crosswalk into step 5 of SPEC §4.3 (nothing calls it yet), then the two unattended scheduled runs Phase 0 is "done when" |
+| Next | the two unattended scheduled runs Phase 0 is "done when", plus `ssm_secret`'s botocore errors escaping SPEC §9's exit-1 clause as a traceback |
 | Blocked on a human | an in-season Sagarin capture — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
@@ -317,11 +317,19 @@ independently — `team_count` 266, `fbs_count` 138, `predictions_count` 53, `sh
 `ba40d836…`, `page_state` `preseason`, `page_date_stamp` null — and the stored bytes compare equal
 to the fixture.
 
-**Still not wired, and the collector docstring says so at the top:**
+**Step 5 is wired as of 2026-08-28.** `fetch_sagarin` resolves every name through the crosswalk
+between the parse and the full manifest write, and `unmapped` is a real list. It was omitted from
+both writes until then rather than written as `[]`, because an empty list would have claimed every
+name resolved when nothing had been looked up — `[]` is now a positive assertion that all 266 rated
+names and all 106 prediction names were checked and found. It is always empty in a manifest that
+gets written, because a non-empty one raises before step 6.
 
-- Step 5 of SPEC §4.3, crosswalk resolution. `crosswalk/` does not exist. `unmapped` is therefore
-  omitted from **both** manifest writes rather than written as `[]`; an empty list would claim
-  every name resolved, which is a stronger statement than "nothing checked"
+Both blocks are resolved, not just the ratings table: on this capture the prediction names are a
+strict subset of the rated ones, so checking the ratings alone would look complete, and the two are
+parsed independently with nothing guaranteeing they agree.
+
+**Still not wired:**
+
 - `http_status` is written as `200` without a status line ever being read. Defensible — SPEC §4.1
   makes any non-2xx a `FetchError` inside the fetcher, so bytes reaching `fetch_sagarin` are by
   construction a 200 — but the field records an inference from control flow rather than an
