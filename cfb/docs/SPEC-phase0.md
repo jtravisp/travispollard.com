@@ -775,8 +775,21 @@ reaches for a provider-versioned attribute will hit it again.
 
 - `github_repo` default → **`jtravisp/travispollard.com`**. The draft says `travispollard/…`, which does not
   exist; the OIDC trust condition would never match and every scheduled run would fail to assume the role.
-- The GitHub OIDC provider already exists in the account, so the `data "aws_iam_openid_connect_provider"`
-  lookup is correct as drafted. Confirm once with `aws iam list-open-id-connect-providers`.
+- ~~The GitHub OIDC provider already exists in the account, so the `data` lookup is correct as drafted.~~
+  **Wrong, and an apply proved it.** `aws iam list-open-id-connect-providers --profile tp-site` returns an
+  empty list: account `679878703800` has no OIDC provider at all, so the data source could never resolve
+  and the publisher role could never be created. `cfb/terraform` now **creates** it —
+  `resource "aws_iam_openid_connect_provider" "github"`, url `https://token.actions.githubusercontent.com`,
+  `client_id_list = ["sts.amazonaws.com"]`, no `thumbprint_list` (AWS stopped requiring one for its own
+  trusted issuers, and a pinned thumbprint is a value that rotates without warning and breaks every
+  assume-role when it does).
+
+  **This resource is account-scoped, not cfb-scoped**, and that is a seam worth naming. An account holds
+  exactly one provider per issuer URL, so it is a singleton every future GitHub Actions consumer in this
+  account will share — a second root creating its own is an error, not a merge. `cfb` owns it because
+  `cfb` is the only consumer today and something has to. **When a second consumer appears, this moves to
+  a shared root and both read it back as a data source.** Owning it here beats a data source pointing at
+  something nothing creates, which is the state this spec described until now.
 - ~~Add `kms:Decrypt` to the publisher policy for the SecureString API key (§5.5).~~ Applied.
 - Everything else stands: private versioned bucket, `raw/` lifecycle to STANDARD_IA at 90 days, no
   `s3:DeleteObject` on `raw/`, CloudFront read scoped to `cfb/data/*` only.

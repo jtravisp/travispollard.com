@@ -438,17 +438,40 @@ exist.
 
 ## 6. Infrastructure
 
-- [~] `cfb/terraform/` root with its own backend and state — the `terraform` block now exists
-      (S3 backend, key `cfb/terraform.tfstate`, `aws ~> 5.0` to match the root stack). `init
-      -backend=false` resolves 5.100.0 and `validate` passes. Never initialised against the real
-      backend and never applied
+- [~] `cfb/terraform/` root with its own backend and state — **initialised against the real backend
+      and planned, 2026-08-28. Still not applied.** `terraform init` configures the S3 backend at
+      `travispollard.com-tf-state` (us-west-2, key `cfb/terraform.tfstate`) and `plan` reports
+      **8 to add, 0 to change, 0 to destroy**
+  - **Provider drift closed, and it was not what the earlier note said.** This file previously
+    recorded "resolves 5.100.0", and the diagnosis offered this session was a *missing* cfb
+    lockfile. Both wrong: `cfb/terraform/.terraform.lock.hcl` was tracked all along, pinned to
+    **5.100.0** against the root's **5.82.2**, and it carried hashes for **one platform only**
+    (windows_amd64). Two real defects in one file — a version the root does not use, and a lockfile
+    that would fail `init` on Linux CI with a missing checksum
+  - Regenerated with `terraform providers lock -platform=windows_amd64 -platform=linux_amd64`,
+    now `5.82.2` with both platforms, byte-identical to the root on `version` and `constraints`.
+    Neither `required_providers` block changed: both said `~> 5.0` already, so the constraint was
+    never the problem
 - [~] Data bucket, private, versioned — written in `main.tf` (versioning, public access block,
       `raw/` lifecycle to STANDARD_IA at 90 days, no `s3:DeleteObject` on `raw/`). Never applied
-- [~] Reads distribution ARN from SSM — the data source is written; the parameters it reads are in
-      the root stack's `cfb-wiring.tf`, also never applied. Apply order is root, then cfb
-- [~] GitHub OIDC publisher role — written, never applied. `github_repo` default corrected to
-      `jtravisp/travispollard.com`; the previous value was an org that does not exist, so the trust
-      condition would never have matched and every scheduled run would have failed to assume the role
+- [x] Reads distribution ARN from SSM — **resolved for real during the plan**:
+      `data.aws_ssm_parameter.cdn_distribution_arn: Read complete [id=/travispollard/cdn/distribution_arn]`.
+      The parameter exists in `679878703800`, so the root stack's `cfb-wiring.tf` has been applied
+      at some point — this file said it never had, which was wrong. The apply-order constraint
+      (root, then cfb) is therefore already satisfied and no longer blocks the cfb apply
+- [~] GitHub OIDC publisher role — written and planned, never applied. `github_repo` default
+      corrected to `jtravisp/travispollard.com`; the previous value was an org that does not exist,
+      so the trust condition would never have matched and every scheduled run would have failed to
+      assume the role
+  - **`cfb/terraform` now creates the OIDC provider rather than looking it up.** SPEC §10.1 asserted
+    it already existed in the account; `aws iam list-open-id-connect-providers --profile tp-site`
+    returns an empty list, so the `data` source could never have resolved and the role could never
+    have been created. Now a `resource` — `client_id_list = ["sts.amazonaws.com"]`, no
+    `thumbprint_list`, which `validate` and `plan` both accept
+  - **It is account-scoped, not cfb-scoped**, and that is the one thing to remember about it. An
+    account holds exactly one provider per issuer URL, so a second root creating its own is an
+    error rather than a merge. `cfb` owns it because `cfb` is the only consumer today; when a
+    second appears it moves to a shared root and both read it back as a data source (SPEC §10.1)
 - [ ] Root Terraform: parameterize `modules/cloudfront` for extra origins — deferred to Phase 1
       (SPEC §10.2). There is no JSON to serve yet
 - [~] Root Terraform: `/cfb/data/*` behavior, SSM outputs — the two `aws_ssm_parameter` resources
@@ -456,6 +479,26 @@ exist.
       commented out in `cfb-wiring.tf` for Phase 1: left live, the OAC would be created on the next
       root apply, ahead of the behavior that uses it. `modules/cloudfront` gained a
       `cloudfront_distribution_arn` output, which the parameters need
+
+**The plan, 2026-08-28** — `terraform -chdir=terraform plan`, account `679878703800`, profile
+`tp-site`. Nothing applied; shown here because the next session's first act is an apply and this is
+what it should match:
+
+```
+data.aws_caller_identity.current: Read complete [id=679878703800]
+data.aws_ssm_parameter.cdn_distribution_arn: Read complete [id=/travispollard/cdn/distribution_arn]
+
+  + aws_iam_openid_connect_provider.github
+  + aws_iam_role.publisher
+  + aws_iam_role_policy.publisher
+  + aws_s3_bucket.cfb_data
+  + aws_s3_bucket_lifecycle_configuration.cfb_data
+  + aws_s3_bucket_policy.cfb_data
+  + aws_s3_bucket_public_access_block.cfb_data
+  + aws_s3_bucket_versioning.cfb_data
+
+Plan: 8 to add, 0 to change, 0 to destroy.
+```
 
 ## 7. Schedule and alerting
 
