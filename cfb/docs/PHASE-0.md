@@ -22,11 +22,11 @@ dispatched successfully with the publisher role assumed by GitHub Actions rather
 
 | | |
 |---|---|
-| Tests | 521 passing, 18 skipped, 2 failing **by design** — the crosswalk coverage tests are the worklist for the 32 undecided names; `ruff check .` clean |
+| Tests | 523 passing, 18 skipped, no failures; `ruff check .` clean |
 | Landed | `2fa6833..4db2934`. PR #43 merged to `main`; the workflows have run |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | the 32 crosswalk decisions (yours), then the two unattended scheduled runs that Phase 0 is "done when" |
-| Blocked on a human | an in-season Sagarin capture, the 32 crosswalk decisions — see the bottom of this file |
+| Next | wire the crosswalk into step 5 of SPEC §4.3 (nothing calls it yet), then the two unattended scheduled runs Phase 0 is "done when" |
+| Blocked on a human | an in-season Sagarin capture — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
@@ -458,10 +458,9 @@ vanishes. The season pull is now `/teams?year=2026` and the crosswalk spans both
 - [x] Store as a versioned data file, not code — YAML, one file per season, canonical slug as the
       key. `cfbd_id` rides along and a test checks it against the roster, so an id pasted from the
       wrong row is caught rather than trusted
-- [~] Test: every FBS team in either source resolves — **the two coverage tests fail by design until
-      the 32 are decided**, and their failure message is the worklist. SPEC §6.4's fix loop ends
-      "Then: `uv run pytest cfb/tests/test_crosswalk.py`", so a red run here *is* the interface. The
-      other 18 crosswalk tests pass
+- [x] Test: every FBS team in either source resolves — **and every FCS one.** All 266 Sagarin names
+      and all 266 CFBD names resolve; `test_crosswalk.py` is 31 passed, 1 skipped. The two coverage
+      tests that were the worklist are now the proof
 - [x] Test: an unknown name raises — plus five near-miss cases (`ohio state`, `Ohio  State`,
       leading/trailing space, `OhioState`) that must raise rather than be normalized. Every one is a
       plausible typo *and* a plausible vendor rename; absorbing them silently means the day CFBD
@@ -471,10 +470,20 @@ vanishes. The season pull is now `/teams?year=2026` and the crosswalk spans both
       import of it, and asserting the CLI's own import is function-local. The CLI is the one
       sanctioned caller
 
-**Left for a human: the 32 decisions in `data/crosswalk/_candidates-2026.yaml`.** Each carries the
-four closest unclaimed CFBD names with scores. Some are near-misses a threshold would catch
-(`'Appalachian State'` ~ `'App State'`, 0.69); some are not (`'Central Florida(UCF)'`,
-`'Southern California'`) and need someone who knows what those teams are called.
+**The 32 decisions are done.** Merged 2026-08-28; `cfbd_id` and `division` filled by exact name
+lookup against the roster fixture, which is the same file `test_crosswalk.py` cross-checks them
+against, so no id was typed.
+
+Two of the 32 are worth remembering:
+
+- **`LIU Post` → `Long Island University`** (id 2341, FCS, NEC). It reads as absent from CFBD and is
+  not — `/teams` carries it with `alternateNames: ['LIU', 'Long Island']`. The bootstrap never
+  offered it, because `'LIU Post'` against `'Long Island University'` scores below the top-four
+  cutoff. That is a sharper illustration of SPEC §6.3 than the `'Southern California' ~ USC (0.09)`
+  example the spec ships with: there the score was unhelpful, here it actively hid the right answer.
+- **`San Jose State` → `San José State`.** CFBD writes the acute accent, Sagarin does not. Stored
+  UTF-8 and verified byte-level. Precisely the case a normalization pass would have silently
+  "fixed", and why SPEC §6.2 forbids one.
 
 ## 6. Infrastructure
 
