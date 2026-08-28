@@ -24,6 +24,15 @@ the one mutable object in the layout, and only in the append-a-field direction.
 usually agree, but SPEC 3.3 copies ``week=unknown`` objects forward to a corrected
 partition, and a re-partitioned object has a key that no longer matches when it was
 fetched. ``fetched_at`` is what the freshness check of SPEC 4.6 actually means.
+
+``list_keys`` is the plain listing beside it, and it exists for one prefix that
+``list_manifests`` cannot see: ``elo/`` (SPEC-phase1 3.5) holds state documents
+with no ``.meta.json`` beside them, so the only way to find the newest is to list
+keys. It orders lexicographically rather than by any field, which is the honest
+contract -- a key is a string and nothing here has opened the objects. That
+happens to be chronological for every prefix this project writes, because
+``cfb.manifest`` and ``cfb.elo`` both stamp keys with a fixed-width UTC timestamp,
+but that is a property of those key builders and not a promise of this method.
 """
 
 import json
@@ -60,6 +69,10 @@ class SnapshotStore(Protocol):
 
     def list_manifests(self, prefix: str) -> list[Manifest]:
         """Every manifest under ``prefix``, newest first by ``fetched_at``."""
+        ...
+
+    def list_keys(self, prefix: str) -> list[str]:
+        """Every object key under ``prefix``, lexicographically ascending."""
         ...
 
 
@@ -126,6 +139,9 @@ class MemorySnapshotStore:
             ]
         )
 
+    def list_keys(self, prefix: str) -> list[str]:
+        return sorted(key for key in self._objects if key.startswith(prefix))
+
 
 class FileSnapshotStore:
     """Snapshots on local disk, one file per key, directories mirroring the prefix."""
@@ -168,6 +184,15 @@ class FileSnapshotStore:
             if path.resolve().relative_to(root).as_posix().startswith(prefix)
         ]
         return _newest_first(found)
+
+    def list_keys(self, prefix: str) -> list[str]:
+        root = self._root.resolve()
+        return sorted(
+            key
+            for path in self._root.rglob("*")
+            if path.is_file()
+            and (key := path.resolve().relative_to(root).as_posix()).startswith(prefix)
+        )
 
 
 class S3SnapshotStore:
@@ -229,3 +254,13 @@ class S3SnapshotStore:
                 if entry["Key"].endswith(_MANIFEST_SUFFIX):
                     found.append(_load(entry["Key"], self.get_bytes(entry["Key"])))
         return _newest_first(found)
+
+    def list_keys(self, prefix: str) -> list[str]:
+        # S3 returns keys in UTF-8 binary order already; sorted() is here so the
+        # three stores agree rather than because this one needs it.
+        paginator = self._client.get_paginator("list_objects_v2")
+        return sorted(
+            entry["Key"]
+            for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix)
+            for entry in page.get("Contents", ())
+        )

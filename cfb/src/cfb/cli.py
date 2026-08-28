@@ -19,10 +19,12 @@ clean exit code is a bug nobody finds. SPEC 9 promises an exit code for
 happened", and a traceback means "this tool is broken" -- two different things
 that a wider catch would merge.
 
-Four commands. SPEC 8 also lists ``crosswalk bootstrap`` and ``crosswalk
-verify``; section 6 does not exist, and registering a command whose module is
-missing gives a workflow something that exits non-zero for a reason unrelated to
-the data.
+SPEC 8 also lists ``crosswalk verify``; SPEC-phase1 9 lists ``elo seed``,
+``predict``, ``score``, ``publish`` and ``note``. None of those are registered:
+a command whose module is missing gives a workflow something that exits non-zero
+for a reason unrelated to the data. ``elo replay`` is here because SPEC-phase1 11
+step 5 is a command a human runs, and it is the check that keeps the stored Elo
+state a cache rather than a second source of truth.
 """
 
 import argparse
@@ -36,8 +38,11 @@ from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
 from cfb.errors import CfbError, WeekResolutionError
 from cfb.logging import (
+    EVENT_ELO_REPLAY,
+    EVENT_ELO_VERIFY,
     EVENT_SNAPSHOT_WRITTEN,
     REASON_NO_COMPLETED_WEEK,
+    REASON_NO_STORED_STATE,
     REASON_NOT_IN_SEASON,
     RESULT_OK,
     RESULT_SKIP,
@@ -114,6 +119,25 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("key", help="a key within the store")
     _add_store(replay)
 
+    # `elo replay` rather than a flag on `replay` above: that one re-parses one
+    # Sagarin page and this one rebuilds a season. Sharing a verb would make
+    # `--key` and `--season` mutually exclusive arguments on one command, which
+    # is two commands wearing one name.
+    elo = commands.add_parser("elo", help="the Elo model (SPEC-phase1 3)")
+    elo_actions = elo.add_subparsers(dest="action", required=True)
+    elo_replay = elo_actions.add_parser(
+        "replay",
+        help="rebuild a season's ratings from raw/ and check the stored state",
+    )
+    elo_replay.add_argument("--season", type=int, required=True)
+    elo_replay.add_argument(
+        "--through-week",
+        metavar="N",
+        help="stop after this week: 1-15, zero-padded or not, or 'postseason'. "
+        "Default: the whole season",
+    )
+    _add_store(elo_replay)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -157,6 +181,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _check_freshness(args, moment=moment)
     if args.command == "crosswalk":
         return _crosswalk_bootstrap(args)
+    if args.command == "elo":
+        return _elo_replay(args)
     return _replay(args)
 
 
@@ -300,6 +326,61 @@ def _replay(args) -> int:
     return 0
 
 
+def _elo_replay(args) -> int:
+    """SPEC-phase1 11 step 5: rebuild the season from ``raw/`` and check the cache.
+
+    Two things happen and the log says which. The rebuild always runs and always
+    reports what it read -- the seed snapshot, the games keys, the count applied --
+    because that is the artifact SPEC-phase1 3.5 promises can be regenerated
+    without a state file. The comparison runs only when there is a stored state to
+    compare against, and its absence is a logged skip rather than a failure: the
+    Sunday scoring run of SPEC-phase1 8 writes those, and nothing orders a replay
+    after it, so a replay in week 1 legitimately finds nothing.
+
+    A mismatch is a ``StateMismatchError``, which `main` turns into exit 1 and a
+    red run. That is the point of the check -- a stored state nobody can regenerate
+    is a second source of truth wearing a cache's clothes, and it should cost a
+    red run the first Sunday it stops being reproducible.
+    """
+    from cfb.replay import load_state, newest_state_key, replay, verify
+
+    store = _store(args.store)
+    rebuilt = replay(store=store, season=args.season, through_week=_through_week(args))
+
+    log(
+        EVENT_ELO_REPLAY,
+        season=rebuilt.season,
+        week=rebuilt.week,
+        result=RESULT_OK,
+        seeded_from=rebuilt.seeded_from,
+        games=rebuilt.games_applied,
+        snapshots=len(rebuilt.games_keys),
+        teams=len(rebuilt.ratings),
+    )
+
+    key = newest_state_key(store, season=rebuilt.season, week=rebuilt.week)
+    if key is None:
+        log(
+            EVENT_ELO_VERIFY,
+            season=rebuilt.season,
+            week=rebuilt.week,
+            result=RESULT_SKIP,
+            reason=REASON_NO_STORED_STATE,
+        )
+        return 0
+
+    verify(rebuilt, load_state(store, key), key=key)
+    log(
+        EVENT_ELO_VERIFY,
+        season=rebuilt.season,
+        week=rebuilt.week,
+        result=RESULT_OK,
+        key=key,
+        games=rebuilt.games_applied,
+    )
+    return 0
+
+
 def _crosswalk_bootstrap(args) -> int:
     """SPEC 6.3. Imported here, not at module scope, and that is the point.
 
@@ -324,6 +405,23 @@ def _crosswalk_bootstrap(args) -> int:
     print(f"  needs review -> {candidates_path(args.season, data_dir=data_dir)}")
     print(f"    {undecided} names, ranked best-first; scoring orders them and decides none")
     return 0
+
+
+def _through_week(args) -> str | None:
+    """``--through-week`` as a partition value (SPEC-phase0 3.2).
+
+    Accepts ``4`` and ``04`` and normalises both, because the value the user types
+    is a week number and the value it becomes is a literal S3 path segment. SPEC
+    11 step 5 writes it zero-padded and a person at a terminal will not.
+    """
+    raw = args.through_week
+    if raw is None or raw == "postseason":
+        return raw
+    if raw.isdigit() and 1 <= int(raw) <= 15:
+        return f"{int(raw):02d}"
+    build_parser().error(
+        f"--through-week must be 1-15 or 'postseason' (SPEC-phase0 3.2), got {raw!r}"
+    )
 
 
 def _add_store(parser: argparse.ArgumentParser) -> None:

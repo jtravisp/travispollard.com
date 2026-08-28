@@ -26,6 +26,8 @@ from typing import Any
 
 __all__ = [
     "EVENT_CFBD_CALL",
+    "EVENT_ELO_REPLAY",
+    "EVENT_ELO_VERIFY",
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
     "EVENT_SNAPSHOT_WRITTEN",
@@ -33,6 +35,7 @@ __all__ = [
     "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
+    "REASON_NO_STORED_STATE",
     "RESULT_OK",
     "RESULT_SKIP",
     "log",
@@ -44,6 +47,11 @@ EVENT_FRESHNESS = "freshness"
 #: One per CFBD request, carrying the running count against the per-run budget.
 #: SPEC 5.1 recovers the real monthly figure from these lines.
 EVENT_CFBD_CALL = "cfbd_call"
+#: One per season rebuilt from raw/ (SPEC-phase1 3.5), carrying what it read.
+EVENT_ELO_REPLAY = "elo_replay"
+#: The SPEC-phase1 11 step 5 comparison: does the rebuild reproduce the stored
+#: state. A pass here is the evidence that the stored object is a cache.
+EVENT_ELO_VERIFY = "elo_verify"
 #: Every non-2xx, with status and body. SPEC 5.3 requires this without exception:
 #: the vendor no longer documents which status means "over quota", so a real
 #: response body is the only thing that will ever settle it, and a run that threw
@@ -65,6 +73,13 @@ REASON_NOT_IN_SEASON = "not_in_season"
 #: No regular week has finished yet (SPEC 5.2). Normal on the season's first
 #: Sundays, and a skip rather than an error for exactly that reason.
 REASON_NO_COMPLETED_WEEK = "no_completed_week"
+
+# --- why an Elo verification was skipped (SPEC-phase1 3.5) --------------------
+#: Nothing under `elo/season=YYYY/week=NN/`. The rebuild ran and there is no
+#: cached state to check it against -- normal before the first scored week, since
+#: SPEC-phase1 8 has the Sunday run write these and nothing orders a replay after
+#: it. The rebuilt ratings are still on the `elo_replay` line above.
+REASON_NO_STORED_STATE = "no_stored_state"
 
 
 def log(event: str, **fields: Any) -> None:

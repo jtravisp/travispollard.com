@@ -297,6 +297,45 @@ class TestListing:
         assert all(m.snapshot_key != other for m in found)
         assert len(found) == 3
 
+    def test_listing_keys_on_an_empty_prefix_returns_empty(self, store, prefix):
+        """The `elo/` prefix before the first scored week (SPEC-phase1 3.5)."""
+        assert store.list_keys(f"{prefix}/elo/") == []
+
+    def test_list_keys_returns_every_object_not_only_manifests(self, store, prefix):
+        """The distinction that made this method necessary.
+
+        `elo/` state documents (SPEC-phase1 3.5) have no `.meta.json` beside them,
+        so `list_manifests` cannot see them at all and a replay would have nothing
+        to check itself against.
+        """
+        self.write_three(store, prefix)
+        found = store.list_keys(f"{prefix}/sagarin/")
+        assert len(found) == 6
+        assert sum(1 for key in found if key.endswith(".meta.json")) == 3
+        assert sum(1 for key in found if key.endswith(".txt")) == 3
+
+    def test_list_keys_is_lexicographic(self, store, prefix):
+        """Not `fetched_at`: this method has not opened the objects.
+
+        The two disagree by construction in `write_three`, whose capture stamps
+        run opposite to its `fetched_at` values -- so a store that reused the
+        `list_manifests` ordering here would fail rather than coincide.
+        """
+        self.write_three(store, prefix)
+        found = store.list_keys(f"{prefix}/sagarin/")
+        assert found == sorted(found)
+        # The last key, not the newest manifest: `.txt` sorts after `.meta.json`.
+        assert found[-1] == snapshot_key(prefix, "2026-09-16T110000Z")
+
+    def test_list_keys_respects_the_prefix(self, store, prefix):
+        self.write_three(store, prefix)
+        other = snapshot_key(prefix, "2026-09-23T110000Z").replace("week=04", "week=05")
+        store.put_bytes(other, ADVERSARIAL, "text/plain")
+
+        found = store.list_keys(f"{prefix}/sagarin/season=2026/week=04/")
+        assert other not in found
+        assert len(found) == 6
+
     def test_manifests_come_back_as_models(self, store, prefix):
         """``list_manifests`` returns ``list[Manifest]``, not raw dicts (SPEC 2.3).
 
