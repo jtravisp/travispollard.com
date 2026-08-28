@@ -119,14 +119,25 @@ ever in the append-a-field direction.
   "page_state": "in-season",           // from the title line: "preseason" | "in-season"
   "team_count": 266,
   "fbs_count": 138,                    // division A; 138 on the 2026 page, not 134
-  "hfa": { "rating": 2.41, "predictor": 2.41, "golden_mean": 2.41, "recent": 2.41 },
+  "hfa": { "rating": 2.41, "predictor": 2.41, "golden_mean": 2.41,
+           "recent": 2.41, "strong_recent": 2.41 },   // all five columns, §4.7
   "predictions_count": 61,
   "unmapped": []
 }
 ```
 
 `hfa` is captured per rating column from the page, per snapshot. It is never a constant anywhere in the
-codebase — there is no default value to fall back to.
+codebase — there is no default value to fall back to. All five columns are carried: the page prints five
+bracketed values and `parse_hfa` raises if it finds any other number (§4.7). They read identically today
+and Sagarin does not promise they will.
+
+**`http_status` currently records an inference, not an observation.** The fetch seam of §8 hands
+`fetch_sagarin` bytes and nothing else, so no status line ever reaches the code that builds the manifest.
+What the field asserts is that the fetcher of §4.1 turned every non-2xx into a `FetchError` before
+returning, and therefore that `200` is the only thing bytes at this point could have come from. That is
+true, and it is not the same claim as "the server said 200" — a manifest is evidence, and a field inferred
+from control flow is weaker evidence than one read off the wire. Widening the seam to carry the response
+is the fix; until then, do not read this field as a record of what the server sent.
 
 ### 2.3 The storage seam
 
@@ -368,8 +379,9 @@ ratings table and every 50 rows in the predictions table. A parser must skip the
 one header at the top.
 
 **HFA.** The page prints **five** bracketed values (`RATING`, `PREDICTOR`, `GOLDEN_MEAN`, `RECENT`,
-`STRONG RECENT`); the `hfa` dict in §2.2 names four. All five read `2.41` on this capture. Only the ratings
-header uses the bracketed `[  2.41]` form — the predictions header prints the same numbers unbracketed.
+`STRONG RECENT`), and the `hfa` dict in §2.2 now names all five. All five read `2.41` on this capture.
+Only the ratings header uses the bracketed `[  2.41]` form — the predictions header prints the same
+numbers unbracketed.
 
 **No date stamp on a preseason page.** The title line is `2026 College Football STARTING ratings` — season
 and state, no date. In-season pages carry a "through games of …" date. Hence `date | None` in §4.5 and the

@@ -27,18 +27,22 @@ the object, and only then does the run raise so the alert fires. An
 implementation that resolved first and bailed would satisfy "the run exits
 non-zero" perfectly while destroying the thing the run exists to collect.
 
-``fetch`` is injected rather than built here. The CLI passes the pinned-HTTP
-fetcher of SPEC 4.1; the tests pass a lambda over a fixture, which is how the
+``fetch`` defaults to ``fetch_page``, the pinned-HTTP fetcher of SPEC 4.1, and
+stays injectable. Production gets a real fetcher without the CLI having to
+assemble one; the tests keep passing a lambda over a fixture, which is how the
 suite exercises this ordering with no network at all.
 """
 
 import hashlib
+import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+import httpx
+
 from cfb.calendar import WeekRef, load_calendar, resolve
-from cfb.errors import EncodingError, WeekResolutionError
+from cfb.errors import EncodingError, FetchError, WeekResolutionError
 from cfb.manifest import manifest_key, snapshot_key
 from cfb.models import Manifest, SagarinSnapshot
 from cfb.parsers.sagarin_predictions import parse_predictions
@@ -50,9 +54,20 @@ from cfb.parsers.sagarin_ratings import (
 )
 from cfb.storage import SnapshotStore
 
-__all__ = ["SOURCE_URL", "decode_page", "fetch_sagarin"]
+__all__ = ["SOURCE_URL", "decode_page", "fetch_page", "fetch_sagarin"]
 
 SOURCE_URL = "http://sagarin.com/sports/cfsend.htm"
+
+#: SPEC 4.1. Connect and read both 30s; write and pool follow rather than being
+#: left at the httpx default, because a stall in either is the same outage.
+TIMEOUT = httpx.Timeout(30.0)
+
+#: SPEC 4.1, one rung slept before each retry. The spec's prose says "three
+#: attempts" beside a three-rung ladder, which cannot both hold -- three attempts
+#: leave room for two backoffs and the 30s rung is never reached. The ladder is
+#: taken as authoritative: three retries after the initial request, four requests
+#: at worst, and every rung used. See tests/test_sagarin_fetch.py.
+BACKOFF = (2, 8, 30)
 
 #: SPEC 4.2. Deterministic, in this order, with no detection dependency.
 CANDIDATES = ("utf-8", "cp1252", "latin-1")
@@ -88,11 +103,95 @@ def decode_page(data: bytes) -> tuple[str, str]:
     )
 
 
+def fetch_page(
+    *,
+    transport: httpx.BaseTransport | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> bytes:
+    """Fetch the Sagarin page (SPEC 4.1). Raw bytes, or ``FetchError``.
+
+    **The scheme is pinned and a redirect is never followed.** sagarin.com 302s
+    HTTPS back to HTTP, so a client that upgrades ping-pongs until it exhausts
+    its redirect limit -- and the failure it eventually reports names the limit,
+    not the cause. ``follow_redirects=False`` turns that into one request and one
+    honest error.
+
+    Retries cover the failures a second attempt can actually fix: a timeout, a
+    connection that never established, a 5xx. A 4xx is a decision the server has
+    already made, and repeating the request earns the same answer three more
+    times while delaying the red run by forty seconds.
+
+    ``transport`` and ``sleep`` exist for the tests. The client is built here
+    rather than passed in, because the redirect policy and the timeout are this
+    function's decisions -- a caller that supplied the client would own them, and
+    the tests would be asserting against their own setup.
+    """
+    last: Exception | None = None
+
+    with httpx.Client(transport=transport, follow_redirects=False, timeout=TIMEOUT) as client:
+        for attempt in range(len(BACKOFF) + 1):
+            try:
+                response = client.get(SOURCE_URL)
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                # Exactly what SPEC 4.1 names as retryable. TimeoutException
+                # covers connect and read; NetworkError covers a connection that
+                # never established or died mid-body.
+                last = exc
+            except httpx.TransportError as exc:
+                # Everything else at the transport layer -- a malformed response,
+                # an unsupported scheme, a broken proxy. Another attempt does not
+                # fix any of them, but it still has to leave as a FetchError:
+                # SPEC 9 maps CfbError to exit 1, and a bare httpx exception
+                # escaping to the CLI is a traceback instead of a red run.
+                raise FetchError(f"{SOURCE_URL}: {type(exc).__name__}: {exc}") from exc
+            else:
+                # Any 3xx, not just the ones carrying a Location. httpx's
+                # is_redirect is False without that header, and a redirect the
+                # client cannot even follow is not a reason to ask three more
+                # times.
+                if 300 <= response.status_code < 400:
+                    raise FetchError(
+                        f"{SOURCE_URL} redirected {response.status_code} to "
+                        f"{response.headers.get('location')!r}; the scheme is pinned and "
+                        f"redirects are not followed (SPEC 4.1) -- sagarin.com 302s HTTPS "
+                        f"back to HTTP and a client that upgrades loops forever"
+                    )
+                if response.is_success:
+                    return response.content
+                if response.is_client_error:
+                    raise FetchError(
+                        f"{SOURCE_URL} returned {response.status_code}; 4xx is not retried "
+                        f"(SPEC 4.1): {_excerpt(response)}"
+                    )
+                last = FetchError(
+                    f"{SOURCE_URL} returned {response.status_code}: {_excerpt(response)}"
+                )
+
+            if attempt < len(BACKOFF):
+                sleep(BACKOFF[attempt])
+
+    raise FetchError(
+        f"{SOURCE_URL} failed {len(BACKOFF) + 1} times over the {'/'.join(map(str, BACKOFF))}s "
+        f"ladder; no snapshot written, this run is red (SPEC 4.1). Last failure: {last}"
+    ) from last
+
+
+def _excerpt(response: httpx.Response, limit: int = 200) -> str:
+    """The start of a failed response body.
+
+    Logged on every non-2xx because the body is the only thing that makes a
+    failure decidable later, and a run that discarded it leaves nothing to
+    decide from. Truncated: this ends up in a workflow log, not a snapshot.
+    """
+    body = response.content[:limit]
+    return f"{body!r}{'...' if len(response.content) > limit else ''}"
+
+
 def fetch_sagarin(
     *,
     store: SnapshotStore,
     now: datetime,
-    fetch: Callable[[], bytes],
+    fetch: Callable[[], bytes] = fetch_page,
     data_dir: Path | None = None,
 ) -> SagarinSnapshot:
     """Run one Sagarin collection. See the module docstring for the ordering."""
