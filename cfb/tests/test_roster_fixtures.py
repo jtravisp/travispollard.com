@@ -7,10 +7,10 @@ is everything about the fixtures themselves -- and a fixture that is wrong is a
 contract that certifies the wrong thing, so it is worth checking before anything
 depends on it.
 
-``cfbd-2026.json`` is derived from one real ``/teams/fbs?year=2026`` call,
+``cfbd-2026.json`` is derived from one real ``/teams?year=2026`` call,
 snapshotted to ``raw/cfbd/season=2026/week=season/teams/`` first, per the
 immutability rule. Source sha256
-``15611e4d36965423f96b01f58fbe1ea9de04f88c2909a490ddbfcab4511ea2c2``.
+``6a0bd09d1eff5ed66b4ba6111cb706aeb6e7c812bfef3c6b48a31aa474d84ea5``.
 
 Four fields are kept out of the thirteen CFBD returns. The crosswalk maps a name
 to a canonical id; logos, colours, mascots and twitter handles churn without ever
@@ -33,8 +33,9 @@ FIXTURES = Path(__file__).parent / "fixtures"
 CFBD_ROSTER = FIXTURES / "rosters" / "cfbd-2026.json"
 GOLDEN = FIXTURES / "sagarin_2026_preseason.txt"
 
-#: SPEC 4.7 states this independently, from the Sagarin side.
+#: SPEC 4.7 states both of these independently, from the Sagarin side.
 FBS_COUNT = 138
+FCS_COUNT = 128
 
 
 @pytest.fixture(scope="module")
@@ -42,24 +43,33 @@ def roster() -> list[dict]:
     return json.loads(CFBD_ROSTER.read_bytes())
 
 
-def test_the_roster_is_the_fbs_division(roster):
-    assert len(roster) == FBS_COUNT
-    assert {team["classification"] for team in roster} == {"fbs"}
+def test_the_roster_is_both_divisions(roster):
+    """Widened from FBS-only when SPEC 6.5 settled the FCS question.
+
+    `/games` returns FCS opponents by CFBD name, so an FBS-only roster makes the
+    first FBS-vs-FCS game of September unjoinable. D-II and D-III are excluded:
+    Sagarin rates none of them, so the crosswalk can never be asked.
+    """
+    counts = {"fbs": 0, "fcs": 0}
+    for team in roster:
+        counts[team["classification"]] = counts.get(team["classification"], 0) + 1
+    assert counts == {"fbs": FBS_COUNT, "fcs": FCS_COUNT}
+    assert len(roster) == FBS_COUNT + FCS_COUNT
 
 
 def test_the_two_sources_agree_on_how_many_fbs_teams_there_are(roster):
     """Independent corroboration, which is the only kind worth having.
 
     SPEC 4.7 records 138 division-``A`` teams counted off the Sagarin page, and
-    notes it is 138 rather than the 134 someone might expect. CFBD's ``/teams/fbs``
+    notes it is 138 rather than the 134 someone might expect. CFBD's ``/teams``
     returns 138 as well. Two vendors who do not talk to each other arriving at the
     same number is the strongest evidence available that neither parser is
     dropping rows.
     """
-    sagarin_fbs = sum(
-        1 for team in parse_ratings(GOLDEN.read_bytes().decode("utf-8")) if team.division == "A"
-    )
-    assert sagarin_fbs == len(roster) == FBS_COUNT
+    teams = parse_ratings(GOLDEN.read_bytes().decode("utf-8"))
+    sagarin_fbs = sum(1 for team in teams if team.division == "A")
+    cfbd_fbs = sum(1 for team in roster if team["classification"] == "fbs")
+    assert sagarin_fbs == cfbd_fbs == FBS_COUNT
 
 
 def test_every_id_is_unique(roster):
@@ -108,15 +118,16 @@ def test_the_fixture_is_sorted_by_school(roster):
     assert roster == sorted(roster, key=lambda team: team["school"])
 
 
-def test_the_fcs_half_of_sagarin_has_no_cfbd_counterpart_here(roster):
-    """Names the crosswalk cannot resolve from this fixture, stated rather than discovered.
+def test_the_two_sources_agree_on_the_fcs_count_too(roster):
+    """The gap that forced SPEC 6.5's decision, now closed.
 
-    Sagarin rates 266 teams; ``/teams/fbs`` returns 138. The 128 FCS names on the
-    page have no entry in this roster, so SPEC 6.5's "every Sagarin name resolves"
-    cannot mean *this* file alone -- it needs an FCS roster too, or the crosswalk
-    has to scope itself to FBS. That is a decision SPEC 6 has not made.
+    This test used to assert the opposite -- that the 128 Sagarin FCS names had
+    *no* counterpart here, because the fixture came from ``/teams/fbs``. Pulling
+    ``/teams`` instead gives 138 + 128, and both numbers match what the Sagarin
+    page says independently.
     """
     teams = parse_ratings(GOLDEN.read_bytes().decode("utf-8"))
-    fcs = [team.name for team in teams if team.division == "AA"]
-    assert len(fcs) == 128
-    assert not ({team["school"] for team in roster} & set(fcs))
+    sagarin_fcs = sum(1 for team in teams if team.division == "AA")
+    cfbd_fcs = sum(1 for team in roster if team["classification"] == "fcs")
+    assert sagarin_fcs == cfbd_fcs == FCS_COUNT
+    assert len(teams) == len(roster) == 266

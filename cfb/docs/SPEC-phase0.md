@@ -485,7 +485,7 @@ figure — at the cost of a call.
 | Call | Frequency | Snapshot partition |
 |---|---|---|
 | `/calendar?year=2026` | once per season | `week=season/calendar/` |
-| `/teams/fbs?year=2026` | once per season | `week=season/teams/` |
+| `/teams?year=2026` | once per season | `week=season/teams/` |
 | `/games?year=2026&week=N` | weekly | `week=NN/games/` |
 | `/lines?year=2026&week=N` | weekly | `week=NN/lines/` |
 
@@ -645,8 +645,26 @@ crosswalk question, so there is no "warn for FCS" tier.
 
 ### 6.5 Tests
 
-Fixture rosters are the contract: `tests/fixtures/rosters/sagarin-2026.txt` (all ~266 names from a real
-page) and `cfbd-2026.json`.
+**The crosswalk spans FBS and FCS, and the reason is `/games` rather than tidiness.** Sagarin rates 266
+teams, 128 of them FCS, and `/teams/fbs` returns none of those — so "every Sagarin name resolves" was
+unsatisfiable as this section originally read. Scoping the crosswalk to FBS-only does not rescue it:
+`/games` returns FCS opponents by CFBD name, so the first FBS-vs-FCS game of September needs that join to
+work or the game vanishes from the training set. That is the failure this whole project is built to
+prevent.
+
+So the season-level pull is **`/teams?year=2026`**, not `/teams/fbs` (§5.2), and the roster fixture carries
+both divisions.
+
+`/teams` returns 684: 138 FBS, 128 FCS, 171 D-II, 247 D-III. The fixture keeps **FBS and FCS only, 266
+rows — exactly the number Sagarin rates, and the two 128s agree independently.** The 418 lower-division
+rows are dropped because Sagarin rates none of them, so the crosswalk can never be asked about one. An FBS
+team scheduling a D-II opponent raises `UnmappedTeamError` and turns a run red, which is §6.4's fix loop
+working as designed rather than a gap to pre-empt with 418 rows nobody would review.
+
+Fixture rosters are the contract: `tests/fixtures/rosters/sagarin-2026.txt` (all 266 names from the golden
+capture, one per line, sorted) and `cfbd-2026.json` (266 rows: id, school, conference, classification).
+Their exact-name overlap is 234, which is why §6.3's bootstrap has roughly 30 decisions to order and not
+zero.
 
 - every Sagarin name in the roster fixture resolves
 - every CFBD name in the roster fixture resolves

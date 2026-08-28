@@ -86,7 +86,10 @@ TIMEOUT = httpx.Timeout(30.0)
 _RESOURCES = {
     "games": ("/games", True),
     "lines": ("/lines", True),
-    "teams": ("/teams/fbs", False),
+    # `/teams`, not `/teams/fbs`. Sagarin rates 266 teams and 128 of them are
+    # FCS; `/games` returns those opponents by CFBD name, so the crosswalk needs
+    # both divisions or the first FBS-vs-FCS game fails to join (SPEC 6.5).
+    "teams": ("/teams", False),
     "calendar": ("/calendar", False),
 }
 
