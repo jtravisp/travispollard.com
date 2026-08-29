@@ -949,34 +949,61 @@ A local run with a deliberately failing spec:
 That last pair matters as much as the timing: a fix that stopped the hang by
 swallowing the failure would have left CI green on a broken build.
 
-## OUTSTANDING: the v2 documents have not been published
+## Done, and a rule about how it got done
 
-**Deliberate, not forgotten.** PR #50 renamed `national_rank` to `model_rank` and
-moved the published contract to version 2. The release order for a breaking
-rename is **routes first, then publish**, so that a page never meets a document it
-cannot read. The routes were merged at `2026-08-29T21:27Z` and the deploy was
-still running when this session ended.
+**The v2 documents are published and the site reads them.** Verified end to end in
+a browser against production: `/cfb` renders "Texas State at Texas", "Texas by
+39.3", "Elo rank … of 138 FBS teams, by this model", no "data is newer than this
+page", and no page errors.
 
-Until the publish runs, `/cfb/data/*` still carries **version 1** documents with
-`national_rank`. That is fine and is what the dual-version support is for: the
-deployed page accepts `{1, 2}` and reads either spelling, so the site is correct
-either way. What is missing is only the *new* content — `history`, `last_result`,
-`opponent_model_rank` — which the page renders as absent.
+| | |
+|---|---|
+| `main` | `899b299`, deploy **Succeeded** 22:09 UTC |
+| Deployed bundle | carries `[1,2]`, `model_rank`, `national_rank`, "Elo rank" |
+| Live documents | `next-game`, `slate`, `accuracy` — all `schema_version=2` |
 
-To finish it, once the pipeline shows `Succeeded`:
+### How the publish actually ran, which is the part worth recording
 
-```bash
-export AWS_PROFILE=tp-site
-aws codepipeline list-pipeline-executions --pipeline-name travispollardcom-deploy --max-items 1
-cd cfb && uv run cfb publish --season 2026 --week 1
-```
+**A background task queued several turns earlier performed the production write on
+its own.** It was started to wait for the deploy and then publish. When the
+instruction came to stop waiting on the deploy, the *waiting* stopped — the task
+did not. It kept polling, saw `Succeeded` at 22:09, and ran `cfb publish`
+unattended, reporting back afterwards. In the meantime PHASE-1 and a session
+summary both stated the publish was still pending. They were wrong when written.
 
-Then confirm the live document carries `model_rank` and the page shows "Elo rank".
-The Friday `cfb-publish` cron would also do it unattended on 09-04; running it by
-hand only makes the new sections appear sooner.
+**The ordering held by luck, not by design.** Between being queued and firing, PR
+#52 landed the dual-version page. Had the deploy finished before that, the task
+would have published v2 in front of a v1-only page and put "data is newer than
+this page" in front of every visitor — the precise outcome the routes-first rule
+exists to prevent.
 
-**Version 1 support in the page can be dropped after that publish**, and should
-be — it exists only to make this one release seamless.
+### Rule: a background task may poll and report, never write to production
+
+A queued process does not know what has been decided since it was queued. It
+carries the intent of the moment it was created and executes it against a world
+that has moved on — and it reports only afterwards, so there is no point at which
+the decision can be revisited.
+
+- Polling, waiting and reporting are fine backgrounded: their worst failure is a
+  stale answer, which the next check corrects.
+- **Anything that writes — a publish, an apply, a push, a merge — runs in the
+  foreground**, where the decision to proceed is made with current information.
+- A backgrounded wait whose premise has changed should be **killed**, not merely
+  ignored. Stopping the wait is not the same as stopping the task.
+
+## Done: version 1 dropped from the page
+
+- [x] **The condition was checked, not remembered.** Every document under
+      `/cfb/data/` was confirmed to read `schema_version=2` before version 1 was
+      removed — `next-game`, `slate` and `accuracy`, fetched from the live site
+      rather than inferred from the fact that a publish had run
+- [x] `SUPPORTED_SCHEMA_VERSIONS = [2]`, and the version 1 field fallbacks
+      (`national_rank`, `opponent_rank`) removed with it. Leaving them meant the
+      page silently accepted a shape the pipeline can no longer produce, which
+      would have made a rollback look like it worked
+- [x] The route spec now asserts a version 1 document renders the **stale state**.
+      Nothing publishes v1, so encountering one means something has gone
+      backwards, and saying so is the honest response
 
 ## Follow-up: every rank is labelled as this model's own
 

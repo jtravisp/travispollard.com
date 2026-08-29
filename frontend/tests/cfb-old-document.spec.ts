@@ -38,6 +38,17 @@ const OLD_DOCUMENT = {
   as_of: { week: 'preseason', elo: 2113.0, national_rank: 5, fbs_teams: 138 },
 };
 
+/**
+ * Version 2 without the fields added after it — `history`, `last_result`,
+ * `opponent_model_rank`. This is what a page reads between deploying and the
+ * next publish, which is the window every additive release passes through.
+ */
+const WITHOUT_NEW_FIELDS = {
+  ...OLD_DOCUMENT,
+  schema_version: 2,
+  as_of: { week: 'preseason', elo: 2113.0, model_rank: 5, fbs_teams: 138 },
+};
+
 /** The same document as the pipeline publishes it now: version 2, `model_rank`. */
 const NEW_DOCUMENT = {
   ...OLD_DOCUMENT,
@@ -54,7 +65,7 @@ test.describe('/cfb against a document written before the new fields', () => {
     // failing these tests for a reason that has nothing to do with them.
     // `/cfb` fetches exactly this document and nothing else (SPEC-phase1 6.1).
     await page.route('**/cfb/data/next-game.json*', (route) =>
-      route.fulfill({ json: OLD_DOCUMENT }),
+      route.fulfill({ json: WITHOUT_NEW_FIELDS }),
     );
   });
 
@@ -131,18 +142,22 @@ test.describe('/cfb against a document carrying the new fields', () => {
 });
 
 test.describe('the version 2 rename', () => {
-  test('a version 1 document still renders its rank', async ({ page }) => {
+  test('a version 1 document now shows the stale state', async ({ page }) => {
     /**
-     * The reason both versions are accepted. Routes deploy before the pipeline
-     * republishes, so this page reads a v1 document first — and v1 spells the
-     * field `national_rank`. Refusing it would show "data is newer than this
-     * page" to every visitor for a change that renamed one key.
+     * Version 1 was accepted only while the rename was in flight, so that a page
+     * deployed before the pipeline republished could still read `national_rank`.
+     * Every published document reads version 2 now.
+     *
+     * So a version 1 document means something has gone *backwards* — a rollback,
+     * a stale cache, a hand-edited object — and the honest response is to say so
+     * rather than to render it. A page that kept accepting it would make a
+     * rollback look like it worked.
      */
     await page.route('**/cfb/data/next-game.json*', (route) =>
       route.fulfill({ json: OLD_DOCUMENT }),
     );
     await page.goto('/cfb/');
-    await expect(page.getByText('#5')).toBeVisible();
+    await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
   });
 
   test('a version 2 document renders the same rank from the new name', async ({ page }) => {

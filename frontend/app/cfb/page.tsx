@@ -21,12 +21,7 @@ import Link from 'next/link';
 import CfbNav from '@/components/cfb/CfbNav';
 import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import {
-  LastResult,
-  NextGameDocument,
-  modelRank,
-  opponentModelRank,
-} from '@/components/cfb/contract';
+import { LastResult, NextGameDocument } from '@/components/cfb/contract';
 import {
   describeFavorite,
   favorite,
@@ -117,14 +112,14 @@ function NextGame({ document }: { document: NextGameDocument }) {
               : `${home} is at home.`}
             {/* A margin is not legible without the opponent's standing: "Texas by
                 39.3" reads differently against the 5th team and the 81st. */}
-            {opponentModelRank(game) != null && (
+            {game.opponent_model_rank != null && (
               <>
                 {' '}
-                {game.opponent} is {ordinal(opponentModelRank(game)!)} of {asOf.fbs_teams} by
+                {game.opponent} is {ordinal(game.opponent_model_rank!)} of {asOf.fbs_teams} by
                 this model.
               </>
             )}
-            {opponentModelRank(game) == null && game.opponent_elo != null && (
+            {game.opponent_model_rank == null && game.opponent_elo != null && (
               <> {game.opponent} is outside the FBS, so this model does not rank it.</>
             )}
           </p>
@@ -252,7 +247,6 @@ function Ratings({
   history?: NextGameDocument['history'];
 }) {
   const points = history ?? [];
-  const rank = modelRank(asOf);
 
   return (
     <div className="card bg-base-200">
@@ -275,7 +269,7 @@ function Ratings({
               Elo rank
             </div>
             <div className="text-2xl font-semibold">
-              {rank == null ? '—' : `#${rank}`}
+              #{asOf.model_rank}
             </div>
             <div className="text-xs text-base-content/60">
               of {asOf.fbs_teams} FBS teams, by this model
