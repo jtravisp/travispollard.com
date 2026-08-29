@@ -39,6 +39,7 @@ from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
 from cfb.errors import CfbError, ReplayError, SeedStateError, WeekResolutionError
 from cfb.logging import (
+    EVENT_BACKTESTED,
     EVENT_ELO_REPLAY,
     EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
@@ -229,6 +230,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_store(note)
 
+    backtest = commands.add_parser(
+        "backtest",
+        help="score a week the model was not live for, retrospectively (not a prediction)",
+    )
+    backtest.add_argument("--season", type=int, required=True)
+    backtest.add_argument("--week", metavar="N", required=True)
+    _add_store(backtest)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -274,6 +283,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _crosswalk_bootstrap(args)
     if args.command == "elo":
         return _elo(args, moment=moment)
+    if args.command == "backtest":
+        return _backtest(args, moment=moment)
     if args.command == "note":
         return _note(args, moment=moment)
     if args.command == "publish":
@@ -643,7 +654,7 @@ def _publish(args, *, moment: datetime) -> int:
     invalidation it never made would be the one line on a Friday nobody could
     trust.
     """
-    from cfb.publish import ACCURACY_KEY, NEXT_GAME_KEY, publish
+    from cfb.publish import ACCURACY_KEY, NEXT_GAME_KEY, SLATE_KEY, publish
 
     season = args.season or _season_of(moment)
     calendar = load_calendar(season, data_dir=_data_dir())
@@ -677,10 +688,11 @@ def _publish(args, *, moment: datetime) -> int:
     # Re-read rather than re-derive: the numbers on this line are the ones a
     # person would check the live page against, so they should come from the
     # document that was actually written.
-    from cfb.publish import AccuracyDocument, NextGameDocument
+    from cfb.publish import AccuracyDocument, NextGameDocument, SlateDocument
 
     next_game = NextGameDocument.model_validate_json(store.get_bytes(NEXT_GAME_KEY))
     accuracy = AccuracyDocument.model_validate_json(store.get_bytes(ACCURACY_KEY))
+    slate = SlateDocument.model_validate_json(store.get_bytes(SLATE_KEY))
 
     log(
         EVENT_PUBLISHED,
@@ -695,6 +707,10 @@ def _publish(args, *, moment: datetime) -> int:
         win_probability=next_game.game.win_probability if next_game.game else None,
         national_rank=next_game.as_of.national_rank,
         elo_state_week=next_game.as_of.week,
+        slate_games=len(slate.games),
+        # A week where this collapses is a /lines pull that did not happen, and
+        # §5.3's ATS record would quietly shrink rather than fail.
+        slate_priced=slate.priced,
         scored_through=accuracy.through_week,
         scored_games=accuracy.full_slate.games,
         seed_disclosure=accuracy.seed_disclosure.active,
@@ -791,6 +807,98 @@ def _note(args, *, moment: datetime) -> int:
         texas=any(game.home == "texas" or game.away == "texas" for game in week_scored.games),
         ats=week_scored.full_slate.ats.record,
         mae=week_scored.full_slate.mae,
+    )
+    return 0
+
+
+def _backtest(args, *, moment: datetime) -> int:
+    """Score a week the model was not live for. **This is not a prediction.**
+
+    Week 1 of 2026 opened at 2026-08-27T22:00Z and the earliest Sagarin capture
+    this project holds is 2026-08-28T16:50Z, so §3.3 refuses to read an HFA for it
+    and `cfb predict --week 1` exits 1. That refusal is correct and stays.
+
+    What this does instead is state plainly what it is. The seed contains no
+    week 1 information -- it is the preseason page, which predates every game --
+    so the numbers are honestly derivable. What is missing is not the arithmetic
+    but the *evidence of having been written first*, which is the entire property
+    SPEC-phase1 1.1 gives up git in order to keep.
+
+    So three things keep it separate, and all three are structural rather than a
+    convention someone has to remember:
+
+    - it never writes to ``predictions/``, so nothing can grade it as a forecast;
+    - it writes to ``backtest/``, a prefix ``scored_weeks`` does not read by
+      default, so it cannot reach the published season-to-date record;
+    - §6.4 renders it in its own block, labelled.
+
+    **And it is worth knowing what a week 1 backtest actually measures.** The seed
+    is ``1500 + (rating - mean) * 28``, so an Elo gap over 28 is exactly a Sagarin
+    rating gap, and the preseason page's four rating columns are identical
+    (SPEC-phase1 1.2). A week 1 forecast is therefore Sagarin's PREDICTOR to the
+    floating-point bit -- §3.6's correlation opens at exactly 1.0. The figures
+    this produces are a measurement of Sagarin's preseason page, not of Elo, and
+    the page says so.
+    """
+    from cfb.elo.scoring import score_week, write_scored
+    from cfb.predict import predict_week
+    from cfb.sources import (
+        hfa_manifests,
+        results_capture,
+        sagarin_manifests,
+        week_position,
+        week_slate,
+    )
+
+    week = _week_partition(args.week, flag="--week")
+    store = _store(args.store)
+
+    # The oldest snapshot carrying an HFA, not the newest before kickoff. It is
+    # the preseason page, it predates the whole season, and it is a fixed choice
+    # rather than a clock -- so this is as replayable as every other path here.
+    manifests = hfa_manifests(sagarin_manifests(store, args.season))
+    if not manifests:
+        raise ReplayError(
+            f"no Sagarin snapshot for season {args.season} carries an HFA, so there is "
+            f"nothing to backtest week {week} from"
+        )
+    earliest = manifests[0]
+
+    # Not named `log`: that is the logging function this module uses everywhere,
+    # and shadowing it here crashed the run *after* the document was written.
+    retrodiction = predict_week(
+        store=store,
+        season=args.season,
+        week=week,
+        now=moment,
+        hfa_manifest=earliest,
+    )
+
+    capture = results_capture(store, args.season, week)
+    target = week_position(week, label="--week")
+    slate, _ = week_slate(store, args.season, lambda raw: raw.order == target)
+
+    scored = score_week(
+        retrodiction,
+        [raw for raw, _ in slate],
+        results_fetched_at=capture.fetched_at,
+        now=moment,
+    )
+    key = write_scored(store, scored, prefix="backtest")
+
+    log(
+        EVENT_BACKTESTED,
+        season=args.season,
+        week=week,
+        result=RESULT_OK,
+        key=key,
+        games=len(scored.games),
+        unplayed=scored.unplayed,
+        hfa_source=earliest.snapshot_key,
+        mae=scored.full_slate.mae,
+        ats=scored.full_slate.ats.record,
+        # Expected to be 1.0 for week 1 -- see this function's docstring.
+        sagarin_r=scored.sagarin_r,
     )
     return 0
 

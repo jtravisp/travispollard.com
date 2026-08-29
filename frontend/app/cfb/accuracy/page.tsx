@@ -19,7 +19,7 @@ import HeaderWithTheme from '@/components/HeaderWithTheme';
 import Link from 'next/link';
 
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import { AccuracyDocument, Record, SeedDisclosure } from '@/components/cfb/contract';
+import { AccuracyDocument, Backtest, Record, SeedDisclosure } from '@/components/cfb/contract';
 import {
   formatCorrelation,
   formatGeneratedAt,
@@ -43,6 +43,10 @@ export default function AccuracyPage() {
           than quietly leaving the averages.{' '}
           <Link href="/cfb" className="link link-primary">
             This week&rsquo;s game
+          </Link>
+          , or{' '}
+          <Link href="/cfb/slate" className="link link-primary">
+            this week&rsquo;s slate
           </Link>
           .
         </p>
@@ -70,6 +74,7 @@ function Accuracy({ document }: { document: AccuracyDocument }) {
           </p>
         </div>
         <Disclosure disclosure={document.seed_disclosure} />
+        {document.backtest && <BacktestSection backtest={document.backtest} />}
         <GeneratedAt document={document} />
       </div>
     );
@@ -155,8 +160,60 @@ function Accuracy({ document }: { document: AccuracyDocument }) {
         )}
       </section>
 
+      {document.backtest && <BacktestSection backtest={document.backtest} />}
+
       <GeneratedAt document={document} />
     </div>
+  );
+}
+
+function BacktestSection({ backtest }: { backtest: Backtest }) {
+  return (
+    <section className="border border-warning/40 rounded-box p-4 sm:p-6 bg-warning/5">
+      <h2 className="text-xl font-semibold mb-1">
+        Backtest
+        <span className="badge badge-warning badge-sm ml-2 align-middle">not a prediction</span>
+      </h2>
+      <p className="text-sm text-base-content/70 mb-4">
+        These weeks were scored <em>after</em> their games were played, because the model was not
+        running yet. They are kept out of every figure above.
+        {backtest.measures_the_seed && (
+          <>
+            {' '}
+            <strong>And they measure something other than this model.</strong> A week 1 forecast is
+            arithmetically identical to Sagarin&rsquo;s preseason predictor — the ratings are seeded
+            from that page and nothing has updated them yet — so what is below is the accuracy of
+            Sagarin&rsquo;s preseason page, not of the Elo model.
+          </>
+        )}
+      </p>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <RecordCard title="Texas (backtest)" record={backtest.texas} />
+        <RecordCard title="Full slate (backtest)" record={backtest.full_slate} />
+      </div>
+
+      <table className="table table-sm mt-4">
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th className="text-right">Games</th>
+            <th className="text-right">MAE</th>
+            <th className="text-right">Correlation vs Sagarin</th>
+          </tr>
+        </thead>
+        <tbody>
+          {backtest.by_week.map((point) => (
+            <tr key={point.week}>
+              <td>{formatWeek(point.week)}</td>
+              <td className="text-right tabular-nums">{point.games}</td>
+              <td className="text-right tabular-nums">{formatMean(point.mae)}</td>
+              <td className="text-right tabular-nums">{formatCorrelation(point.sagarin_r)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 

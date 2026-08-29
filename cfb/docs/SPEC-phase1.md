@@ -575,8 +575,16 @@ the target week's own `/games` capture and never from a wall clock, for the reas
 ```
 /cfb/data/
   next-game.json        -> /cfb
+  slate.json            -> /cfb/slate
   accuracy.json         -> /cfb/accuracy
 ```
+
+**`slate.json` was added in Phase 1 and is not in this section's original three.** The routes above
+showed one game a week while the pipeline forecast a hundred and twenty. Its own route rather than a
+section of `/cfb`, so the one-fetch rule survives and the front page stays a small document that
+loads fast. It is **home perspective**, unlike `next-game.json`: a slate has no subject team to
+re-sign against, and mixing the two conventions in one contract is how a page draws a favourite as an
+underdog.
 
 **The two `notes/` documents are dropped, resolved 2026-08-29.** This section used to
 publish `notes/index.json` and `notes/<slug>.json`, which contradicted §7 — that section says the
@@ -672,6 +680,18 @@ Carries both records side by side, the calibration curve, the by-week series, an
   }
 }
 ```
+
+`backtest` is a fourth block, `null` unless a week has been scored retrospectively by `cfb backtest`.
+**It is not the model's record and the page must not present it as one.** A backtested week was
+scored after its games were played, so it carries none of the evidence `predictions/` exists to
+provide — folding it into `full_slate` would spend the property §1.1 gives up git to keep. It is kept
+apart by prefix (`backtest/`, which `scored_weeks` does not read by default) rather than by a flag,
+because a prefix cannot be overlooked the way a boolean can.
+
+For week 1 the figures measure something else again: the seed is `1500 + (rating - mean) * 28` and
+the preseason page's rating columns are identical (§1.2), so a week 1 forecast reproduces Sagarin's
+PREDICTOR exactly and `sagarin_r` opens at 1.0. `measures_the_seed` carries that into the document,
+and the page says it in words.
 
 `seed_disclosure` is what §3.6 renders. When `current_r` first falls below `threshold`, `active` goes false
 and `retired_week` records the week — and the page keeps showing the fact that it retired, because a

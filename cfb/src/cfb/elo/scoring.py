@@ -302,16 +302,25 @@ def score_week(
     )
 
 
-def scored_key(*, season: int, week: str, generated_at: datetime) -> str:
-    """``scored/season=2026/week=04/2026-09-21T123000Z.json`` (§5.3)."""
+def scored_key(
+    *, season: int, week: str, generated_at: datetime, prefix: str = "scored"
+) -> str:
+    """``scored/season=2026/week=04/2026-09-21T123000Z.json`` (§5.3).
+
+    ``prefix`` exists for one caller: `cfb backtest` writes the same document
+    shape under ``backtest/``. **A separate prefix rather than a flag inside the
+    document**, because the thing that must never happen is a retrospective week
+    reaching the published season-to-date record, and a prefix cannot be
+    overlooked by a reader the way a boolean can.
+    """
     week_position(week)  # rejects a partition value that would open a second prefix
     return (
-        f"scored/season={season}/week={week}/"
+        f"{prefix}/season={season}/week={week}/"
         f"{generated_at.strftime(_STAMP_FORMAT)}.json"
     )
 
 
-def write_scored(store: SnapshotStore, week: ScoredWeek) -> str:
+def write_scored(store: SnapshotStore, week: ScoredWeek, *, prefix: str = "scored") -> str:
     """Store one scored week write-once. Returns the key.
 
     ``put_bytes``, so an existing key raises rather than being replaced -- §5.3
@@ -321,7 +330,9 @@ def write_scored(store: SnapshotStore, week: ScoredWeek) -> str:
     that did not like Sunday's numbers replace them with Monday's and leave no
     trace that it had. A rescore writes a second key beside the first.
     """
-    key = scored_key(season=week.season, week=week.week, generated_at=week.generated_at)
+    key = scored_key(
+        season=week.season, week=week.week, generated_at=week.generated_at, prefix=prefix
+    )
     store.put_bytes(key, week.model_dump_json(indent=2).encode("utf-8"), "application/json")
     return key
 
@@ -337,7 +348,9 @@ def read_scored(store: SnapshotStore, key: str) -> ScoredWeek:
         return ScoredWeek.model_validate_json(store.get_bytes(key))
 
 
-def scored_weeks(store: SnapshotStore, *, season: int) -> list[ScoredWeek]:
+def scored_weeks(
+    store: SnapshotStore, *, season: int, prefix: str = "scored"
+) -> list[ScoredWeek]:
     """Every scored week of a season, in season order, newest generation of each.
 
     **Newest generation, not every generation.** A rescore writes a second key and
@@ -351,8 +364,8 @@ def scored_weeks(store: SnapshotStore, *, season: int) -> list[ScoredWeek]:
     deadline §8 calls the SLO.
     """
     newest: dict[str, str] = {}
-    for key in store.list_keys(f"scored/season={season}/"):
-        parsed = _parse_scored_key(key)
+    for key in store.list_keys(f"{prefix}/season={season}/"):
+        parsed = _parse_scored_key(key, prefix=prefix)
         if parsed is None:
             continue
         parsed_season, week, _ = parsed
@@ -367,14 +380,14 @@ def scored_weeks(store: SnapshotStore, *, season: int) -> list[ScoredWeek]:
     ]
 
 
-def _parse_scored_key(key: str) -> tuple[int, str, datetime] | None:
+def _parse_scored_key(key: str, *, prefix: str = "scored") -> tuple[int, str, datetime] | None:
     """``(season, week, generated_at)`` from a scored key, or ``None``.
 
     ``None`` rather than a raise, matching ``predict._parse_prediction_key``: this
     walks a prefix, and a listing is not the place to fail over a stray object
     someone put there by hand.
     """
-    if not key.startswith("scored/season=") or not key.endswith(".json"):
+    if not key.startswith(f"{prefix}/season=") or not key.endswith(".json"):
         return None
     try:
         _, season_part, week_part, stamp = key.split("/")

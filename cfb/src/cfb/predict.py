@@ -41,7 +41,7 @@ from cfb.elo import ELO_PER_POINT, SCHEMA_VERSION, Game, K
 from cfb.elo import predict as forecast
 from cfb.elo.state import previous_state
 from cfb.errors import ReplayError, UnmappedTeamError
-from cfb.models import SagarinSnapshot, validating
+from cfb.models import Manifest, SagarinSnapshot, validating
 from cfb.sources import (
     HFA_COLUMN,
     hfa_at,
@@ -205,8 +205,9 @@ def predict_week(
     now: datetime,
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
+    hfa_manifest: Manifest | None = None,
 ) -> PredictionLog:
-    """Forecast every game on a week's slate. Does not write.
+    """Forecast every week's slate. Does not write.
 
     **One HFA for the whole slate, not one per game.** ``sources.hfa_for`` takes a
     game's own kickoff as the boundary, which is right for scoring a game that has
@@ -258,13 +259,18 @@ def predict_week(
 
     lines, lines_keys = week_lines(store, season, lambda record: record.order == target)
 
-    manifests = hfa_manifests(sagarin_manifests(store, season))
-    hfa_manifest = hfa_at(
-        manifests,
-        before=first_kickoff,
-        season=season,
-        what=f"the week {week} slate, whose first kickoff is {first_kickoff.isoformat()}",
-    )
+    # `hfa_manifest` is supplied only by `cfb backtest`, which is explicitly
+    # retrospective and cannot satisfy the rule below -- week 1 of 2026 opened
+    # before this project had captured a single page. Passing it in rather than
+    # adding a fallback keeps the default path strict: there is no branch here
+    # that quietly relaxes §3.3 when it cannot be met.
+    if hfa_manifest is None:
+        hfa_manifest = hfa_at(
+            hfa_manifests(sagarin_manifests(store, season)),
+            before=first_kickoff,
+            season=season,
+            what=f"the week {week} slate, whose first kickoff is {first_kickoff.isoformat()}",
+        )
     hfa = hfa_manifest.hfa[HFA_COLUMN]
 
     benchmark = _sagarin_margins(sagarin_snapshot(store, hfa_manifest), resolver)

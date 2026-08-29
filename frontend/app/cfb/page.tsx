@@ -38,6 +38,10 @@ export default function CfbPage() {
           <Link href="/cfb/accuracy" className="link link-primary">
             See how it has done
           </Link>
+          , or{' '}
+          <Link href="/cfb/slate" className="link link-primary">
+            the whole slate
+          </Link>
           .
         </p>
 

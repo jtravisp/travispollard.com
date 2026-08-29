@@ -9,14 +9,50 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29, second session)
+## Where this stands (2026-08-29) — live
 
-**The pipeline has run against the real bucket for the first time, and `/cfb/data/*` is live.**
-§3-§7 are complete except §6's two routes, which are built but not deployed, and §7's MDX plumbing,
-which has nothing to render yet.
+**Phase 1 is serving.** `https://travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` are
+deployed and reading real documents the pipeline wrote. §3–§7 are complete; §8's workflows are the
+only section not started.
 
 | | |
 |---|---|
+| Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Landed | §3–§7 through PR #44 and #45. This session's slate and backtest work is uncommitted |
+| Next | **§8's three workflows.** Everything runs today because a person types the commands; the crons are what make it a pipeline |
+| Blocked | nothing |
+| Blocked on a human | Phase 0's in-season Sagarin capture |
+
+Live and verified by `curl`:
+
+| URL | |
+|---|---|
+| `/cfb/` | 200 |
+| `/cfb/slate/` | 200 |
+| `/cfb/accuracy/` | 200 |
+| `/cfb/data/next-game.json` | 200, `cache-control: public, max-age=300, s-maxage=3600`, `server: AmazonS3` |
+| `/cfb/data/slate.json` | 200 — week 02, **120 games**, 7 priced, Ohio State at Texas flagged |
+| `/cfb/data/accuracy.json` | 200 |
+
+**The deploy pipeline does invalidate CloudFront, and an earlier note here said it does not.**
+`travispollardcom-deploy` has four stages: Source (CodeStar on `main`) → Build → Deploy (S3) →
+`IndalidateCDN`, a Lambda called `invalidate` with
+`{"distributionId": "E30OWLCN533D8K", "objectPaths": ["/*"]}`. `DetectChanges` is `false` but a
+**WebhookV2** trigger drives it: PR #45 merged at 04:19:56Z, the pipeline started at 04:20:02Z and
+succeeded. The earlier claim came from grepping the repo, and the stage is console-created like the
+rest of the pipeline, so the repo could not see it. No manual invalidation is needed after a site
+deploy.
+
+Run this session:
+
+| Command | Result |
+|---|---|
+| `cfb fetch cfbd --resource lines --week 2` | exit 0 — 86 games, 7 with a spread two weeks out |
+| `cfb publish --week 2` | exit 0, three keys, `slate_games=120 slate_priced=7` |
+| `cfb backtest --season 2026 --week 1` (production) | exit 1, `UnscoredGameError` — **correct**, see §"Backtesting" |
+| `cfb backtest` against a completed week | exit 0, `games=3 ats=2-0 sagarin_r=1.0`, written to `backtest/` |
+
+---|---|
 | Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3-§6 through PR #44, `12afc15` and `4fe2977`. This session's work is uncommitted |
 | Next | Deploy the frontend (merge to `main`; CodePipeline builds from there and does **not** invalidate — see the deploy-pipeline note). Then §8's three workflows |
@@ -523,6 +559,51 @@ pipeline owns". Both could not be the source for `/cfb/notes/[slug]`.
 §6.1's one-fetch rule more completely than a document would have, and the pipeline's only note output
 is the scaffold. Recorded in SPEC §6.1 and §7.
 
+## 6b. The slate, and backtesting
+
+Neither is in SPEC §6.1's three routes. Both are recorded here rather than silently added.
+
+- [x] **`cfb/data/slate.json` and `/cfb/slate`.** §6.1 named three routes and none of them showed
+      the other 119 games the model forecasts every week — the pipeline was computing every row and
+      publishing one. Its own route rather than a section of `/cfb`, so §6.1's one-fetch-per-page
+      rule survives and the front page stays small
+  - [x] **Home perspective, unlike `next-game.json`.** A slate has no subject team to re-sign
+        against, so it keeps the storage convention (§4.2). Mixing the two conventions in one
+        contract is how a page draws a favourite as an underdog
+  - [x] `featured` marks the rows involving the team `next-game.json` is about, so the page can
+        highlight without knowing who that is
+  - [x] `priced` travels with the slate, for the reason every denominator in §5.3 does
+- [x] **`cfb backtest --season --week`**, and §6.4's `backtest` block
+
+### Backtesting: what it is, and the two things that keep it honest
+
+Week 1 of 2026 opened at `2026-08-27T22:00Z` and the earliest Sagarin capture this project holds is
+`2026-08-28T16:50Z`, so §3.3 refuses to read an HFA for it and `cfb predict --week 1` exits 1. That
+refusal is correct and stays. The seed, though, contains no week 1 information — it is the preseason
+page, which predates every game — so the numbers *are* honestly derivable. What is missing is not the
+arithmetic but the evidence of having been written first.
+
+Three things keep it separate, all structural rather than conventions someone has to remember:
+
+- it never writes to `predictions/`, so nothing can grade it as a forecast;
+- it writes to `backtest/`, a prefix `scored_weeks` does not read by default, so it cannot reach the
+  published season-to-date record;
+- §6.4 renders it in its own block, and the page labels it "not a prediction".
+
+**And a week 1 backtest measures Sagarin, not this model.** The seed is `1500 + (rating - mean) * 28`
+and the preseason page's rating columns are identical (§1.2), so a week 1 forecast reproduces
+PREDICTOR to the floating-point bit — `sagarin_r` comes out at exactly `1.0`, confirmed by command.
+`Backtest.measures_the_seed` carries that into the document and the page says it in words, because a
+figure labelled "backtest" and nothing more would read as the model's own.
+
+- [ ] **The production backtest has not run, and cannot until week 1 ends (2026-09-07).** §5.2's
+      second failure mode is "kicked off before the capture and came back with no score", which
+      cannot distinguish a failed join from a game **in progress** — CFBD's `/games` carries no
+      `completed` flag, which is why `results_fetched_at` exists at all. Week 1 spans 08-27 to 09-07,
+      so a capture taken during it almost always catches a live game. Two attempts, two different
+      games mid-flight. Relaxing the rule for the backtest would relax it for the Sunday run too, so
+      it waits.
+
 ## 7. The weekly note
 
 - [x] `src/cfb/publish/notes.py` and `cfb note --season --week`, writing the scaffold from the
@@ -560,6 +641,7 @@ is the scaffold. Recorded in SPEC §6.1 and §7.
 - [x] `cfb publish --season --week [--force]`, defaulting to `calendar.coming_week` — the same
       default `predict` uses, because Thursday's forecast and Friday's page are one week
 - [x] `cfb note --season --week`, defaulting to `calendar.last_completed_week`
+- [x] `cfb backtest --season --week` *(not in §9's list; see §6b)*
 - [x] §9.1 records the five errors this phase adds to Phase 0 §9's hierarchy
 
 ## Repo layout, against §2

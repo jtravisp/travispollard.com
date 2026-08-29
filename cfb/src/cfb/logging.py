@@ -25,6 +25,7 @@ import sys
 from typing import Any
 
 __all__ = [
+    "EVENT_BACKTESTED",
     "EVENT_CFBD_CALL",
     "EVENT_ELO_REPLAY",
     "EVENT_ELO_STATE",
@@ -91,6 +92,11 @@ EVENT_INVALIDATED = "invalidated"
 #: runs on purpose rather than a schedule, so this line exists to say what the
 #: scaffold had to work with rather than to be alerted on.
 EVENT_NOTE_WRITTEN = "note_written"
+#: One per retrospective week scored (`cfb backtest`). **Deliberately not
+#: `week_scored`.** A grep for that event should return the weeks the model
+#: was actually live for and nothing else, because that is the set the
+#: published accuracy record is built from.
+EVENT_BACKTESTED = "backtested"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"

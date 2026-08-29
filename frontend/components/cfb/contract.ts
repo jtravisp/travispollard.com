@@ -103,6 +103,23 @@ export interface SeedDisclosure {
   retired_week: string | null;
 }
 
+/**
+ * Weeks scored retrospectively. **Not the model's record.**
+ *
+ * A backtested week was scored after its games were played, so it carries none
+ * of the evidence a real prediction does. `measures_the_seed` is true while every
+ * backtested week is one whose forecast is arithmetically the preseason seed —
+ * week 1, and only week 1 — in which case the figures describe Sagarin's
+ * preseason page rather than this model.
+ */
+export interface Backtest {
+  through_week: string | null;
+  measures_the_seed: boolean;
+  texas: Record;
+  full_slate: Record;
+  by_week: WeekPoint[];
+}
+
 export interface AccuracyDocument extends Envelope {
   /** The newest week with results, which is not the envelope's week. */
   through_week: string | null;
@@ -111,4 +128,29 @@ export interface AccuracyDocument extends Envelope {
   calibration: CalibrationBucket[];
   by_week: WeekPoint[];
   seed_disclosure: SeedDisclosure;
+  /** `null` when nothing has been backtested. */
+  backtest: Backtest | null;
+}
+
+/** One row of `/cfb/slate`. Home perspective, unlike `next-game.json`. */
+export interface SlateGame {
+  cfbd_game_id: number;
+  kickoff: string;
+  home: string;
+  away: string;
+  neutral_site: boolean;
+  /** Positive favours the home team. */
+  predicted_margin: number;
+  /** The home team's, clamped. */
+  win_probability: number;
+  market_line: number | null;
+  line_source: string | null;
+  /** Involves the team `next-game.json` is about. */
+  featured: boolean;
+}
+
+export interface SlateDocument extends Envelope {
+  team: string;
+  priced: number;
+  games: SlateGame[];
 }
