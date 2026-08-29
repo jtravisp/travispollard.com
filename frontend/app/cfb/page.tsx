@@ -21,14 +21,10 @@ import Link from 'next/link';
 import CfbNav from '@/components/cfb/CfbNav';
 import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import {
-  LastResult,
-  NextGameDocument,
-  modelRank,
-  opponentModelRank,
-} from '@/components/cfb/contract';
+import { LastResult, NextGameDocument } from '@/components/cfb/contract';
 import {
   describeFavorite,
+  edgeOver,
   favorite,
   formatGeneratedAt,
   formatKickoff,
@@ -100,6 +96,10 @@ function NextGame({ document }: { document: NextGameDocument }) {
   const model = favorite(game.predicted_margin, team, opponent);
   const market = marketFavorite(game.market_line, home, away);
   const disagree = model !== null && market !== null && model.team !== market.team;
+  // The one number that distinguishes this page from a scoreboard: a 99% win
+  // probability reads the same whether the model is right or badly wrong, but
+  // the gap to a book pricing the same game is a claim the record settles.
+  const edge = edgeOver(game.predicted_margin, game.market_line, game.home);
 
   return (
     <div className="space-y-6">
@@ -111,29 +111,23 @@ function NextGame({ document }: { document: NextGameDocument }) {
           <h2 className="card-title text-2xl">
             {away} <span className="text-base-content/50 font-normal">at</span> {home}
           </h2>
+          {/* Venue only. The opponent's standing is context for the margin and
+              belongs beside the margin, not in the sentence about the stadium. */}
           <p className="text-sm text-base-content/60">
             {game.neutral_site
               ? `Neutral site — ${home} is nominally the home team.`
               : `${home} is at home.`}
-            {/* A margin is not legible without the opponent's standing: "Texas by
-                39.3" reads differently against the 5th team and the 81st. */}
-            {opponentModelRank(game) != null && (
-              <>
-                {' '}
-                {game.opponent} is {ordinal(opponentModelRank(game)!)} of {asOf.fbs_teams} by
-                this model.
-              </>
-            )}
-            {opponentModelRank(game) == null && game.opponent_elo != null && (
-              <> {game.opponent} is outside the FBS, so this model does not rank it.</>
-            )}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3 mt-4">
             <Figure
               label="Model picks"
               value={describeFavorite(model, 'dead even')}
-              note={`the model's margin, from ${team}'s side`}
+              note={
+                game.opponent_model_rank != null
+                  ? `${game.opponent} is ${ordinal(game.opponent_model_rank)} of ${asOf.fbs_teams} by this model`
+                  : `${game.opponent} is outside the FBS, so this model does not rank it`
+              }
               emphasis
             />
             <Figure
@@ -152,6 +146,30 @@ function NextGame({ document }: { document: NextGameDocument }) {
             />
           </div>
 
+          {/* (1) The edge. Shown whenever a book has priced the game, not only
+              when the two disagree about the winner -- most of the information is
+              in games where they agree on the side and differ on the number. */}
+          {edge !== null && (
+            <div className="rounded-box bg-base-100 p-4 mt-3">
+              <div className="text-xs uppercase tracking-wide text-base-content/60">
+                The model&rsquo;s edge
+              </div>
+              <div className="text-xl font-semibold mt-1">
+                {Math.abs(edge) < 0.05
+                  ? 'The model and the market agree'
+                  : `${Math.abs(edge).toFixed(1)} points ${edge > 0 ? 'higher' : 'lower'} on ${team}`}
+              </div>
+              <div className="text-xs text-base-content/60 mt-1">
+                the model says {describeFavorite(model, 'dead even')}, the market says{' '}
+                {describeFavorite(market)} — this gap is what the{' '}
+                <Link href="/cfb/accuracy" className="link">
+                  accuracy record
+                </Link>{' '}
+                settles over a season
+              </div>
+            </div>
+          )}
+
           {disagree && (
             <div className="alert alert-warning mt-4">
               <p className="text-sm">
@@ -167,7 +185,13 @@ function NextGame({ document }: { document: NextGameDocument }) {
       {document.last_result && (
         <LastGame result={document.last_result} team={team} />
       )}
-      <Ratings asOf={asOf} team={team} history={document.history} />
+      <Ratings
+        asOf={asOf}
+        team={team}
+        history={document.history}
+        opponentName={game.opponent}
+        opponentElo={game.opponent_elo}
+      />
       <Published document={document} />
     </div>
   );
@@ -244,15 +268,18 @@ function Ratings({
   asOf,
   team,
   history,
+  opponentName,
+  opponentElo,
 }: {
   asOf: NextGameDocument['as_of'];
   team: string;
+  opponentName?: string;
+  opponentElo?: number | null;
   // Optional, not merely possibly-empty: a document published before this field
   // existed has no `history` key at all, and `.length` on undefined throws.
   history?: NextGameDocument['history'];
 }) {
   const points = history ?? [];
-  const rank = modelRank(asOf);
 
   return (
     <div className="card bg-base-200">
@@ -274,13 +301,25 @@ function Ratings({
             <div className="text-xs uppercase tracking-wide text-base-content/60">
               Elo rank
             </div>
-            <div className="text-2xl font-semibold">
-              {rank == null ? '—' : `#${rank}`}
-            </div>
+            <div className="text-2xl font-semibold">#{asOf.model_rank}</div>
             <div className="text-xs text-base-content/60">
               of {asOf.fbs_teams} FBS teams, by this model
             </div>
           </div>
+          {/* (2) Without the opponent's rating the arithmetic is not
+              reconstructible, and the whole premise is that it is visible:
+              the margin is the gap between these two, over 20, plus HFA. */}
+          {opponentElo != null && (
+            <div>
+              <div className="text-xs uppercase tracking-wide text-base-content/60">
+                {opponentName} Elo
+              </div>
+              <div className="text-2xl font-semibold">{Math.round(opponentElo)}</div>
+              <div className="text-xs text-base-content/60">
+                a {Math.abs(Math.round(asOf.elo - opponentElo))}-point Elo gap
+              </div>
+            </div>
+          )}
         </div>
 
         {points.length >= MINIMUM_POINTS ? (
@@ -306,11 +345,42 @@ function Ratings({
 }
 
 function Published({ document }: { document: NextGameDocument }) {
+  const forecast = document.game?.forecast_generated_at;
+
   return (
-    <p className="text-xs text-base-content/50">
-      Published {formatGeneratedAt(document.generated_at)} &middot; season {document.season}{' '}
-      &middot; win probabilities are capped at 1% and 99%, because a model that prints a certainty
-      has no way to have been right.
-    </p>
+    <div className="space-y-2 text-xs text-base-content/50">
+      {/* (5) The week number confuses anyone who follows the sport, and /cfb is
+          where people land. The footnote already exists on /cfb/slate; the
+          numbering is not ours to change, so the page explains it instead. */}
+      <p>
+        <strong className="text-base-content/70">On the week number:</strong> the data source
+        runs its week 1 from Aug 27 to Sep 7 — ten days, spanning both opening Saturdays — so a
+        game the media calls Week 1 is filed here under the same week as games a week earlier.
+        It is the source&rsquo;s numbering, not a renumbering here.
+      </p>
+
+      <p>
+        {/* The timestamp that carries the claim. The document's own generated_at
+            is the publish run and says only when the page was rebuilt. */}
+        {forecast ? (
+          <>
+            <strong className="text-base-content/70">Forecast written</strong>{' '}
+            {formatGeneratedAt(forecast)}, before kickoff — that is the claim this project
+            makes, and it is why the prediction&rsquo;s own timestamp is shown here rather than
+            the time the page was last rebuilt ({formatGeneratedAt(document.generated_at)}).
+          </>
+        ) : (
+          <>Page rebuilt {formatGeneratedAt(document.generated_at)}.</>
+        )}{' '}
+        Season {document.season}.
+      </p>
+
+      {/* (4) The old sentence was a riddle: "a model that prints a certainty has
+          no way to have been right" is not the reason. This is. */}
+      <p>
+        Win probabilities are capped at 1% and 99%. Nothing in this sport justifies 100% — FBS
+        teams do lose to FCS teams — so the model is not allowed to say it.
+      </p>
+    </div>
   );
 }

@@ -38,6 +38,17 @@ const OLD_DOCUMENT = {
   as_of: { week: 'preseason', elo: 2113.0, national_rank: 5, fbs_teams: 138 },
 };
 
+/**
+ * Version 2 without the fields added after it — `history`, `last_result`,
+ * `opponent_model_rank`. This is what a page reads between deploying and the
+ * next publish, which is the window every additive release passes through.
+ */
+const WITHOUT_NEW_FIELDS = {
+  ...OLD_DOCUMENT,
+  schema_version: 2,
+  as_of: { week: 'preseason', elo: 2113.0, model_rank: 5, fbs_teams: 138 },
+};
+
 /** The same document as the pipeline publishes it now: version 2, `model_rank`. */
 const NEW_DOCUMENT = {
   ...OLD_DOCUMENT,
@@ -54,7 +65,7 @@ test.describe('/cfb against a document written before the new fields', () => {
     // failing these tests for a reason that has nothing to do with them.
     // `/cfb` fetches exactly this document and nothing else (SPEC-phase1 6.1).
     await page.route('**/cfb/data/next-game.json*', (route) =>
-      route.fulfill({ json: OLD_DOCUMENT }),
+      route.fulfill({ json: WITHOUT_NEW_FIELDS }),
     );
   });
 
@@ -65,7 +76,9 @@ test.describe('/cfb against a document written before the new fields', () => {
     await page.goto('/cfb/');
 
     await expect(page.getByRole('heading', { name: /Texas State.*at.*Texas/ })).toBeVisible();
-    await expect(page.getByText('Texas by 39.3')).toBeVisible();
+    // `.first()`: the margin appears twice by design -- once as the headline
+    // figure and once inside the edge card explaining the gap to the market.
+    await expect(page.getByText('Texas by 39.3').first()).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -131,18 +144,22 @@ test.describe('/cfb against a document carrying the new fields', () => {
 });
 
 test.describe('the version 2 rename', () => {
-  test('a version 1 document still renders its rank', async ({ page }) => {
+  test('a version 1 document now shows the stale state', async ({ page }) => {
     /**
-     * The reason both versions are accepted. Routes deploy before the pipeline
-     * republishes, so this page reads a v1 document first — and v1 spells the
-     * field `national_rank`. Refusing it would show "data is newer than this
-     * page" to every visitor for a change that renamed one key.
+     * Version 1 was accepted only while the rename was in flight, so that a page
+     * deployed before the pipeline republished could still read `national_rank`.
+     * Every published document reads version 2 now.
+     *
+     * So a version 1 document means something has gone *backwards* — a rollback,
+     * a stale cache, a hand-edited object — and the honest response is to say so
+     * rather than to render it. A page that kept accepting it would make a
+     * rollback look like it worked.
      */
     await page.route('**/cfb/data/next-game.json*', (route) =>
       route.fulfill({ json: OLD_DOCUMENT }),
     );
     await page.goto('/cfb/');
-    await expect(page.getByText('#5')).toBeVisible();
+    await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
   });
 
   test('a version 2 document renders the same rank from the new name', async ({ page }) => {
@@ -161,5 +178,71 @@ test.describe('the version 2 rename', () => {
     );
     await page.goto('/cfb/');
     await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
+  });
+});
+
+test.describe('the copy a visitor actually reads', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...NEW_DOCUMENT,
+          game: {
+            ...NEW_DOCUMENT.game,
+            opponent_model_rank: 81,
+            opponent_elo: 1375.0,
+            forecast_generated_at: '2026-08-29T19:40:59.782438Z',
+          },
+        },
+      }),
+    );
+  });
+
+  test('surfaces the edge over the market', async ({ page }) => {
+    /**
+     * The one number that distinguishes this page from a scoreboard. Model
+     * 39.3, market 30.5 on Texas, so the model is 8.8 points higher.
+     */
+    await page.goto('/cfb/');
+    await expect(page.getByText(/The model.s edge/i)).toBeVisible();
+    await expect(page.getByText('8.8 points higher on Texas')).toBeVisible();
+  });
+
+  test('shows both Elo ratings so the margin can be reconstructed', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText('2113')).toBeVisible();
+    await expect(page.getByText('1375')).toBeVisible();
+    await expect(page.getByText(/738-point Elo gap/)).toBeVisible();
+  });
+
+  test('separates the venue from the opponent ranking', async ({ page }) => {
+    await page.goto('/cfb/');
+    // The venue sentence stands alone; the rank sits with the margin it explains.
+    await expect(page.getByText('Texas is at home.', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Texas State is 81st of 138 by this model/)).toBeVisible();
+  });
+
+  test('explains the cap with the actual reason', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText(/FBS teams do lose to FCS teams/)).toBeVisible();
+    await expect(page.getByText(/no way to have been right/)).toHaveCount(0);
+  });
+
+  test('explains the week numbering', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText(/ten days, spanning both opening Saturdays/)).toBeVisible();
+  });
+
+  test("shows the forecast's timestamp, not the publish run's", async ({ page }) => {
+    /**
+     * The integrity claim is that a prediction existed before kickoff, and only
+     * the prediction's own timestamp carries it. A publish time says when the
+     * page was rebuilt, which is a fact about the site.
+     */
+    await page.goto('/cfb/');
+    await expect(page.getByText(/Forecast written/)).toBeVisible();
+    // The phrase appears in the intro paragraph too; `.first()` is enough here
+    // because the assertion above already pins the footer line.
+    await expect(page.getByText(/before kickoff/).first()).toBeVisible();
   });
 });
