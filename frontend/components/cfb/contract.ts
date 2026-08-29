@@ -241,5 +241,11 @@ export interface SlateDocument extends Envelope {
   priced: number;
   /** Set when the run covered less than the whole week; null otherwise. */
   forecast_from: string | null;
+  /**
+   * Games the model forecast that are not listed, because neither team is FBS.
+   * Published so the page can say what it left out rather than quietly showing
+   * a smaller number than the model produced.
+   */
+  excluded_non_fbs?: number;
   games: SlateGame[];
 }

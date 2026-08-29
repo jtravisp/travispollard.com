@@ -949,6 +949,53 @@ A local run with a deliberately failing spec:
 That last pair matters as much as the timing: a fix that stopped the hang by
 swallowing the failure would have left CI green on a broken build.
 
+## Follow-up: /cfb/slate layout and scope
+
+### A layout bug no text assertion could catch
+
+The footnote's second paragraph — the one explaining **why games are missing** —
+rendered as a ribbon about **65px wide** down the right edge of the callout, one
+or two words per line, while the first paragraph filled the box.
+
+daisyUI's `.alert` is `display: grid; grid-auto-flow: column`, confirmed in the
+compiled CSS. Every *direct child* becomes a column, so two sibling `<p>` elements
+became two columns. Wrapping them in one `<div>` makes the alert one column again;
+`DocumentState` already did that, which is why its alerts were fine.
+
+- [x] Fixed, and **the regression test measures a bounding box rather than reading
+      a string.** Nothing else would have caught it: the markup is valid, the text
+      is present, every `getByText` passes, and the build is clean. It is only
+      wrong once laid out
+- [x] Verified the test catches the original bug by reverting the fix and watching
+      it fail at **64.6px** against a 400px floor — a regression test that cannot
+      detect the regression is worth nothing
+
+### Scope: the slate is FBS games only, and says what it left out
+
+144 forecasts, and most of the visible page was FCS-vs-FCS — Bryant at Stonehill,
+Campbell at East Tennessee State. **The model needs those games; the page does
+not.** FCS results are what move FCS ratings, which is how an FBS-vs-FCS forecast
+gets a sensible opponent, so they are predicted, scored and stored like any other.
+
+- [x] `build_slate` keeps games with at least one FBS team and publishes
+      `excluded_non_fbs`. On week 1: **96 shown, 48 excluded**, and every shown
+      game priced
+- [x] **Filtered in the pipeline, not on the page.** §6.1 makes each route one
+      fetch and no composition; a page deciding what to show would be doing the
+      work the document exists to have already done
+- [x] **The count is published rather than the games silently vanishing.** A
+      slate reading 96 where the model forecast 144 would understate the work, and
+      that difference is exactly what this project refuses to leave to inference
+- [x] The excluded count is optional, so a document published before the filter
+      existed still renders — the window between deploying routes and the next
+      publish, covered by a test
+
+### The opponent's rank moved
+
+It sat inside the Model picks card, where it read as a footnote to the margin. It
+is opponent context, so it now sits beside the opponent's Elo and the gap it
+explains: "81st of 138 by this model · a 738-point gap".
+
 ## Follow-up: /cfb read as a visitor rather than as its author
 
 Five things, in the order they mattered.

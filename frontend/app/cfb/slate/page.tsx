@@ -37,8 +37,10 @@ export default function SlatePage() {
 
         <h1 className="text-2xl font-bold mb-1">This week&rsquo;s slate</h1>
         <p className="text-base-content/70 mb-8">
-          Every game the model forecast, written before kickoff. Each row names the team it
-          favours and by how many points, so nothing depends on reading a sign.
+          Every game involving an FBS team, written before kickoff. Each row names the team it
+          favours and by how many points, so nothing depends on reading a sign. The model also
+          forecasts FCS-only games — their results are what move FCS ratings, which is how an
+          FBS-vs-FCS prediction gets a sensible opponent — but they are not listed here.
         </p>
 
         {state.status !== 'ready' ? (
@@ -52,6 +54,10 @@ export default function SlatePage() {
 }
 
 function Slate({ document }: { document: SlateDocument }) {
+  // Absent on a document published before the filter existed, which is the
+  // window between deploying these routes and the next publish.
+  const excluded = document.excluded_non_fbs ?? 0;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-sm text-base-content/70">
@@ -61,6 +67,17 @@ function Slate({ document }: { document: SlateDocument }) {
         {/* The denominator travels, as it does everywhere else here: a slate with
             three lines on it looks the same as one with a hundred otherwise. */}
         <span>{document.priced} priced by a book</span>
+        {excluded > 0 && (
+          <>
+            <span aria-hidden>&middot;</span>
+            {/* Said, not hidden. The model forecast these; the page leaves them
+                out because the audience follows one FBS team, and a slate that
+                claimed the smaller number would understate the work. */}
+            <span>
+              {excluded} more forecast, not shown — both teams outside the FBS
+            </span>
+          </>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -84,17 +101,27 @@ function Slate({ document }: { document: SlateDocument }) {
 
       {document.forecast_from && (
         <div className="alert alert-info text-sm">
-          <p>
-            <strong>This week is longer than a week.</strong> The data source runs its week 1 from
-            Aug 27 to Sep 7 — ten days spanning <em>both</em> opening Saturdays — which is why this
-            slate is larger than a normal one and why its games fall on two different weekends. It
-            is the source&rsquo;s own numbering, not a renumbering here.
-          </p>
-          <p className="mt-1 opacity-80">
-            Games that had already kicked off when this forecast was generated are not listed:
-            the model went live mid-week, and predicting a game in progress is not a prediction.
-            The first game forecast here starts {formatKickoff(document.forecast_from)}.
-          </p>
+          {/* One child, not two.
+              daisyUI's .alert is `display: grid; grid-auto-flow: column`, so each
+              direct child becomes a *column*. Two sibling <p> elements rendered
+              as a full-width paragraph beside a ribbon about 65px wide down the
+              right edge -- and the squeezed one was the paragraph explaining why
+              games are missing. Wrapping them makes the alert one column again.
+              `tests/cfb-slate.spec.ts` measures the box, because every text
+              assertion passes either way. */}
+          <div>
+            <p>
+              <strong>This week is longer than a week.</strong> The data source runs its week 1
+              from Aug 27 to Sep 7 — ten days spanning <em>both</em> opening Saturdays — which is
+              why this slate is larger than a normal one and why its games fall on two different
+              weekends. It is the source&rsquo;s own numbering, not a renumbering here.
+            </p>
+            <p className="mt-2 opacity-80">
+              Games that had already kicked off when this forecast was generated are not listed:
+              the model went live mid-week, and predicting a game in progress is not a prediction.
+              The first game forecast here starts {formatKickoff(document.forecast_from)}.
+            </p>
+          </div>
         </div>
       )}
 
