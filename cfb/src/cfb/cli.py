@@ -878,6 +878,7 @@ def _backtest(args, *, moment: datetime) -> int:
         week=week,
         now=moment,
         hfa_manifest=earliest,
+        retrospective=True,
     )
 
     capture = results_capture(store, args.season, week)

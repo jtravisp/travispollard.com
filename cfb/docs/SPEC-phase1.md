@@ -543,6 +543,30 @@ Per week and per season, for **Texas** and for the **full slate** separately, as
 
 Scored weeks are written to `scored/season=2026/week=04/<ts>.json`, write-once, same rules.
 
+### 4.4 A run forecasts what has not happened
+
+§4.1 says a prediction log is "every game on that week's slate", which assumed a
+run always precedes the whole week. **CFBD's week 1 of 2026 is ten days long and
+spans two Saturdays**, and this pipeline came online between them, so that
+assumption is not safe.
+
+A run forecasts the games whose kickoff is at or after the moment it runs, and the
+HFA boundary is the first kickoff **among those** rather than the slate's. On any
+ordinary week the two are identical. They came apart once, and the earlier
+boundary refused eight days of forecastable games because one game on the slate's
+first day predated the first Sagarin capture in existence.
+
+`forecast_from` records the boundary when a log is partial and is `null` otherwise.
+§5.2's first failure mode reads it: a result that kicked off before the log began
+forecasting was never forecastable, which is a fact about when the pipeline
+started rather than a join that failed.
+
+This does **not** move to per-game HFA. A prediction run happens at one moment and
+cannot use a snapshot that lands later, which is what §4.2's single `hfa` field
+means and what `test_a_snapshot_landing_mid_week_is_not_used` pins. Per-game HFA
+belongs to `score` and `replay`, which reconstruct what was knowable before each
+game.
+
 ### 5.4 Which generation is scored, and what the document records
 
 A week can hold several prediction objects — §4.1 makes them write-once precisely so a regenerate adds
@@ -647,6 +671,11 @@ so the page would have been attributing a DraftKings number to something that do
 
 **Four things the sketch above leaves out, all of them found by generating the document.**
 
+- **The game shown is the team's next *unplayed* game, wherever it is** — not the
+  featured game of the week being published, which are the same thing on an
+  ordinary week and came apart in 2026's ten-day week 1. The `game` block carries
+  its own `week` for that reason: the envelope's week labelled a week 1 game
+  "Week 2".
 - **`game` is nullable, and a bye is why.** Texas has bye weeks; a page blanked entirely for one would
   be a worse statement than a missing fixture. `as_of` is populated either way, because the ratings are
   true whether or not there is a game that week.

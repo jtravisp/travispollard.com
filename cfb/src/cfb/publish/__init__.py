@@ -47,7 +47,14 @@ from cfb.elo.scoring import (
 from cfb.elo.state import load_state
 from cfb.errors import ReplayError
 from cfb.models import validating
-from cfb.predict import PredictedGame, PredictionLog, prediction_generations, read_predictions
+from cfb.predict import (
+    PredictedGame,
+    PredictionLog,
+    index_entries,
+    prediction_generations,
+    read_predictions,
+)
+from cfb.sources import week_position
 from cfb.storage import SnapshotStore
 
 __all__ = [
@@ -124,6 +131,12 @@ class PublishedGame(BaseModel):
     model_config = _STRICT
 
     kickoff: datetime
+    #: **The week this game belongs to, which is not always the run's week.**
+    #: `/cfb` shows the next unplayed game wherever it is, so a run during a long
+    #: week can legitimately feature a game from an earlier week than the one
+    #: being published. The page prints this beside the kickoff; printing the
+    #: envelope's week there labelled a week 1 game "Week 2".
+    week: str = Field(min_length=1)
     #: A rendered name, not a canonical id (§6.3).
     opponent: str = Field(min_length=1)
     home: bool
@@ -399,16 +412,23 @@ def build_next_game(
     page should show the most recent thing the model said, and a regenerate exists
     precisely because someone wanted the newer number on the site.
 
+    **And the next *unplayed* game, wherever it is** -- not the featured game of
+    the week being published. Those are the same thing on an ordinary week and
+    they came apart badly in 2026: CFBD week 1 ran ten days across two Saturdays,
+    the run published week 2, and `/cfb` showed a game a fortnight out while the
+    team was idle and its actual next opponent sat unforecast in week 1. A page
+    whose headline is "next game" has to mean it.
+
     Raises when the week has no predictions at all. That is the Friday SLO failing
     (§8) -- the publish run exists to put a forecast on the page before kickoff,
     and one that quietly published a page without one would have removed the only
     signal that it did not happen.
     """
     resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
-    log = _newest_predictions(store, season=season, week=week)
+    log, fixture = _next_fixture(store, season=season, week=week, team=team, now=now)
     state = load_state(store, log.model.elo_state)
 
-    return _next_game_document(log, state, resolver, team=team, now=now)
+    return _next_game_document(log, fixture, state, resolver, team=team, now=now)
 
 
 def build_slate(
@@ -553,6 +573,55 @@ def publish(
 # --- the pieces ---------------------------------------------------------------
 
 
+def _next_fixture(
+    store: SnapshotStore, *, season: int, week: str, team: str, now: datetime
+) -> tuple[PredictionLog, PredictedGame | None]:
+    """The log to describe, and the team's next unplayed game in it.
+
+    Searches the requested week first, then every later week that has stored
+    predictions, and takes the earliest kickoff still ahead of ``now``. Earlier
+    weeks are never searched: a week before the one being published is finished
+    business, and a "next game" pointing backwards would be worse than the bug
+    this replaces.
+
+    Returns the requested week's log with ``None`` when the team has nothing
+    ahead of it anywhere -- a bye, or a season that has run out. The document
+    still needs a log to name the ratings it was built from, and §6.3's ``as_of``
+    is true either way.
+    """
+    weeks = sorted(
+        {entry.week for entry in index_entries(store) if entry.season == season},
+        key=week_position,
+    )
+    ordered = [found for found in weeks if week_position(found) >= week_position(week)]
+    if week not in ordered:
+        # The requested week has no predictions at all. `_newest_predictions`
+        # raises with the message naming `cfb predict`, which is the right
+        # failure for a Friday and the one SPEC 8 calls the SLO.
+        return _newest_predictions(store, season=season, week=week), None
+
+    here = _newest_predictions(store, season=season, week=week)
+    best: tuple[datetime, PredictionLog, PredictedGame] | None = None
+    for candidate in ordered:
+        log = (
+            here
+            if candidate == week
+            else _newest_predictions(store, season=season, week=candidate)
+        )
+        for game in log.games:
+            if team not in (game.home, game.away) or game.kickoff < now:
+                continue
+            if best is None or game.kickoff < best[0]:
+                best = (game.kickoff, log, game)
+        if best is not None:
+            # Weeks are searched in order, so the first one holding a fixture
+            # ahead of `now` holds the earliest. Reading further would spend
+            # object reads to find a game that cannot be sooner.
+            break
+
+    return (best[1], best[2]) if best else (here, None)
+
+
 def _newest_predictions(store: SnapshotStore, *, season: int, week: str) -> PredictionLog:
     generations = prediction_generations(store, season=season, week=week)
     if not generations:
@@ -567,6 +636,7 @@ def _newest_predictions(store: SnapshotStore, *, season: int, week: str) -> Pred
 
 def _next_game_document(
     log: PredictionLog,
+    fixture: PredictedGame | None,
     state: EloState,
     resolver: Crosswalk,
     *,
@@ -574,11 +644,11 @@ def _next_game_document(
     now: datetime,
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
-    fixture = [game for game in log.games if team in (game.home, game.away)]
-    if len(fixture) > 1:
+    same_week = [game for game in log.games if team in (game.home, game.away)]
+    if len(same_week) > 1:
         raise ReplayError(
-            f"{team} appears in {len(fixture)} games on the week {log.week} slate of season "
-            f"{log.season}: {sorted(game.cfbd_game_id for game in fixture)}. One team plays "
+            f"{team} appears in {len(same_week)} games on the week {log.week} slate of "
+            f"season {log.season}: {sorted(g.cfbd_game_id for g in same_week)}. One team plays "
             f"once a week, so this is a slate holding the same game twice or two teams "
             f"resolving to one canonical id -- either way `/cfb` would render whichever "
             f"came first"
@@ -591,7 +661,11 @@ def _next_game_document(
             season=log.season,
             week=log.week,
             team=resolver.display_name(team),
-            game=_published_game(fixture[0], resolver, team=team) if fixture else None,
+            game=(
+                _published_game(fixture, resolver, team=team, week=log.week)
+                if fixture is not None
+                else None
+            ),
             as_of=AsOf(
                 week=state.week,
                 elo=state.ratings[team],
@@ -602,13 +676,14 @@ def _next_game_document(
 
 
 def _published_game(
-    prediction: PredictedGame, resolver: Crosswalk, *, team: str
+    prediction: PredictedGame, resolver: Crosswalk, *, team: str, week: str
 ) -> PublishedGame:
     """One prediction row, re-signed from the home team's view to the subject's."""
     at_home = prediction.home == team
     opponent = prediction.away if at_home else prediction.home
     return PublishedGame(
         kickoff=prediction.kickoff,
+        week=week,
         opponent=resolver.display_name(opponent),
         home=at_home,
         neutral_site=prediction.neutral_site,

@@ -39,7 +39,14 @@ from cfb.publish import (
 from cfb.replay import advance, seed_state
 from cfb.sources import week_slate
 from cfb.storage import MemorySnapshotStore
-from test_replay import PRESEASON_AT, SEASON, cfbd_game, put_games, put_sagarin
+from test_replay import (
+    PRESEASON_AT,
+    PRESEASON_HFA,
+    SEASON,
+    cfbd_game,
+    put_games,
+    put_sagarin,
+)
 
 SEEDED_AT = datetime(2026, 8, 28, 18, 0, tzinfo=UTC)
 PULLED_AT = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
@@ -110,7 +117,10 @@ class TestTheClamp:
             crosswalk,
             slate_of(
                 cfbd_game(
-                    game_id=1, week=1, kickoff=THURSDAY, home="Texas",
+                    # Ahead of PUBLISHED_AT: `/cfb` shows the next *unplayed*
+                    # game, so a Thursday kickoff would correctly come back as a
+                    # bye on a Friday run and there would be nothing to clamp.
+                    game_id=1, week=1, kickoff=SATURDAY, home="Texas",
                     away="Stetson", home_points=None, away_points=None,
                 )
             ),
@@ -515,3 +525,160 @@ class TestTheEloAdvanceIsNotInvolved:
         before = set(store.list_keys("elo/"))
         publish(store=store, season=SEASON, week="01", now=PUBLISHED_AT, crosswalk=crosswalk)
         assert set(store.list_keys("elo/")) == before
+
+
+# --- the next game is the next game -------------------------------------------
+
+
+class TestLookingAhead:
+    """**The bug this class exists for shipped to production.**
+
+    CFBD's week 1 of 2026 ran ten days across two Saturdays. Week 1 could not be
+    predicted -- its first kickoff predated the first Sagarin capture -- so the
+    run published week 2, and `/cfb` showed a game a fortnight out while the
+    team's actual next opponent sat unforecast in week 1. Every number on the
+    page was correct and the page was wrong.
+    """
+
+    def two_weeks(self, crosswalk):
+        """Week 1 holding a later game, week 2 holding an earlier-labelled one."""
+        store = MemorySnapshotStore()
+        put_sagarin(store, fetched_at=PRESEASON_AT)
+        put_games(
+            store,
+            week="01",
+            fetched_at=PULLED_AT,
+            games=[
+                cfbd_game(game_id=1, week=1, kickoff=datetime(2026, 9, 5, 19, tzinfo=UTC),
+                          home="Texas", away="Texas State",
+                          home_points=None, away_points=None)
+            ],
+        )
+        put_games(
+            store,
+            week="02",
+            fetched_at=PULLED_AT,
+            games=[
+                cfbd_game(game_id=2, week=2, kickoff=datetime(2026, 9, 12, 23, 30, tzinfo=UTC),
+                          home="Texas", away="Ohio State",
+                          home_points=None, away_points=None)
+            ],
+        )
+        write_state(
+            store, seed_state(store=store, season=SEASON, now=SEEDED_AT, crosswalk=crosswalk)
+        )
+        for week in ("01", "02"):
+            write_predictions(
+                store,
+                predict_week(store=store, season=SEASON, week=week,
+                             now=GENERATED_AT, crosswalk=crosswalk),
+            )
+        return store
+
+    def test_it_finds_the_earlier_game_from_a_later_weeks_run(self, crosswalk):
+        """Publishing week 2 must still surface the week 1 game that is sooner."""
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
+        )
+        assert page.game.opponent == "Texas State"
+        assert page.game.week == "01"
+
+    def test_the_game_carries_its_own_week_not_the_runs(self, crosswalk):
+        """Printing the envelope's week beside the kickoff labelled a week 1
+        game "Week 2", which is how the original bug looked on the page."""
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
+        )
+        assert page.game.week == "01"
+
+    def test_a_played_game_is_skipped_for_the_next_one(self, crosswalk):
+        """Once the week 1 game has kicked off, week 2's becomes next."""
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store,
+            season=SEASON,
+            week="01",
+            now=datetime(2026, 9, 6, 12, tzinfo=UTC),
+            crosswalk=crosswalk,
+        )
+        assert page.game.opponent == "Ohio State"
+        assert page.game.week == "02"
+
+    def test_it_never_looks_backwards(self, crosswalk):
+        """A week before the one being published is finished business, and a
+        "next game" pointing backwards would be worse than the bug it replaces."""
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store, season=SEASON, week="02", now=GENERATED_AT, crosswalk=crosswalk
+        )
+        assert page.game.opponent == "Ohio State"
+
+    def test_nothing_ahead_anywhere_is_a_bye(self, crosswalk):
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store,
+            season=SEASON,
+            week="01",
+            now=datetime(2026, 12, 1, 12, tzinfo=UTC),
+            crosswalk=crosswalk,
+        )
+        assert page.game is None
+        assert page.as_of.national_rank == 5
+
+
+class TestPredictingOnlyWhatIsAhead:
+    """A run forecasts the games that have not kicked off, and says so."""
+
+    def week_one(self, crosswalk, *, now):
+        store = MemorySnapshotStore()
+        put_sagarin(store, fetched_at=PRESEASON_AT)
+        put_games(
+            store,
+            week="01",
+            fetched_at=PULLED_AT,
+            games=[
+                cfbd_game(game_id=1, week=1, kickoff=datetime(2026, 8, 29, 19, tzinfo=UTC),
+                          home="Ohio State", away="Michigan",
+                          home_points=21, away_points=17),
+                cfbd_game(game_id=2, week=1, kickoff=datetime(2026, 9, 5, 19, tzinfo=UTC),
+                          home="Texas", away="Texas State",
+                          home_points=None, away_points=None),
+            ],
+        )
+        write_state(
+            store, seed_state(store=store, season=SEASON, now=SEEDED_AT, crosswalk=crosswalk)
+        )
+        return store, predict_week(
+            store=store, season=SEASON, week="01", now=now, crosswalk=crosswalk
+        )
+
+    def test_a_game_already_kicked_off_is_not_forecast(self, crosswalk):
+        _, log = self.week_one(crosswalk, now=datetime(2026, 8, 30, 12, tzinfo=UTC))
+        assert [game.cfbd_game_id for game in log.games] == [2]
+
+    def test_the_log_records_that_it_is_partial(self, crosswalk):
+        """`forecast_from` is what lets scoring tell a game nobody could have
+        forecast from a join that failed."""
+        _, log = self.week_one(crosswalk, now=datetime(2026, 8, 30, 12, tzinfo=UTC))
+        assert log.forecast_from == datetime(2026, 9, 5, 19, tzinfo=UTC)
+
+    def test_a_whole_slate_records_nothing(self, crosswalk):
+        """An ordinary week is unchanged by any of this."""
+        _, log = self.week_one(crosswalk, now=datetime(2026, 8, 20, 12, tzinfo=UTC))
+        assert len(log.games) == 2
+        assert log.forecast_from is None
+
+    def test_a_fully_played_week_refuses(self, crosswalk):
+        from cfb.errors import ReplayError
+
+        with pytest.raises(ReplayError, match="had already kicked off"):
+            self.week_one(crosswalk, now=datetime(2026, 9, 20, 12, tzinfo=UTC))
+
+    def test_the_hfa_boundary_follows_the_games_being_forecast(self, crosswalk):
+        """**The fix, stated directly.** The boundary used to be the slate's first
+        kickoff, so one early game whose kickoff predated every snapshot refused
+        the entire week -- taking eight days of forecastable games with it."""
+        _, log = self.week_one(crosswalk, now=datetime(2026, 8, 30, 12, tzinfo=UTC))
+        assert log.model.hfa == PRESEASON_HFA

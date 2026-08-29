@@ -87,6 +87,22 @@ def predict(store, crosswalk, *, now=GENERATED_AT):
     return write_predictions(store, log)
 
 
+def predict_late(store, crosswalk, *, stamped):
+    """A generation written after its slate was played.
+
+    Built by copying an honest log rather than by calling `predict_week`, because
+    `predict_week` **cannot produce one any more** -- it forecasts only games that
+    have not kicked off, so a post-kickoff run now raises rather than returning a
+    document. That is defence in depth for §5.4 rather than a replacement for it:
+    the guard in `predictions_to_score` still has to hold, because a log can
+    arrive in the bucket by other means than this command.
+    """
+    honest = predict_week(
+        store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
+    )
+    return write_predictions(store, honest.model_copy(update={"generated_at": stamped}))
+
+
 def run(*argv, now):
     """`main` returns an exit code rather than raising SystemExit."""
     return main(list(argv), now=now)
@@ -151,7 +167,7 @@ class TestScore:
         put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
         honest = predict(store, crosswalk)
         # Written after every game was played.
-        predict(store, crosswalk, now=datetime(2026, 9, 7, 0, 0, tzinfo=UTC))
+        predict_late(store, crosswalk, stamped=datetime(2026, 9, 7, 0, 0, tzinfo=UTC))
         put_games(store, week="01", fetched_at=CAPTURED_AT, games=[played()])
 
         assert run("score", "--season", "2026", "--week", "1", "--force",
@@ -170,7 +186,7 @@ class TestScore:
         command reads every input before writing anything."""
         seed(store, crosswalk)
         put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
-        predict(store, crosswalk, now=datetime(2026, 9, 7, 0, 0, tzinfo=UTC))
+        predict_late(store, crosswalk, stamped=datetime(2026, 9, 7, 0, 0, tzinfo=UTC))
         put_games(store, week="01", fetched_at=CAPTURED_AT, games=[played()])
 
         before = set(store.list_keys("elo/"))

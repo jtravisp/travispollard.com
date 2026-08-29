@@ -410,7 +410,18 @@ def _refuse_unpredicted_results(
     and both are worth a red run: the first means the published predictions no
     longer describe the week, the second means they never did.
     """
-    missing = [game for game in results if game.id not in predicted_by_id]
+    # A game that kicked off before this log began forecasting was already played
+    # when the log was written, so no run could have predicted it. That is a fact
+    # about when the pipeline came online, not a join that failed -- and the
+    # distinction only exists because CFBD's week 1 of 2026 was ten days long and
+    # this project went live in the middle of it. `forecast_from` is `None` for a
+    # log covering a whole slate, which is every ordinary week.
+    covered = [
+        game
+        for game in results
+        if predictions.forecast_from is None or game.start_date >= predictions.forecast_from
+    ]
+    missing = [game for game in covered if game.id not in predicted_by_id]
     if not missing:
         return
     listed = ", ".join(
