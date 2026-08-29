@@ -711,7 +711,7 @@ def _publish(args, *, moment: datetime) -> int:
         # should be visible in the run that put it there.
         opponent=next_game.game.opponent if next_game.game else "bye",
         win_probability=next_game.game.win_probability if next_game.game else None,
-        national_rank=next_game.as_of.national_rank,
+        model_rank=next_game.as_of.model_rank,
         elo_state_week=next_game.as_of.week,
         slate_games=len(slate.games),
         # A week where this collapses is a /lines pull that did not happen, and
@@ -839,8 +839,9 @@ def _backtest(args, *, moment: datetime) -> int:
     - §6.4 renders it in its own block, labelled.
 
     **And it is worth knowing what a week 1 backtest actually measures.** The seed
-    is ``1500 + (rating - mean) * 28``, so an Elo gap over 28 is exactly a Sagarin
-    rating gap, and the preseason page's four rating columns are identical
+    is ``1500 + (rating - mean) * ELO_PER_POINT``, so an Elo gap over that
+    constant is exactly a Sagarin rating gap, and the preseason page's four
+    rating columns are identical
     (SPEC-phase1 1.2). A week 1 forecast is therefore Sagarin's PREDICTOR to the
     floating-point bit -- §3.6's correlation opens at exactly 1.0. The figures
     this produces are a measurement of Sagarin's preseason page, not of Elo, and

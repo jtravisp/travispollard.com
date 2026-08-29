@@ -34,7 +34,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo import SCHEMA_VERSION, EloState
+from cfb.elo import EloState
 from cfb.elo.scoring import (
     TEXAS,
     CalibrationBucket,
@@ -44,7 +44,7 @@ from cfb.elo.scoring import (
     calibration_of,
     scored_weeks,
 )
-from cfb.elo.state import load_state
+from cfb.elo.state import load_state, partition_position, season_states
 from cfb.errors import ReplayError
 from cfb.models import validating
 from cfb.predict import (
@@ -63,14 +63,17 @@ __all__ = [
     "NEXT_GAME_KEY",
     "SLATE_KEY",
     "PROBABILITY_CEILING",
+    "PUBLISHED_SCHEMA_VERSION",
     "PROBABILITY_FLOOR",
     "SEED_DISCLOSURE_THRESHOLD",
     "AccuracyDocument",
     "AsOf",
     "AtsSummary",
+    "LastResult",
     "Backtest",
     "NextGameDocument",
     "PublishedGame",
+    "RatingPoint",
     "Record",
     "SlateDocument",
     "SlateGame",
@@ -82,6 +85,23 @@ __all__ = [
     "clamp",
     "publish",
 ]
+
+#: §6.2's envelope version for the **published** documents, which moves
+#: independently of ``elo.SCHEMA_VERSION``.
+#:
+#: The two version different things. ``elo.SCHEMA_VERSION`` stamps what the
+#: pipeline stores -- prediction logs, scored weeks, Elo states -- and its readers
+#: are other runs of this pipeline. This one stamps what the site fetches, and
+#: its reader is a deployed page. Renaming a field on `/cfb/data/*` has nothing
+#: to do with whether a stored prediction log still parses, and bumping one
+#: number for both would make every archived document look changed by a site
+#: edit.
+#:
+#: **2, because `national_rank` became `model_rank`.** §6.2 moves this for a
+#: renamed field, a removed field, or a changed meaning -- and a rename is the
+#: case it exists for: a page reading the old name off a new document gets
+#: ``undefined`` and renders "#undefined".
+PUBLISHED_SCHEMA_VERSION = 2
 
 #: §6.1. The keys match the URL path exactly -- ``cfb/data/next-game.json`` is
 #: served at ``/cfb/data/next-game.json`` with no origin_path stripping, which is
@@ -114,8 +134,15 @@ def clamp(win_probability: float) -> float:
     """§3.7's presentational clamp.
 
     **Applied here and never in storage.** The stored probability is what the
-    model said and §5.3's Brier scores are computed on it; clamping on the way in
-    would grade the model on what the page displayed instead.
+    model said and §5.3's Brier scores are computed on it.
+
+    Clamping on the way in would not be *circular* -- it would be **grading a
+    censored value.** The clamp pulls the most extreme forecasts toward the
+    middle, which is exactly where a confident model is most exposed, so scoring
+    against the clamped number would quietly improve the Brier score at the
+    moments the model was most likely to be badly wrong. The rule is simply that
+    the score should measure what the model said, not what the page rendered.
+
     ``test_predict.py::test_probabilities_are_not_clamped_here`` pins the storage
     half of that rule, and this is the other half.
     """
@@ -158,6 +185,17 @@ class PublishedGame(BaseModel):
     #: ``line_source``, which is what makes the convention readable.
     market_line: float | None
     line_source: str | None
+    #: The opponent's standing **by this model**, from the same state ``as_of``
+    #: is read from -- so the two rankings on the page cannot be from different
+    #: weeks, and neither is a poll's.
+    #:
+    #: **A margin is not legible without it.** "Texas by 39.3" says nothing about
+    #: whether that is a rout or a formality until the reader knows the opponent
+    #: is 81st of 138. ``None`` for an FCS opponent: the FBS table has no place
+    #: for one, and a rank on a different denominator would be a different number
+    #: wearing the same word.
+    opponent_model_rank: int | None = None
+    opponent_elo: float | None = None
 
 
 class AsOf(BaseModel):
@@ -172,13 +210,63 @@ class AsOf(BaseModel):
 
     week: str = Field(min_length=1)
     elo: float
+    #: **This model's own rank, not a poll's.** Named ``model_rank`` rather than
+    #: ``national_rank`` because a reader on a college football page assumes AP
+    #: unless told otherwise, and this one will disagree with AP visibly and
+    #: often. The page label carries the same burden: never a bare "#5".
+    #:
     #: Among FBS teams. The Elo state rates all 266 teams Sagarin covers,
-    #: including 128 FCS ones, and "national rank" on a college football page
-    #: means the FBS table -- a rank counting FCS teams in its denominator is a
-    #: different number wearing the same word.
-    national_rank: int = Field(ge=1)
+    #: including 128 FCS ones, and a rank counting them in its denominator would
+    #: be a different number wearing the same word.
+    model_rank: int = Field(ge=1)
     #: The denominator, for the same reason §5.3 makes every sample size travel
     #: with its mean.
+    fbs_teams: int = Field(ge=1)
+
+
+class LastResult(BaseModel):
+    """The subject team's most recent scored game (§6.3).
+
+    **The accountability claim, made concrete.** Everything else on `/cfb` is a
+    forecast; this is the one block that says what happened and how far off the
+    model was. A page that only ever predicts is asserting a record it never
+    shows.
+
+    Read from the newest scored week that contains the team, so it is whatever
+    the Sunday run last graded rather than "the previous week" by arithmetic --
+    a bye leaves it pointing further back, which is correct.
+    """
+
+    model_config = _STRICT
+
+    week: str = Field(min_length=1)
+    kickoff: datetime
+    opponent: str = Field(min_length=1)
+    home: bool
+    #: ``None`` on a week scored before the points were carried through. The
+    #: archive is write-once, so those documents exist and cannot gain the field.
+    team_points: int | None
+    opponent_points: int | None
+    won: bool
+    #: Both from the subject team's side, matching the rest of this document.
+    predicted_margin: float
+    actual_margin: int
+    #: Signed: positive means the model had the team too high.
+    error: float
+    #: ``True`` beat the line, ``False`` lost to it, ``None`` when there was no
+    #: line or no edge -- §5.3's distinction, carried rather than flattened.
+    beat_market: bool | None
+
+
+class RatingPoint(BaseModel):
+    """One week of the subject team's standing (§6.3's ``history``)."""
+
+    model_config = _STRICT
+
+    week: str = Field(min_length=1)
+    elo: float
+    #: This model's rank among the FBS, not a poll's. See ``AsOf.model_rank``.
+    model_rank: int = Field(ge=1)
     fbs_teams: int = Field(ge=1)
 
 
@@ -201,6 +289,20 @@ class NextGameDocument(BaseModel):
     #: statement than the missing game.
     game: PublishedGame | None
     as_of: AsOf
+    #: The subject team's rating and rank at every stored state of the season,
+    #: oldest first. **A pure projection of ``elo/``**, which already holds every
+    #: team's rating for every week -- nothing is computed here that the pipeline
+    #: did not already write down.
+    #:
+    #: It exists because `/cfb` otherwise shows one static number for weeks. The
+    #: preseason seed is the only point until the first week is scored, which is
+    #: 2026-09-13, and a page that cannot distinguish "one point so far" from
+    #: "this chart is broken" is why the length is published rather than left to
+    #: be inferred from the shape of a line.
+    history: list[RatingPoint] = Field(default_factory=list)
+    #: The team's most recent scored game, or ``None`` before any week has been
+    #: scored -- which is every week before 2026-09-13.
+    last_result: LastResult | None = None
 
 
 class SlateGame(BaseModel):
@@ -358,7 +460,7 @@ class Backtest(BaseModel):
     into `full_slate` would spend that.
 
     For week 1 in particular the figures measure something else entirely. The
-    seed is ``1500 + (rating - mean) * 28`` and the preseason page's rating
+    seed is ``1500 + (rating - mean) * ELO_PER_POINT`` and the preseason page's rating
     columns are identical (§1.2), so a week 1 forecast reproduces Sagarin's
     PREDICTOR exactly and ``sagarin_r`` opens at 1.0. What a week 1 backtest
     reports is the accuracy of Sagarin's preseason page. ``measures_the_seed``
@@ -438,7 +540,16 @@ def build_next_game(
     log, fixture = _next_fixture(store, season=season, week=week, team=team, now=now)
     state = load_state(store, log.model.elo_state)
 
-    return _next_game_document(log, fixture, state, resolver, team=team, now=now)
+    return _next_game_document(
+        log,
+        fixture,
+        state,
+        resolver,
+        team=team,
+        now=now,
+        history=_history(store, resolver, season=season, team=team),
+        last_result=_last_result(store, resolver, season=season, team=team),
+    )
 
 
 def build_slate(
@@ -476,7 +587,7 @@ def build_slate(
     ]
 
     return SlateDocument(
-        schema_version=SCHEMA_VERSION,
+        schema_version=PUBLISHED_SCHEMA_VERSION,
         generated_at=now,
         season=season,
         week=log.week,
@@ -511,7 +622,7 @@ def build_accuracy(
     games = [game for scored in weeks for game in scored.games]
 
     return AccuracyDocument(
-        schema_version=SCHEMA_VERSION,
+        schema_version=PUBLISHED_SCHEMA_VERSION,
         generated_at=now,
         season=season,
         week=week,
@@ -653,6 +764,81 @@ def _newest_predictions(store: SnapshotStore, *, season: int, week: str) -> Pred
     return read_predictions(store, generations[-1][1])
 
 
+def _last_result(
+    store: SnapshotStore, resolver: Crosswalk, *, season: int, team: str
+) -> LastResult | None:
+    """The newest scored game the team appears in, or ``None``.
+
+    Walks scored weeks newest-first and stops at the first that contains the
+    team, so a bye week points further back rather than reporting nothing. Reads
+    only ``scored/`` -- never ``backtest/``, which is a separate prefix precisely
+    so a retrospective week cannot reach the parts of the site that describe what
+    the model actually did.
+    """
+    for scored in reversed(scored_weeks(store, season=season)):
+        for game in scored.games:
+            if team not in (game.home, game.away):
+                continue
+            at_home = game.home == team
+            opponent = game.away if at_home else game.home
+            return LastResult(
+                week=scored.week,
+                kickoff=game.kickoff,
+                opponent=resolver.display_name(opponent),
+                home=at_home,
+                team_points=game.home_points if at_home else game.away_points,
+                opponent_points=game.away_points if at_home else game.home_points,
+                won=game.home_won == at_home,
+                # Re-signed to the subject team, like everything else here. The
+                # stored row is home perspective (§4.2).
+                predicted_margin=(
+                    game.predicted_margin if at_home else -game.predicted_margin
+                ),
+                actual_margin=game.actual_margin if at_home else -game.actual_margin,
+                error=game.error if at_home else -game.error,
+                beat_market=game.beat_market,
+            )
+    return None
+
+
+def _history(
+    store: SnapshotStore, resolver: Crosswalk, *, season: int, team: str
+) -> list[RatingPoint]:
+    """The team's rating and rank at every stored state, oldest first.
+
+    One listing and one read per state -- ``season_states`` already walks exactly
+    this, because ``advance`` needs the same thing. A season is at most seventeen
+    small documents.
+
+    **Newest generation per week.** A re-advanced week writes a second object and
+    both survive (§3.5), so taking every state would draw one week twice at two
+    different ratings. ``season_states`` returns them in season order, oldest
+    generation first, so the last sighting of a partition is the one a publish
+    would have read.
+    """
+    newest: dict[str, EloState] = {}
+    for stored in season_states(store, season=season):
+        newest[stored.state.week] = stored.state
+
+    points = []
+    for week in sorted(newest, key=partition_position):
+        state = newest[week]
+        if team not in state.ratings:
+            # A state that does not rate this team came from a different
+            # crosswalk. That is a fault, not a gap to chart around.
+            raise ReplayError(
+                f"the Elo state at week {week} of season {season} has no rating for "
+                f"{team!r}, so `/cfb` cannot chart it"
+            )
+        rank, fbs_teams = _fbs_rank(state, resolver, team=team)
+        points.append(
+            RatingPoint(
+                week=week, elo=state.ratings[team], model_rank=rank, fbs_teams=fbs_teams
+            )
+        )
+    return points
+
+
 def _next_game_document(
     log: PredictionLog,
     fixture: PredictedGame | None,
@@ -661,6 +847,8 @@ def _next_game_document(
     *,
     team: str,
     now: datetime,
+    history: list[RatingPoint],
+    last_result: LastResult | None,
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
     same_week = [game for game in log.games if team in (game.home, game.away)]
@@ -675,31 +863,47 @@ def _next_game_document(
 
     with validating(f"next-game document for season {log.season} week {log.week}"):
         return NextGameDocument(
-            schema_version=SCHEMA_VERSION,
+            schema_version=PUBLISHED_SCHEMA_VERSION,
             generated_at=now,
             season=log.season,
             week=log.week,
             team=resolver.display_name(team),
             game=(
-                _published_game(fixture, resolver, team=team, week=log.week)
+                _published_game(fixture, resolver, state, team=team, week=log.week)
                 if fixture is not None
                 else None
             ),
             as_of=AsOf(
                 week=state.week,
                 elo=state.ratings[team],
-                national_rank=rank,
+                model_rank=rank,
                 fbs_teams=fbs_teams,
             ),
+            history=history,
+            last_result=last_result,
         )
 
 
 def _published_game(
-    prediction: PredictedGame, resolver: Crosswalk, *, team: str, week: str
+    prediction: PredictedGame,
+    resolver: Crosswalk,
+    state: EloState,
+    *,
+    team: str,
+    week: str,
 ) -> PublishedGame:
     """One prediction row, re-signed from the home team's view to the subject's."""
     at_home = prediction.home == team
     opponent = prediction.away if at_home else prediction.home
+    # From the same state `as_of` is read from, so the two standings on the page
+    # cannot come from different weeks. `None` for an FCS opponent: the FBS table
+    # has no place for one, and a rank on a different denominator would be a
+    # different number wearing the same word (§6.3).
+    opponent_model_rank = (
+        _fbs_rank(state, resolver, team=opponent)[0]
+        if resolver.division(opponent) == "FBS"
+        else None
+    )
     return PublishedGame(
         kickoff=prediction.kickoff,
         week=week,
@@ -717,6 +921,8 @@ def _published_game(
         # number no book ever posted under a name that says one did.
         market_line=prediction.market_line,
         line_source=prediction.market_line_source,
+        opponent_model_rank=opponent_model_rank,
+        opponent_elo=state.ratings.get(opponent),
     )
 
 
@@ -741,7 +947,7 @@ def _fbs_rank(state: EloState, resolver: Crosswalk, *, team: str) -> tuple[int, 
     if team not in fbs:
         raise ReplayError(
             f"{team!r} is {resolver.division(team)} in the season {resolver.season} "
-            f"crosswalk, and `national_rank` is a rank among the FBS"
+            f"crosswalk, and `model_rank` is a rank among the FBS"
         )
     ahead = sum(1 for rating in fbs.values() if rating > fbs[team])
     return ahead + 1, len(fbs)

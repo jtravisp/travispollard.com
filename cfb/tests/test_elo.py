@@ -33,7 +33,7 @@ mean Massachusetts beating Ohio State by 20 teaches the model exactly as much as
 Ohio State beating Massachusetts by 20.
 
 `test_an_upset_uses_the_signed_gap` is written to fail under the absolute
-reading: 28.373 signed against 20.972 absolute, on the same game.
+reading: 29.092 signed against 21.106 absolute, on the same game.
 
 ## What is not here
 
@@ -73,7 +73,7 @@ from cfb.errors import EloDomainError
 #
 # Each was computed independently of the implementation:
 #
-#   adj_home = elo_home + hfa * 28          adj_away = elo_away
+#   adj_home = elo_home + hfa * ELO_PER_POINT      adj_away = elo_away
 #   expected = 1 / (1 + 10 ** (-(adj_home - adj_away) / 400))
 #   signed   = (adj_home - adj_away) if home won else -(adj_home - adj_away)
 #   mult     = ln(|margin| + 1) * (2.2 / (signed * 0.001 + 2.2))
@@ -82,29 +82,29 @@ from cfb.errors import EloDomainError
 FAVOURITE = {
     "elo_home": 1700.0, "elo_away": 1500.0, "hfa": 2.5,
     "home_points": 31, "away_points": 21,          # home by 10
-    "expected": 0.8255259873611817,
-    "mov_mult": 2.1357771660552287,
-    "delta": 7.452752245280393,
+    "expected": 0.8083176725494586,
+    "mov_mult": 2.153212081696496,
+    "delta": 8.254654066284193,
 }
 
 UPSET = {
     "elo_home": 1500.0, "elo_away": 1900.0, "hfa": 2.5,
     "home_points": 24, "away_points": 21,          # home by 3, as a 330-Elo underdog
-    "expected": 0.13015005092569085,
-    "mov_mult": 1.630934542493989,
-    "delta": 28.373366574638556,
+    "expected": 0.11766170295305857,
+    "mov_mult": 1.6485662672777077,
+    "delta": 29.091863056776912,
     #: What the absolute reading would produce on this same game.
-    "delta_if_absolute": 20.971618772558934,
+    "delta_if_absolute": 21.10586143334795,
 }
 
 BLOWOUT = {
     "elo_home": 2000.0, "elo_away": 1400.0, "hfa": 3.0,
     "home_points": 56, "away_points": 14,          # home by 42
-    "expected": 0.9808744720758243,
-    "mov_mult": 2.8691540410977243,
-    "delta": 1.0974817146355191,
+    "expected": 0.9781030013517666,
+    "mov_mult": 2.893230858225817,
+    "delta": 1.267061443831955,
     #: The same matchup decided by 3 instead of 42, to show the multiplier bites.
-    "delta_if_margin_3": 0.4045072491844423,
+    "delta_if_margin_3": 0.46701055002301173,
 }
 
 
@@ -127,12 +127,48 @@ def run(case: dict, **overrides) -> dict[str, float]:
 
 
 class TestTheConstants:
-    def test_the_scale_is_28_elo_per_point(self):
-        """§3.1. The seed, the margin formula and the update all read this."""
-        assert ELO_PER_POINT == 28
+    def test_the_scale_is_20_elo_per_point(self):
+        """§3.1. The seed, the margin formula and the update all read this.
+
+        **Was 28, on reasoning that inverted.** The spec argued for a value above
+        the NFL's conventional 25 because college margins scatter more widely --
+        but with the 400 divisor fixed, a higher value here makes the model *more*
+        confident per point, so wider scatter argues downward. At 28 the model
+        implied a scatter of about 10.5 points against a real 14 to 16.
+        """
+        assert ELO_PER_POINT == 20
+
+    def test_only_the_ratio_to_the_divisor_is_meaningful(self):
+        """``(20, 400)``, ``(10, 200)`` and ``(40, 800)`` are the same model.
+
+        Pinned because the two constants live in different places and read as
+        independent. Anyone changing one is changing the other's meaning.
+        """
+        from cfb.elo import _LOGISTIC_DIVISOR
+
+        def probability(margin, scale, divisor):
+            return 1 / (1 + 10 ** (-(margin * scale) / divisor))
+
+        here = probability(7, ELO_PER_POINT, _LOGISTIC_DIVISOR)
+        assert here == pytest.approx(probability(7, 10, 200), abs=1e-12)
+        assert here == pytest.approx(probability(7, 40, 800), abs=1e-12)
 
     def test_k_is_20(self):
         assert K == 20
+
+    def test_k_moves_one_point_of_margin_per_unit(self):
+        """**The coupling that rode along unnamed when the scale changed.**
+
+        K controls Elo movement, but what matters to anyone reasoning about the
+        model is points of predicted margin moved, which is ``K / ELO_PER_POINT``.
+        At the old scale of 28 that was 0.71 points; at 20 it is a full point, so
+        the model became ~40% more responsive per game without K itself moving.
+
+        Probably the right direction for college -- shorter season, more
+        volatility -- but a consequence rather than a decision, and this is where
+        it stops being invisible.
+        """
+        assert K / ELO_PER_POINT == pytest.approx(1.0)
 
 
 class TestAFavouriteWinningAsExpected:
@@ -151,11 +187,18 @@ class TestAFavouriteWinningAsExpected:
         )
 
     def test_the_move_is_modest_because_the_result_was_expected(self):
-        """82.6% expected, so a win is worth ~7.5 Elo. The number is small on
+        """80.8% expected, so a win is worth ~8.3 Elo. The number is small on
         purpose: Elo should barely react to what it already predicted.
+
+        The band moved with the scale. At 28 this was ~7.5 Elo out of a 200-Elo
+        gap; at 20 it is ~8.3 out of the same gap, because the same 200 Elo is now
+        a wider margin and therefore a slightly less certain result. **In points
+        of margin** -- the unit that means anything -- the move went from 0.27 to
+        0.41, which is the responsiveness change `test_k_moves_one_point_of_margin_per_unit`
+        names.
         """
         after = run(FAVOURITE)
-        assert 7 < after["home-team"] - FAVOURITE["elo_home"] < 8
+        assert 8 < after["home-team"] - FAVOURITE["elo_home"] < 9
 
 
 class TestAnUpset:
@@ -165,7 +208,7 @@ class TestAnUpset:
     """
 
     def test_an_upset_uses_the_signed_gap(self):
-        """**Fails under the absolute reading.** 28.373 against 20.972.
+        """**Fails under the absolute reading.** 29.092 against 21.106.
 
         Signed, the winner's gap is -330: the denominator falls to 1.87, the
         multiplier rises to 1.631, and the upset moves ratings hard. Absolute
@@ -181,7 +224,7 @@ class TestAnUpset:
     def test_the_upset_moves_ratings_further_than_the_expected_win_did(self):
         """The property the signed reading exists to produce.
 
-        A 3-point upset is worth ~28 Elo; a 10-point win by a favourite is worth
+        A 3-point upset is worth ~29 Elo; a 10-point win by a favourite is worth
         ~7.5. Under the absolute reading the upset would be worth ~21 — still
         more, but for the wrong reason and by the wrong amount.
         """
@@ -221,7 +264,7 @@ class TestABlowoutWhereTheMultiplierWorks:
         up scores, and the top of the table would inflate.
         """
         moved = run(BLOWOUT)["home-team"] - BLOWOUT["elo_home"]
-        assert 1.0 < moved < 1.2
+        assert 1.1 < moved < 1.4
 
     def test_margin_still_matters_between_two_blowouts(self):
         """The multiplier damps; it does not flatten.
@@ -278,24 +321,52 @@ class TestPrediction:
         prediction = predict(
             {"home-team": 1700.0, "away-team": 1500.0}, game(FAVOURITE), hfa=2.5
         )
-        assert prediction.predicted_margin == pytest.approx(200 / 28 + 2.5, abs=1e-9)
+        assert prediction.predicted_margin == pytest.approx(200 / ELO_PER_POINT + 2.5, abs=1e-9)
 
     @pytest.mark.parametrize(
         ("margin", "probability"),
-        [(1, 0.540), (3, 0.619), (7, 0.756), (10, 0.834), (14, 0.905), (21, 0.967)],
+        [(1, 0.529), (3, 0.585), (7, 0.691), (10, 0.760), (14, 0.834), (21, 0.918)],
     )
     def test_the_spec_3_1_calibration_table(self, margin, probability):
-        """The table §3.1 uses to justify choosing 28 over 25.
+        """The table §3.1 uses to justify the scale.
 
         It is the closest thing this model has to a claim about the real world,
         so it is pinned: if the scale or the divisor changes, these move and the
         spec's argument has to be rewritten rather than quietly invalidated.
+
+        These are the figures at 20. The previous set -- 7 points at 75.6% -- was
+        the model asserting a confidence the sport does not support.
         """
         elo_gap = margin * ELO_PER_POINT
         prediction = predict(
             {"home-team": 1500.0 + elo_gap, "away-team": 1500.0}, game(FAVOURITE), hfa=0.0
         )
         assert prediction.win_probability == pytest.approx(probability, abs=0.001)
+
+    @pytest.mark.parametrize(
+        ("margin", "normal"),
+        [(1, 0.527), (3, 0.579), (7, 0.680), (10, 0.748), (14, 0.825), (21, 0.919)],
+    )
+    def test_it_tracks_a_normal_with_sigma_15(self, margin, normal):
+        """**The argument for 20, stated as a test rather than a paragraph.**
+
+        Margins scatter around a good prediction with a standard deviation of
+        roughly 14 to 16 points in college football. If the model's probabilities
+        are honest, its logistic should sit close to the normal that scatter
+        implies. At sigma 15 it does, within about a point across the range.
+
+        At the old scale of 28 the same comparison needed sigma ~10.5 to fit,
+        which is a claim about the sport that nothing supports.
+        """
+        from statistics import NormalDist
+
+        prediction = predict(
+            {"home-team": 1500.0 + margin * ELO_PER_POINT, "away-team": 1500.0},
+            game(FAVOURITE),
+            hfa=0.0,
+        )
+        assert prediction.win_probability == pytest.approx(normal, abs=0.013)
+        assert NormalDist(0, 15).cdf(margin) == pytest.approx(normal, abs=0.001)
 
     def test_margin_and_probability_cannot_disagree(self):
         """The PRD's requirement, stated as an identity rather than a hope.
@@ -359,7 +430,7 @@ class TestNeutralSites:
             home_points=0, away_points=0, neutral_site=True,
         )
         prediction = predict({"home-team": 1700.0, "away-team": 1500.0}, neutral, hfa=2.5)
-        assert prediction.predicted_margin == pytest.approx(200 / 28, abs=1e-9)
+        assert prediction.predicted_margin == pytest.approx(200 / ELO_PER_POINT, abs=1e-9)
 
 
 class TestTheMovDenominatorFloor:

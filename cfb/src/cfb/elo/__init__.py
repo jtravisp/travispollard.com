@@ -48,14 +48,40 @@ __all__ = [
 #: SPEC-phase1 3.1. One constant converts both ways: it turns a Sagarin rating
 #: difference into Elo when seeding, and an Elo gap back into a predicted margin.
 #:
-#: 28 rather than the conventional 25 because college margins are far wider than
-#: the NFL ones the 25 figure came from. It is a number with no source outside
-#: that decision, and ``test_the_spec_3_1_calibration_table`` pins the win
-#: probabilities it produces so that changing it invalidates the spec's argument
-#: loudly rather than quietly.
-ELO_PER_POINT = 28
+#: **20, and it was 28 for a reason that ran backwards.** The old comment said
+#: "28 rather than the conventional 25 because college margins are far wider than
+#: the NFL ones the 25 figure came from". The observation is correct and the
+#: inference from it inverts: with the 400 divisor held fixed, a *higher* value
+#: here makes the model *more* confident at a given margin, so wider scatter
+#: argues for a number below the NFL figure rather than above it.
+#:
+#: At 28 the model behaved as though college margins scatter with a standard
+#: deviation of about 10.5 points -- 7 points implied 75.6%, which is a sigma of
+#: 10.1. The real figure is 14 to 16. At 20 the logistic tracks a normal with
+#: sigma 15 closely across the whole range (SPEC-phase1 3.1's table).
+#:
+#: **Only the ratio to ``_LOGISTIC_DIVISOR`` matters.** ``(20, 400)``,
+#: ``(10, 200)`` and ``(40, 800)`` are the same model. Anyone adjusting one of
+#: them is adjusting the other's meaning.
+#:
+#: ``test_the_spec_3_1_calibration_table`` pins the win probabilities this
+#: produces, so changing it invalidates the spec's argument loudly rather than
+#: quietly.
+ELO_PER_POINT = 20
 
 #: SPEC-phase1 3.4. Conventional, not fitted.
+#:
+#: **Coupled to ``ELO_PER_POINT``, and the coupling is easy to miss.** What K
+#: controls is Elo movement, but what anyone reasoning about the model cares
+#: about is *points of predicted margin* moved per game, which is ``K /
+#: ELO_PER_POINT``. At the old scale of 28 that was 0.71 points; at 20 it is a
+#: full point, so dropping the scale made the model about 40% more responsive per
+#: game without K itself changing.
+#:
+#: That is probably the right direction -- practitioners raise K for college
+#: given the shorter season and the greater unpredictability -- but it happened
+#: as a consequence rather than as a decision, which is why it is written down
+#: here and in SPEC-phase1 3.4 rather than left to be rediscovered.
 K = 20
 
 #: The margin-of-victory damping constant (SPEC-phase1 3.4). Without the term it
@@ -77,11 +103,23 @@ MOV_DAMPING = 2.2
 #: one game, on a scale whose whole FBS spread is 67. A single result worth that
 #: much is not a rating update, it is a reseed.
 #:
-#: **This is reachable on the current scale, not only after a Phase 2 refit.** The
-#: 2026 preseason seed spans 211 to 2486, so 39 of the top team's possible
-#: opponents would cross this floor by beating it and 5 would carry the
-#: denominator negative. SPEC-phase1 12 refitting ``ELO_PER_POINT`` widens that,
-#: it does not create it.
+#: **No pairing on the 2026 preseason seed reaches it, and that changed when
+#: ``ELO_PER_POINT`` did.** At the old scale of 28 the seed spanned 211 to 2486,
+#: and 39 of the top team's possible opponents would have crossed this floor by
+#: beating it -- 5 of them driving the denominator negative. At 20 the seed spans
+#: 579 to 2204, the widest gap leaves the denominator at 0.58, and the count is
+#: zero.
+#:
+#: That is a side effect of the rescale rather than a decision about the floor,
+#: and it cuts both ways. Crossing raises rather than clamping silently, so the
+#: old scale had 39 pairings that would have reddened a run on a legitimate if
+#: enormous upset. Fewer false alarms is good; a guard that never fires is also a
+#: guard nothing tests in production, which is why ``mov_denominator`` stays
+#: public and directly exercised.
+#:
+#: **Still reachable in principle**, just not from the seed: ratings diverge as a
+#: season runs, and SPEC-phase1 12's refit of ``ELO_PER_POINT`` moves the boundary
+#: again.
 MOV_DENOMINATOR_FLOOR = 0.25
 
 #: The divisor of the standard Elo logistic. Textbook, and unchanged.
@@ -184,6 +222,27 @@ class EloState(BaseModel):
     #: replay that agrees on every rating but not on this has applied something
     #: twice in a way that cancelled out, which no rating comparison would show.
     games_applied: int = Field(ge=0)
+    #: The earliest kickoff this state folded, when the season's opening games
+    #: could not be priced and were left out. ``None`` when the accumulation
+    #: covers the season entire, which is every ordinary season.
+    #:
+    #: **The same idea as ``PredictionLog.forecast_from`` (§4.4), on the scoring
+    #: side, and deliberately the same shape of name.** A forecast cannot cover a
+    #: game that has already kicked off; an accumulation cannot cover a game that
+    #: kicked off before any Sagarin page carrying an HFA had been captured. Two
+    #: names for one concept is how the next reader concludes they are different
+    #: things.
+    #:
+    #: **Derived on every run, never written down as a date.** ``replay`` computes
+    #: it from the manifests in ``raw/`` the same way each time, so it is a
+    #: restatement of the evidence rather than a second source of truth -- which
+    #: §3.5's "state is a cache" argument depends on there not being one.
+    #:
+    #: It is compared by ``verify``: a replay and an advance that disagree about
+    #: which games they folded is exactly what §11 step 5 exists to catch, and it
+    #: cannot catch it if neither says what it folded.
+    folded_from: datetime | None = None
+
     #: The kickoff of the last game folded in, or ``None`` when none has been.
     #:
     #: This is what makes the state say *when* it is as of, and it is load-bearing

@@ -19,14 +19,21 @@
 import Link from 'next/link';
 
 import CfbNav from '@/components/cfb/CfbNav';
+import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import { NextGameDocument } from '@/components/cfb/contract';
+import {
+  LastResult,
+  NextGameDocument,
+  modelRank,
+  opponentModelRank,
+} from '@/components/cfb/contract';
 import {
   describeFavorite,
   favorite,
   formatGeneratedAt,
   formatKickoff,
   formatLine,
+  formatMargin,
   formatProbability,
   formatWeek,
   marketFavorite,
@@ -108,6 +115,18 @@ function NextGame({ document }: { document: NextGameDocument }) {
             {game.neutral_site
               ? `Neutral site — ${home} is nominally the home team.`
               : `${home} is at home.`}
+            {/* A margin is not legible without the opponent's standing: "Texas by
+                39.3" reads differently against the 5th team and the 81st. */}
+            {opponentModelRank(game) != null && (
+              <>
+                {' '}
+                {game.opponent} is {ordinal(opponentModelRank(game)!)} of {asOf.fbs_teams} by
+                this model.
+              </>
+            )}
+            {opponentModelRank(game) == null && game.opponent_elo != null && (
+              <> {game.opponent} is outside the FBS, so this model does not rank it.</>
+            )}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3 mt-4">
@@ -145,10 +164,57 @@ function NextGame({ document }: { document: NextGameDocument }) {
         </div>
       </div>
 
-      <Ratings asOf={asOf} team={team} />
+      {document.last_result && (
+        <LastGame result={document.last_result} team={team} />
+      )}
+      <Ratings asOf={asOf} team={team} history={document.history} />
       <Published document={document} />
     </div>
   );
+}
+
+function LastGame({ result, team }: { result: LastResult; team: string }) {
+  // The scoreline is nullable: weeks graded before the points were carried
+  // through are in the archive and cannot gain them.
+  const scoreline =
+    result.team_points != null && result.opponent_points != null
+      ? `${team} ${result.team_points}, ${result.opponent} ${result.opponent_points}`
+      : `${team} ${result.won ? 'won' : 'lost'} by ${Math.abs(result.actual_margin)}`;
+
+  return (
+    <div className="card bg-base-200">
+      <div className="card-body">
+        <div className="text-sm uppercase tracking-wide text-base-content/60">
+          {formatWeek(result.week)} · last result
+        </div>
+        <h2 className="card-title text-xl">
+          {scoreline}
+          <span
+            className={`badge badge-sm ${result.won ? 'badge-success' : 'badge-error'}`}
+          >
+            {result.won ? 'W' : 'L'}
+          </span>
+        </h2>
+        <p className="text-sm text-base-content/70">
+          {/* The accountability claim, made concrete. Everything else on this
+              page is a forecast; this is the line that says how far off it was. */}
+          The model said {team} by {formatMargin(result.predicted_margin)} and the game
+          finished {formatMargin(result.actual_margin)} — off by{' '}
+          {Math.abs(result.error).toFixed(1)} points.
+          {result.beat_market === true && ' It beat the closing number.'}
+          {result.beat_market === false && ' It lost to the closing number.'}
+          {result.beat_market === null && ' There was no line to beat.'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** 81 -> "81st". Reads better than "#81" inside a sentence. */
+function ordinal(value: number): string {
+  const rest = value % 100;
+  if (rest >= 11 && rest <= 13) return `${value}th`;
+  return `${value}${['th', 'st', 'nd', 'rd'][value % 10] ?? 'th'}`;
 }
 
 function Figure({
@@ -174,7 +240,20 @@ function Figure({
   );
 }
 
-function Ratings({ asOf, team }: { asOf: NextGameDocument['as_of']; team: string }) {
+function Ratings({
+  asOf,
+  team,
+  history,
+}: {
+  asOf: NextGameDocument['as_of'];
+  team: string;
+  // Optional, not merely possibly-empty: a document published before this field
+  // existed has no `history` key at all, and `.length` on undefined throws.
+  history?: NextGameDocument['history'];
+}) {
+  const points = history ?? [];
+  const rank = modelRank(asOf);
+
   return (
     <div className="card bg-base-200">
       <div className="card-body">
@@ -190,13 +269,37 @@ function Ratings({ asOf, team }: { asOf: NextGameDocument['as_of']; team: string
             </div>
           </div>
           <div>
+            {/* Never a bare "#5". A reader on a college football page assumes AP
+                unless told otherwise, and this model disagrees with AP visibly. */}
             <div className="text-xs uppercase tracking-wide text-base-content/60">
-              National rank
+              Elo rank
             </div>
-            <div className="text-2xl font-semibold">#{asOf.national_rank}</div>
-            <div className="text-xs text-base-content/60">of {asOf.fbs_teams} FBS teams</div>
+            <div className="text-2xl font-semibold">
+              {rank == null ? '—' : `#${rank}`}
+            </div>
+            <div className="text-xs text-base-content/60">
+              of {asOf.fbs_teams} FBS teams, by this model
+            </div>
           </div>
         </div>
+
+        {points.length >= MINIMUM_POINTS ? (
+          <div className="mt-4">
+            <RatingChart history={points} />
+            <p className="text-xs text-base-content/60 mt-1">
+              {points.length} week{points.length === 1 ? '' : 's'} of the season.
+              {points.length < 4 &&
+                ' Too few to read as a trend yet — it is a record, not a shape.'}
+            </p>
+          </div>
+        ) : (
+          // A line through one point is indistinguishable from a broken chart,
+          // and the first weekly state does not land until 2026-09-13.
+          <p className="text-xs text-base-content/60 mt-3">
+            The rating history appears here once the season has been scored for the
+            first time. Until then this is the preseason seed.
+          </p>
+        )}
       </div>
     </div>
   );

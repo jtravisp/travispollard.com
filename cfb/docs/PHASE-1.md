@@ -9,18 +9,48 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29) — Phase 1 closed, season pending
+## Where this stands (2026-08-29) — Phase 1 closed, follow-ups landing
 
-**Every section of SPEC-phase1 is implemented, live, and scheduled.**
-`travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` serve real documents,
-and five workflows run the week without a person in it.
+Every section of SPEC-phase1 is implemented, live and scheduled. What has landed
+since is follow-up work: a wrong constant, a blocked command, and a page that
+showed one static number.
 
 | | |
 |---|---|
-| Tests | **942 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Tests | **985 passing, 23 skipped** in Python, **7 Playwright** specs, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Live | `/cfb`, `/cfb/slate`, `/cfb/accuracy` |
+| Next | Nothing until the season exercises it. Then the historical backfill, which is what turns the model's constants from conventional numbers into fitted ones |
+| Blocked | nothing |
+| Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
+
+### The schedule from here
+
+| | | |
+|---|---|---|
+| Sun **Aug 30** 12:00 / 12:30 | `cfb-cfbd`, `cfb-score` | First firing of `cfb-score`. Expect a green **skip** — week 1 does not end until 09-08 — and a green `cfb elo replay`, which was the blocker fixed below |
+| Tue **Sep 1** | `cfb-sagarin` | The first in-season capture, which is also Phase 0's outstanding carry-over |
+| Thu **Sep 3** 12:00 | `cfb-predict` | `coming_week` returns **"02"**, because CFBD's week 1 opened on 08-29 |
+| Fri **Sep 4** 12:00 | `cfb-publish` | First firing of the SLO. `/cfb` must still show **Texas State on 09-05**, a week 1 game, which is what the look-ahead exists for |
+| Sun **Sep 13** | `cfb-score` | **The one to watch.** First real scoring run, against week 1's partial log, and the first time `forecast_from` does anything outside a test. Also the first `elo/week=NN` state, so the rating chart gets its second point |
+
+### What is left, honestly
+
+Phase 1's deliverable was "one Saturday end to end with no manual intervention".
+Every part exists; **it has not yet happened.** Until it does:
+
+- **`cfb score` has never run against real results.** Every scoring test is
+  constructed, which §5.2's failure modes require anyway — no vendor publishes a
+  game whose id matches a prediction and whose teams do not.
+- **The production backtest waits on week 1 closing** (2026-09-07). §5.2 cannot
+  distinguish a failed join from a game in progress.
+- **No weekly note exists**, so §7's MDX plumbing and `/cfb/notes/[slug]` are
+  unbuilt. There is nothing to render until a week has been scored.
+
+---|---|
+| Tests | **968 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3–§8 through PRs #44–#48 |
 | Next | Nothing until the season exercises it. Then Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
-| Blocked | nothing |
+| Blocked | nothing. The `cfb elo replay` blocker found during §3.1's rescale is fixed — see below |
 | Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
 
 ### The schedule from here
@@ -262,7 +292,8 @@ a second key and keeping the first.
 
 ## 3. The model
 
-- [x] **§3.1 the scale.** `ELO_PER_POINT = 28`, and the win-probability `elo_diff` is the
+- [x] **§3.1 the scale.** `ELO_PER_POINT = 20` (was 28 — see the follow-up below), and the
+      win-probability `elo_diff` is the
       HFA-adjusted gap. The §3.1 table's six rows are pinned by
       `test_the_spec_3_1_calibration_table`.
   - [x] The table's right-hand column was headed "Observed" and claimed a provenance it does not
@@ -296,9 +327,15 @@ a second key and keeping the first.
       blocked:** `sagarin_r` is computed and written on every scored week, and week 1 of the
       verification store reads exactly `1.0`, which is the identity §4 predicted. What is left is
       §6's half — reading the series across weeks and publishing the disclosure with it
-- [ ] **§3.7 the probability clamp.** `[0.001, 0.999]` applied at publish time, unclamped in
-      storage so the Brier scores are computed on what the model said. Needs §6.
-      `test_probabilities_are_not_clamped_here` already pins the storage half
+- [x] **§3.7 the probability clamp.** `[0.001, 0.999]` applied at publish time, unclamped in
+      storage so the Brier scores are computed on what the model said.
+      `test_probabilities_are_not_clamped_here` pins the storage half and
+      `test_publish.py::TestTheClamp` the other, verified against a 2147-Elo mismatch where the
+      page reads `0.999` and the stored value is `0.9999970913013003`
+  - [x] The justification was stated as "grading on the displayed probability would be circular",
+        which is wrong. It is not circular, it is **grading a censored value** — the clamp
+        flatters the model at exactly the moments it was most likely to be wrong. The reason is
+        simply that a Brier score should measure what the model said, not what the page rendered
 
 ### What the state work decided that the spec does not say
 
@@ -380,8 +417,8 @@ saying the away team is favoured, which is only true once the sign is converted.
 ### What §4 confirmed about §3.6
 
 §3.6 argues that a week 1 prediction *is* Sagarin's prediction, and uses that to justify the seed
-disclosure. It is not an approximation: the seed is `1500 + (rating - mean) * 28`, so an Elo gap
-over 28 is exactly a Sagarin rating gap, and adding the same HFA reproduces PREDICTOR to the
+disclosure. It is not an approximation: the seed is `1500 + (rating - mean) * ELO_PER_POINT`, so an Elo gap
+over `ELO_PER_POINT` is exactly a Sagarin rating gap, and adding the same HFA reproduces PREDICTOR to the
 floating-point bit. The first real generated document shows `predicted_margin` and
 `sagarin_predictor_margin` both `10.67` on one game and both `6.2` on a neutral-site one.
 
@@ -689,7 +726,7 @@ Three things keep it separate, all structural rather than conventions someone ha
   published season-to-date record;
 - §6.4 renders it in its own block, and the page labels it "not a prediction".
 
-**And a week 1 backtest measures Sagarin, not this model.** The seed is `1500 + (rating - mean) * 28`
+**And a week 1 backtest measures Sagarin, not this model.** The seed is `1500 + (rating - mean) * ELO_PER_POINT`
 and the preseason page's rating columns are identical (§1.2), so a week 1 forecast reproduces
 PREDICTOR to the floating-point bit — `sagarin_r` comes out at exactly `1.0`, confirmed by command.
 `Backtest.measures_the_seed` carries that into the document and the page says it in words, because a
@@ -809,6 +846,289 @@ already owns the key format they parse. `sources.results_capture` is the one gen
 selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
+
+## Follow-up: every rank is labelled as this model's own
+
+A bare "#5" on a college football page reads as **AP** by default, and this model
+will disagree with AP visibly and often — it is arithmetic on margins with no
+human input.
+
+- [x] **`as_of.national_rank` renamed to `model_rank`**, `opponent_rank` to
+      `opponent_model_rank`, `RatingPoint.rank` to `model_rank`. The pages say
+      "Elo rank" and "…of 138 FBS teams, by this model", and the opponent reads
+      "Texas State is 81st of 138 by this model"
+- [x] **A rename is breaking, so §6.2's own rule applies and the version moved.**
+      This is the first use of the mechanism as written: a page reading the old
+      name off a new document gets `undefined` and renders "#undefined"
+  - [x] **The published contract now versions separately from stored documents.**
+        `PUBLISHED_SCHEMA_VERSION = 2` in `publish/`, distinct from
+        `elo.SCHEMA_VERSION`. They version different things — one is read by a
+        deployed page, the other by later runs of this pipeline — and bumping one
+        number for both would make every archived prediction log look changed by
+        a site edit
+  - [x] **The page accepts `{1, 2}`, so the rename ships without an outage.**
+        Routes deploy before the pipeline republishes, so the page reads a v1
+        document first and a v2 one after; accepting both means neither side ever
+        sees "data is newer than this page". Version 1 support is transitional and
+        can be dropped after the next publish
+  - [x] Verified that widening to a set did not blunt the mechanism: an unknown
+        version **still** shows the stale state
+- [x] **The Python models can no longer read a v1 document, and that is correct.**
+      The pipeline writes published documents and never reads them back, so
+      nothing in Python must open one. The page is the only reader that has to
+      handle both, and it is checked in a browser rather than by assumption
+
+## Follow-up: §3.1's numbers, before and after
+
+Run against the calibration table:
+
+| Margin | at 28 | at 20 | normal, σ=15 | was off by | now off by |
+|---|---|---|---|---|---|
+| 1 | 54.0% | 52.9% | 52.7% | +1.4% | +0.2% |
+| 3 | 61.9% | 58.5% | 57.9% | +3.9% | +0.6% |
+| 7 | 75.6% | 69.1% | 68.0% | **+7.6%** | +1.2% |
+| 10 | 83.4% | 76.0% | 74.8% | **+8.6%** | +1.2% |
+| 14 | 90.5% | 83.4% | 82.5% | +8.1% | +0.9% |
+| 21 | 96.7% | 91.8% | 91.9% | +4.8% | −0.1% |
+
+Mean absolute gap to the reference: **5.7% → 0.7%, 88% closer.**
+
+And what each scale claims about how far college margins scatter:
+
+| Margin | σ implied at 28 | σ implied at 20 |
+|---|---|---|
+| 7 | 10.1 | 14.0 |
+| 14 | 10.7 | 14.5 |
+| 21 | 11.4 | 15.1 |
+
+The evidence puts it at **14–16**. The old scale was not slightly off; it was
+describing a different sport.
+
+## Follow-up: the page stops being static
+
+Three additions to `/cfb`, all pure projections of documents already in the bucket. No new CFBD calls.
+
+- [x] **(a) Rating and rank over time.** `history` on `next-game.json`, from `season_states` — one
+      listing and one read per state, the same walk `advance` already does. Newest generation per
+      week, because a re-advanced week writes a second object and both survive (§3.5), so taking every
+      state would draw one week twice at two ratings
+  - [x] **The chart refuses to draw fewer than two points**, and that refusal is the feature. The
+        first `elo/week=NN` state lands **2026-09-13** — `cfb score` grades the last *completed* week
+        and CFBD's week 1 runs to 09-08 — so for two weeks the series is the preseason seed alone, and
+        a line through one point is indistinguishable from a broken chart. `/cfb` shows the rating and
+        says the series has not started. Below four points it says so too: a record, not yet a shape
+  - [x] Inline SVG, no chart library. Seventeen points of two numbers is smaller than the dependency
+        that would draw it
+- [x] **(b) The final score.** `ScoredGame.home_points` / `away_points`, carried from `RawGame` rather
+      than re-derived, and `LastResult` on `next-game.json` for the page. It is the only block on
+      `/cfb` that says what happened rather than what will — a page that only ever predicts is
+      asserting a record it never shows
+  - [x] **Both optional, and not cosmetically.** `scored/` is write-once, so every week already stored
+        was written before these existed and cannot gain them. A required field would have made the
+        whole archive unreadable the moment it shipped. Pinned by two tests that validate the exact
+        shapes sitting in the bucket
+- [x] **(c) Opponent context.** `opponent_rank` and `opponent_elo` from the same state `as_of` names,
+      so the two standings on the page cannot be from different weeks. `null` rank for an FCS
+      opponent — the FBS table has no place for one
+  - [x] Texas State is **FBS** (Sun Belt), which a first draft of the test assumed otherwise. Real
+        data: Texas State is #81 of 138, which is what makes "Texas by 39.3" legible
+
+### `schema_version` is not bumped, and §6.2 now says why
+
+All three are additive optional fields. An older page ignores a key it does not know and a newer page
+renders the absence, so nothing is misread and the mechanism has nothing to protect against.
+
+Bumping would have *caused* the outcome it exists to prevent — every visitor in front of "data is
+newer than this page" for the window between publish and deploy — in exchange for nothing. Worse, it
+would degrade the mechanism: fire it for changes that break nothing and nobody distinguishes the one
+time it means something. §6.2 now records the rule: **the version moves for a renamed field, a
+removed field, or a changed meaning, and for nothing else.**
+
+- [x] The release rule is ordering instead: **deploy the routes, then publish.**
+- [x] **That window is covered by a test rather than an assumption.** A new page reading an old
+      document is the *first* thing that happens in production on every such release, and the failure
+      it guards type-checks perfectly: `history` is absent rather than empty, so `doc.history.map(...)`
+      throws and the page renders nothing while TypeScript is satisfied.
+      `frontend/tests/cfb-old-document.spec.ts` renders the real document that was live on 2026-08-29
+      against the new build, and the new shape beside it
+  - [x] `frontend/tests/serve-out.mjs` serves the export for Playwright — node's `http` and `fs`, no
+        dependency — and `playwright.config.ts` gained a `webServer`. The existing visitor-counter
+        spec talks to a live API and ignores it
+
+### Candidate, not this session: remaining schedule and projected wins
+
+Summing win probabilities across Texas's remaining games gives an expected-wins number, and the
+schedule with per-game odds is the natural payoff of already forecasting all 120 games. It needs a
+**season-wide `/games` pull** rather than the week-by-week one the pipeline does now — one extra CFBD
+call against a budget currently spending ~30 of 1,000 a month. Everything else it needs already
+exists.
+
+## Resolved: the replay bound, and why `cfb elo replay` could not run for 2026
+
+**Fixed. `cfb elo replay --season 2026` exits 0.** It could not before, at any scale:
+
+```
+ReplayError: no Sagarin snapshot for season 2026 carrying hfa['predictor'] was captured
+before game 401866532 (Maine at Towson, 2026-08-27T22:00:00+00:00).
+```
+
+`replay` folds every **completed** game, and week 1's include nineteen that kicked off on 08-27 and
+08-28 — before the first Sagarin capture this project ever took (08-28T16:50Z). §3.3 prices a game
+from the newest snapshot captured strictly before its kickoff, so those games have no HFA and never
+will. `cfb-score.yml` runs `cfb elo replay` as its last step, so **the scheduled Sunday run would have
+gone red** on data nobody can retroactively supply.
+
+- [x] **`EloState.folded_from`** — the earliest kickoff an accumulation folded, `null` when it covered
+      the season entire. Named to match `PredictionLog.forecast_from`: the same idea on the scoring
+      side, and two names for one concept is how the next reader concludes they are different
+- [x] **Derived on every run, never stored as a constant.** Computed from the manifests in `raw/`, so
+      it restates the evidence rather than becoming the second source of truth §3.5's "state is a
+      cache" argument depends on there not being. Pinned by `TestItIsDerivedNotStored`, including a
+      case where backfilling an earlier capture moves the bound — which a written-down date could not
+      do
+- [x] **The skip is provably exactly the unpriceable set.** `hfa_at` fails on one condition only, so
+      `kickoff <= earliest` is the complete failure set rather than a heuristic for it, and every
+      other missing-HFA case still raises. That is what keeps this from being a catch-all that
+      swallows real faults
+- [x] **In the state document and compared by `verify`**, exactly rather than tolerantly. Letting
+      `null` mean "unbounded, match anything" would have put a permanent hole in the one guarantee
+      §3.5 rests on, to paper over a one-time migration
+- [x] **SPEC §3.5 records that this is transitional**, with §4.4's corollary carried over: a bound set
+      on a season the pipeline was live for is evidence of a **missing capture**, not of a late start
+- [x] `tests/test_replay_bound.py` — 11 tests, new file, nothing committed modified
+
+### What a committed test caught, and why it was not obsolete
+
+`test_replay.py::test_no_snapshot_before_a_game_raises_rather_than_defaulting` failed on the first
+implementation. It was **not** obsolete-by-design and was not edited.
+
+Its scenario has *one* game and a capture after it, so the bound excluded everything and the replay
+quietly returned an empty seed-only state. The test's stated intent — never invent an HFA — was
+preserved, but the outcome was materially worse than raising: a store whose only Sagarin capture
+postdates the entire season is not "the pipeline came online mid-week", it is a store with no usable
+coverage, and reporting "the season has not started" about a season that has is the quiet wrong answer
+this module exists to prevent.
+
+So the implementation gained a line the design had not called for: **excluding a season's opening
+games is expected; excluding all of them raises.** The test passes unmodified.
+
+### Named step: the state migration, which turned out not to be needed
+
+Planned as a one-time rewrite of stored model state, because a stored state written under the old rule
+would disagree with a replay under the new one — correctly, since they folded different game sets.
+Recorded here rather than folded into "production work" because a rewrite of stored state should be
+findable later.
+
+**It was not necessary, and the check is why that is known rather than assumed.**
+
+| | |
+|---|---|
+| Before | `elo/season=2026/week=preseason/2026-08-28T223403Z.json`, `elo/season=2026/week=preseason/2026-08-29T194047Z.json` |
+| After | unchanged — nothing written, nothing rewritten |
+
+`cfb elo advance` has **never run against the real bucket**: the only stored states are the two
+preseason ones (the original, and the re-seed from §3.1's rescale). With no week state stored,
+`newest_state_key` returns `None` and `verify` logs a skip rather than comparing — so there was
+nothing written under the old rule to migrate.
+
+Two things confirmed along the way, both load-bearing and both now checked rather than believed:
+
+- **`newest_state_key` takes the newest**, `keys[-1]` over a lexicographic listing of fixed-width UTC
+  stamps. Write-once means a regenerated state lands beside its predecessor and the newest wins, which
+  is what would have made a migration safe.
+- **The backward-regeneration hazard did not apply.** §3.5 warns that re-advancing an earlier week
+  widens its batch and can strand a later game. Nothing had advanced past week 1 — nothing had
+  advanced at all — so the migration would have been safe today and not in general. Had anything been
+  downstream, the migration would have been re-advancing every week from the affected one forward, in
+  order.
+
+### Verified against production
+
+| Command | Result |
+|---|---|
+| `cfb elo replay --season 2026` | exit 0, `games=6 snapshots=2 teams=266`, `elo_verify result=skip reason=no_stored_state` |
+| `cfb score` (as the schedule runs it, no `--week`) | exit 0, `result=skip reason=no_completed_week` |
+| `cfb elo replay` (no `--season`, as `cfb-score.yml` runs it) | exit 0 |
+
+Both steps of tomorrow's `cfb-score.yml` are green.
+
+## Follow-up: ELO_PER_POINT was 28 on reasoning that inverted
+
+§3.1 argued **"28 rather than the conventional 25 because college margins are far wider than the NFL
+ones the 25 figure came from."** The observation is right and the inference from it runs backwards.
+
+Hold the 400 divisor fixed: a *higher* `ELO_PER_POINT` maps a margin to a larger Elo gap, and a larger
+gap is a *higher* win probability. So raising the constant makes the model **more** confident per
+point, and wider scatter argues for a value **below** the NFL figure rather than above it. 28 was on
+the wrong side of 25 for a sport with more variance, not less.
+
+**What 28 implied, read back out of its own table.** 7 points → 75.6% → σ 10.1; 14 → 90.5% → 10.7;
+21 → 96.7% → 11.4. The model behaved as though college margins scatter with σ ≈ 10.5. The real figure
+is 14–16. Concretely: an NFL 7-point favourite wins outright ~70% of the time and a college one
+closer to 67%; the model said 75.6%.
+
+- [x] **`ELO_PER_POINT = 20`.** At 20 the logistic tracks a normal with σ = 15 across the range —
+      3 pts 58.5 vs 57.9, 7 pts 69.1 vs 68.0, 14 pts 83.4 vs 82.5, 21 pts 91.8 vs 91.9. Verified by
+      computation before the change, and pinned in `test_it_tracks_a_normal_with_sigma_15`
+- [x] **§3.1 rewritten.** The inverted argument is stated and corrected rather than deleted; the
+      "Recalled rate" column is gone. It was approximately the **NFL** curve and the scale had been
+      chosen to match it, so the table was the model agreeing with a number imported from the wrong
+      sport, presented as corroboration. In its place: the σ 14–16 evidence with its sources
+      (FiveThirtyEight's NFL Elo at 25, Staturdays' college Elo at ~20, ~16 vs 13.5 scatter around
+      the closing spread, a 12,000-game fit landing on 14.1), and a normal reference curve that is
+      labelled as a reference rather than a measurement
+- [x] **Only the ratio `ELO_PER_POINT / 400` is meaningful**, stated in §3.1 and pinned by
+      `test_only_the_ratio_to_the_divisor_is_meaningful`. The divisor reads like textbook furniture
+      and is therefore the one more likely to be left alone while the other is tuned
+- [x] **`predicted_margin` is unchanged, and it is asserted rather than assumed.** The constant
+      multiplies in `seed` and divides in `predict`, so it cancels: Ohio State 2486 → 2204 while
+      every week 1 forecast is bit-identical. §3.6's correlation of exactly 1.0 survives, which is
+      what made this safe to change in-season. `test_seed.py::TestTheScaleCancels` checks five scales
+      against a formula written out independently of the implementation, plus a control that the Elo
+      values *do* move so the test cannot pass on a no-op
+  - [x] The invariance holds **at the seed only.** From week 2 on, ratings carry K-scaled deltas
+        that do not rescale, so margins genuinely differ — which is the next item
+- [x] **`K` is coupled, and the rescale changed responsiveness without changing `K`.** What matters
+      is points of margin moved per game, `K / ELO_PER_POINT`: 0.71 at 28, **1.00 at 20 — about 40%
+      more responsive.** Probably the right direction for college, given the shorter season and
+      greater volatility, but it happened as a *consequence* rather than a decision. Recorded in
+      §3.4 and pinned by `test_k_moves_one_point_of_margin_per_unit`, with the note that `K` must not
+      be re-tuned without restating it in these units
+- [x] **§12 records that 20 is probably still slightly too high.** The σ 14–16 range is scatter
+      around *the market's* number, and this model is worse than the market — that is the premise of
+      publishing an ATS record — so margins scatter further around our predictions than around a
+      book's. Correcting for it points at **17–18**. 20 is used now because §5.3's calibration curve
+      is what should settle it, from games this project stored and predicted. Moving to 17 on an
+      argument rather than a measurement would repeat the mistake that produced 28
+
+### What the rescale did to the MOV floor, which was not the intent
+
+At 28 the seed spanned 211 to 2486 and **39** of the top team's opponents would have crossed
+`MOV_DENOMINATOR_FLOOR` by beating it, 5 of them driving the denominator negative. At 20 the seed
+spans 579 to 2204, the widest pairing leaves the denominator at **0.58**, and **none** cross.
+
+Crossing raises rather than clamping silently, so the old scale carried 39 pairings that would have
+reddened a run on a legitimate if enormous upset — losing those is good. But a guard that never fires
+in production is also a guard nothing exercises there, which is why `mov_denominator` stays public and
+directly tested rather than reached only through `update`.
+
+- [x] **§12 now records that the floor is a pure invariant guard rather than a tunable.** Its
+      retirement condition was "if the runs it produces turn out to be legitimate upsets rather than
+      data faults, it is too high" — and at scale 20 it produces no runs at all, so there is no
+      evidence it can ever generate about its own value. A number that cannot be disconfirmed is not
+      a tunable.
+- [x] **And that it stays anyway**, because §12's own refit expects the calibration curve to push
+      `ELO_PER_POINT` toward 17–18, which widens the Elo spread and moves the boundary back toward
+      reachable. Removing a guard because the current constant happens to clear it — when the open
+      question in that very section is whether the constant should move — would be removing it
+      exactly before it is needed.
+
+### Everything that quoted the old numbers
+
+`ELO_PER_POINT` appeared as a literal in seven places beyond its definition — §3.1's table, §3.2's
+worked seed values, §3.4's reachability table, §4.2's and §6.3's example documents, the README's
+formulas, and three docstrings. All swept, and the derived counts recomputed rather than scaled by
+hand.
 
 ## Wrap-up: three gaps closed, and one regression caught before it shipped
 

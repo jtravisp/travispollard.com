@@ -166,6 +166,17 @@ class ScoredGame(BaseModel):
 
     actual_margin: int
     home_won: bool
+    #: The final score, home first. **Optional, and that is not cosmetic.**
+    #: ``scored/`` is write-once, so every week already stored was written before
+    #: these existed -- a required field would make each of them unreadable the
+    #: moment this shipped, and the documents cannot be rewritten. A reader that
+    #: cannot open the archive is a worse outcome than a page that cannot print a
+    #: scoreline.
+    #:
+    #: The pipeline knew the margin and the winner from the start and threw the
+    #: points away, so it could say Texas won by 7 and not that it was 31-24.
+    home_points: int | None = None
+    away_points: int | None = None
     error: float
     abs_error: float
     brier: float
@@ -497,6 +508,12 @@ def _score_game(prediction: PredictedGame, outcome: RawGame) -> ScoredGame:
         kickoff=prediction.kickoff,
         home=prediction.home,
         away=prediction.away,
+        # Carried rather than re-derived. `actual_margin` is their difference and
+        # is kept because everything downstream is arithmetic on it; these two are
+        # kept because a scoreline is a fact about the game that a margin cannot
+        # reconstruct.
+        home_points=outcome.home_points,
+        away_points=outcome.away_points,
         neutral_site=prediction.neutral_site,
         predicted_margin=prediction.predicted_margin,
         win_probability=prediction.win_probability,

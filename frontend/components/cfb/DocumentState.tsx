@@ -34,7 +34,7 @@ export function DocumentPlaceholder({
           <h2 className="font-semibold">This data is newer than this page</h2>
           <p className="text-sm opacity-90">
             The pipeline published version {state.found} and this page understands version{' '}
-            {state.supported}. The site and the data deploy separately, so this usually clears
+            {state.supported.join(' or ')}. The site and the data deploy separately, so this usually clears
             itself within a few minutes. Nothing is wrong with the numbers — this page just
             cannot promise it would read them correctly.
           </p>

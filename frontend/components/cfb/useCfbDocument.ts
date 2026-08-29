@@ -18,13 +18,13 @@
 
 import { useEffect, useState } from 'react';
 
-import { CFB_DATA_BASE, Envelope, SUPPORTED_SCHEMA_VERSION } from './contract';
+import { CFB_DATA_BASE, Envelope, SUPPORTED_SCHEMA_VERSIONS } from './contract';
 
 export type CfbDocumentState<T> =
   | { status: 'loading' }
   | { status: 'ready'; document: T }
   /** The document loaded and this page cannot read its version. */
-  | { status: 'stale'; found: number; supported: number }
+  | { status: 'stale'; found: number; supported: number[] }
   /** Nothing loaded: no network, a 404, or bytes that are not JSON. */
   | { status: 'error'; message: string };
 
@@ -48,11 +48,11 @@ export function useCfbDocument<T extends Envelope>(name: string): CfbDocumentSta
       })
       .then((document) => {
         if (!live) return;
-        if (document.schema_version !== SUPPORTED_SCHEMA_VERSION) {
+        if (!SUPPORTED_SCHEMA_VERSIONS.includes(document.schema_version)) {
           setState({
             status: 'stale',
             found: document.schema_version,
-            supported: SUPPORTED_SCHEMA_VERSION,
+            supported: SUPPORTED_SCHEMA_VERSIONS,
           });
           return;
         }
