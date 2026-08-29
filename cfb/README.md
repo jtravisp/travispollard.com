@@ -112,14 +112,14 @@ is how that check starts failing for reasons unrelated to the model.
 ### Seeding
 
 Elo starts from Sagarin's **preseason RATING** column, mapped
-`1500 + (rating − mean) × 28`, centred on the FBS mean. This reverses the PRD,
+`1500 + (rating − mean) × ELO_PER_POINT`, centred on the FBS mean. This reverses the PRD,
 and the reason is that the alternative is worse on the page that matters: a
 uniform 1500 start predicts Texas–Kennesaw State as a coin flip through
 September.
 
 The cost is measured rather than waved away. A week-1 prediction is
 *arithmetically identical* to Sagarin's PREDICTOR — the preseason page's four
-rating columns are the same number, so an Elo gap over 28 is a Sagarin rating gap
+rating columns are the same number, so an Elo gap over ELO_PER_POINT is a Sagarin rating gap
 and adding the same HFA reproduces it to the floating-point bit. The correlation
 opens at exactly **1.0**, and the site shows a **seed disclosure** saying so until
 it falls below 0.90. Once retired, it stays retired: a disclosure that vanishes
@@ -128,12 +128,15 @@ without trace is worse than one that never appeared.
 ### Predicting
 
 ```
-predicted_margin = (elo_home − elo_away) / 28 + hfa
-win_probability  = 1 / (1 + 10^(−(margin × 28) / 400))
+predicted_margin = (elo_home − elo_away) / 20 + hfa
+win_probability  = 1 / (1 + 10^(−(margin × 20) / 400))
 ```
 
-- **`ELO_PER_POINT = 28`, `K = 20`.** Conventional, not fitted. The calibration
-  curve is the evidence for whether they are wrong.
+- **`ELO_PER_POINT = 20`, `K = 20`.** Conventional, not fitted. The calibration
+  curve is the evidence for whether they are wrong. 20 rather than the NFL's
+  conventional 25 because college margins scatter more widely, and wider scatter
+  means *less* certainty per point — the constant was 28 on reasoning that had
+  that backwards. Only the ratio to the 400 divisor is meaningful.
 - **Home-field advantage is read from the snapshot, never hardcoded** — from the
   newest Sagarin capture taken *strictly before* kickoff. That is a rule about
   the data rather than about when the job ran, so it replays identically forever.

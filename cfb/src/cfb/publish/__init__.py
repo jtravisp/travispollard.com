@@ -358,7 +358,7 @@ class Backtest(BaseModel):
     into `full_slate` would spend that.
 
     For week 1 in particular the figures measure something else entirely. The
-    seed is ``1500 + (rating - mean) * 28`` and the preseason page's rating
+    seed is ``1500 + (rating - mean) * ELO_PER_POINT`` and the preseason page's rating
     columns are identical (§1.2), so a week 1 forecast reproduces Sagarin's
     PREDICTOR exactly and ``sagarin_r`` opens at 1.0. What a week 1 backtest
     reports is the accuracy of Sagarin's preseason page. ``measures_the_seed``

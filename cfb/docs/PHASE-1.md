@@ -262,7 +262,8 @@ a second key and keeping the first.
 
 ## 3. The model
 
-- [x] **§3.1 the scale.** `ELO_PER_POINT = 28`, and the win-probability `elo_diff` is the
+- [x] **§3.1 the scale.** `ELO_PER_POINT = 20` (was 28 — see the follow-up below), and the
+      win-probability `elo_diff` is the
       HFA-adjusted gap. The §3.1 table's six rows are pinned by
       `test_the_spec_3_1_calibration_table`.
   - [x] The table's right-hand column was headed "Observed" and claimed a provenance it does not
@@ -380,8 +381,8 @@ saying the away team is favoured, which is only true once the sign is converted.
 ### What §4 confirmed about §3.6
 
 §3.6 argues that a week 1 prediction *is* Sagarin's prediction, and uses that to justify the seed
-disclosure. It is not an approximation: the seed is `1500 + (rating - mean) * 28`, so an Elo gap
-over 28 is exactly a Sagarin rating gap, and adding the same HFA reproduces PREDICTOR to the
+disclosure. It is not an approximation: the seed is `1500 + (rating - mean) * ELO_PER_POINT`, so an Elo gap
+over `ELO_PER_POINT` is exactly a Sagarin rating gap, and adding the same HFA reproduces PREDICTOR to the
 floating-point bit. The first real generated document shows `predicted_margin` and
 `sagarin_predictor_margin` both `10.67` on one game and both `6.2` on a neutral-site one.
 
@@ -689,7 +690,7 @@ Three things keep it separate, all structural rather than conventions someone ha
   published season-to-date record;
 - §6.4 renders it in its own block, and the page labels it "not a prediction".
 
-**And a week 1 backtest measures Sagarin, not this model.** The seed is `1500 + (rating - mean) * 28`
+**And a week 1 backtest measures Sagarin, not this model.** The seed is `1500 + (rating - mean) * ELO_PER_POINT`
 and the preseason page's rating columns are identical (§1.2), so a week 1 forecast reproduces
 PREDICTOR to the floating-point bit — `sagarin_r` comes out at exactly `1.0`, confirmed by command.
 `Backtest.measures_the_seed` carries that into the document and the page says it in words, because a
@@ -809,6 +810,111 @@ already owns the key format they parse. `sources.results_capture` is the one gen
 selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
+
+## BLOCKER, found during the rescale: `cfb elo replay` cannot run for 2026
+
+**Not caused by the rescale — it fails at any scale, and it will redden a scheduled run.**
+
+```
+$ uv run cfb elo replay --season 2026
+ReplayError: no Sagarin snapshot for season 2026 carrying hfa['predictor'] was captured
+before game 401866532 (Maine at Towson, 2026-08-27T22:00:00+00:00).
+```
+
+`replay` folds every **completed** game of the season, and week 1's completed games include the 19
+that kicked off on 08-27 and 08-28 — before the first Sagarin capture this project ever took
+(08-28T16:50Z). `hfa_for` is per-game and correctly refuses to invent an HFA for them.
+
+**This is the same root cause as the week 1 prediction bug, on the scoring side**, and it was not
+fixed by that change: `predict` now skips games it cannot forecast, but `replay` has no equivalent —
+it is supposed to fold *everything*, because dropping a completed game is exactly what §3.5's
+replay check exists to catch.
+
+**It fires tomorrow.** `cfb-score.yml`'s last step is `uv run cfb elo replay`, added so §11 step 5
+runs weekly rather than by hand. The scoring step ahead of it will skip cleanly
+(`reason=no_completed_week`), and then the replay step will exit 1 and the Sunday run goes red — for
+a real reason, on data nobody can retroactively supply.
+
+Three options, none of them obviously right, which is why this is recorded rather than fixed in
+passing:
+
+1. **Let `replay` skip games that predate the season's first HFA snapshot**, the way `predict` skips
+   games that have kicked off. Honest, but it weakens the one check that guarantees nothing was
+   dropped — and it would have to be recorded in the state so a later replay agrees.
+2. **Bound the replay at the first game it can price**, and have the stored state carry that bound.
+   Same shape as `forecast_from`, applied to `elo/`.
+3. **Accept a red Sunday until week 1's games age out of the comparison** — they never do; `replay`
+   always starts from the season's first game.
+
+Option 2 looks right and is not a small change. It needs its own session.
+
+## Follow-up: ELO_PER_POINT was 28 on reasoning that inverted
+
+§3.1 argued **"28 rather than the conventional 25 because college margins are far wider than the NFL
+ones the 25 figure came from."** The observation is right and the inference from it runs backwards.
+
+Hold the 400 divisor fixed: a *higher* `ELO_PER_POINT` maps a margin to a larger Elo gap, and a larger
+gap is a *higher* win probability. So raising the constant makes the model **more** confident per
+point, and wider scatter argues for a value **below** the NFL figure rather than above it. 28 was on
+the wrong side of 25 for a sport with more variance, not less.
+
+**What 28 implied, read back out of its own table.** 7 points → 75.6% → σ 10.1; 14 → 90.5% → 10.7;
+21 → 96.7% → 11.4. The model behaved as though college margins scatter with σ ≈ 10.5. The real figure
+is 14–16. Concretely: an NFL 7-point favourite wins outright ~70% of the time and a college one
+closer to 67%; the model said 75.6%.
+
+- [x] **`ELO_PER_POINT = 20`.** At 20 the logistic tracks a normal with σ = 15 across the range —
+      3 pts 58.5 vs 57.9, 7 pts 69.1 vs 68.0, 14 pts 83.4 vs 82.5, 21 pts 91.8 vs 91.9. Verified by
+      computation before the change, and pinned in `test_it_tracks_a_normal_with_sigma_15`
+- [x] **§3.1 rewritten.** The inverted argument is stated and corrected rather than deleted; the
+      "Recalled rate" column is gone. It was approximately the **NFL** curve and the scale had been
+      chosen to match it, so the table was the model agreeing with a number imported from the wrong
+      sport, presented as corroboration. In its place: the σ 14–16 evidence with its sources
+      (FiveThirtyEight's NFL Elo at 25, Staturdays' college Elo at ~20, ~16 vs 13.5 scatter around
+      the closing spread, a 12,000-game fit landing on 14.1), and a normal reference curve that is
+      labelled as a reference rather than a measurement
+- [x] **Only the ratio `ELO_PER_POINT / 400` is meaningful**, stated in §3.1 and pinned by
+      `test_only_the_ratio_to_the_divisor_is_meaningful`. The divisor reads like textbook furniture
+      and is therefore the one more likely to be left alone while the other is tuned
+- [x] **`predicted_margin` is unchanged, and it is asserted rather than assumed.** The constant
+      multiplies in `seed` and divides in `predict`, so it cancels: Ohio State 2486 → 2204 while
+      every week 1 forecast is bit-identical. §3.6's correlation of exactly 1.0 survives, which is
+      what made this safe to change in-season. `test_seed.py::TestTheScaleCancels` checks five scales
+      against a formula written out independently of the implementation, plus a control that the Elo
+      values *do* move so the test cannot pass on a no-op
+  - [x] The invariance holds **at the seed only.** From week 2 on, ratings carry K-scaled deltas
+        that do not rescale, so margins genuinely differ — which is the next item
+- [x] **`K` is coupled, and the rescale changed responsiveness without changing `K`.** What matters
+      is points of margin moved per game, `K / ELO_PER_POINT`: 0.71 at 28, **1.00 at 20 — about 40%
+      more responsive.** Probably the right direction for college, given the shorter season and
+      greater volatility, but it happened as a *consequence* rather than a decision. Recorded in
+      §3.4 and pinned by `test_k_moves_one_point_of_margin_per_unit`, with the note that `K` must not
+      be re-tuned without restating it in these units
+- [x] **§12 records that 20 is probably still slightly too high.** The σ 14–16 range is scatter
+      around *the market's* number, and this model is worse than the market — that is the premise of
+      publishing an ATS record — so margins scatter further around our predictions than around a
+      book's. Correcting for it points at **17–18**. 20 is used now because §5.3's calibration curve
+      is what should settle it, from games this project stored and predicted. Moving to 17 on an
+      argument rather than a measurement would repeat the mistake that produced 28
+
+### What the rescale did to the MOV floor, which was not the intent
+
+At 28 the seed spanned 211 to 2486 and **39** of the top team's opponents would have crossed
+`MOV_DENOMINATOR_FLOOR` by beating it, 5 of them driving the denominator negative. At 20 the seed
+spans 579 to 2204, the widest pairing leaves the denominator at **0.58**, and **none** cross.
+
+Crossing raises rather than clamping silently, so the old scale carried 39 pairings that would have
+reddened a run on a legitimate if enormous upset — losing those is good. But a guard that never fires
+in production is also a guard nothing exercises there, which is why `mov_denominator` stays public and
+directly tested rather than reached only through `update`. It is still reachable in principle: ratings
+diverge as a season runs.
+
+### Everything that quoted the old numbers
+
+`ELO_PER_POINT` appeared as a literal in seven places beyond its definition — §3.1's table, §3.2's
+worked seed values, §3.4's reachability table, §4.2's and §6.3's example documents, the README's
+formulas, and three docstrings. All swept, and the derived counts recomputed rather than scaled by
+hand.
 
 ## Wrap-up: three gaps closed, and one regression caught before it shipped
 

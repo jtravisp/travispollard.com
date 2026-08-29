@@ -47,14 +47,20 @@ FIXTURES = Path(__file__).parent / "fixtures"
 GOLDEN = FIXTURES / "sagarin_2026_preseason.txt"
 
 #: The three §3.2 publishes, and the FCS median it names alongside them.
-OHIO_STATE = 2486
-TEXAS = 2358
-MASSACHUSETTS = 605
-FCS_MEDIAN = 701
+#:
+#: **These moved when ``ELO_PER_POINT`` went from 28 to 20**, because a seed is
+#: ``1500 + (rating - mean) * ELO_PER_POINT`` and the scale is the whole of it.
+#: Ohio State was 2486, Texas 2358, Massachusetts 605, the FCS median 701. Every
+#: *gap* is 20/28 of what it was and every *predicted margin* is unchanged, which
+#: is the identity `test_the_seed_identity_survives_any_scale` pins.
+OHIO_STATE = 2204
+TEXAS = 2113
+MASSACHUSETTS = 861
+FCS_MEDIAN = 929
 
 #: What centring on the all-266 mean would produce instead. Present so the test
 #: that rules it out names the number it is ruling out.
-OHIO_STATE_IF_ALL_266_CENTRED = 2853
+OHIO_STATE_IF_ALL_266_CENTRED = 2467
 
 
 @pytest.fixture(scope="module")
@@ -113,7 +119,7 @@ class TestTheCentring:
     """The failure this file exists for: a plausible mean that is the wrong one."""
 
     def test_it_is_the_fbs_mean_not_the_all_266_mean(self, ratings):
-        """Centring on all 266 shifts every rating up by 367 Elo.
+        """Centring on all 266 shifts every rating up by 262 Elo.
 
         Every gap survives that shift, so the internal-consistency property below
         passes either way and so does anything relative. Only an absolute value
@@ -274,3 +280,70 @@ class TestUnmappedNamesStillRaise:
 
         with pytest.raises(UnmappedTeamError):
             seed(snapshot, load(2026, data_dir=root))
+
+
+class TestTheScaleCancels:
+    """**The seed identity survives any ``ELO_PER_POINT``, and that is why the
+    rescale was safe to make mid-season.**
+
+    ``seed`` multiplies a Sagarin rating difference by the scale and ``predict``
+    divides an Elo gap by it, so the constant cancels and a week 1 predicted
+    margin is bit-identical at 20, at 28, or at anything else. Only the Elo
+    numbers themselves move.
+
+    This matters for more than tidiness. §3.6's contamination series opens at a
+    correlation of exactly 1.0 because a week 1 forecast reproduces Sagarin's
+    PREDICTOR to the floating-point bit; if the scale disturbed that, changing it
+    would silently retire the seed disclosure. It does not.
+
+    The invariance holds **at the seed only.** Once `update` has run, ratings
+    carry K-scaled deltas that do not rescale with the constant, so margins from
+    week 2 onward genuinely differ -- which is the responsiveness change
+    `test_k_moves_one_point_of_margin_per_unit` records.
+    """
+
+    def scaled_seed(self, snapshot, crosswalk, scale):
+        """Seed at an arbitrary scale, using §3.2's formula directly.
+
+        Written out rather than monkeypatching the module constant: the point is
+        to compare the implementation against the formula, and patching would
+        compare the implementation against itself.
+        """
+        fbs = [team.rating for team in snapshot.teams if team.division == "A"]
+        mean = statistics.mean(fbs)
+        return {
+            crosswalk.from_sagarin(team.name): 1500 + (team.rating - mean) * scale
+            for team in snapshot.teams
+        }
+
+    def margin(self, ratings, home, away, scale, hfa=2.41):
+        return (ratings[home] - ratings[away]) / scale + hfa
+
+    @pytest.mark.parametrize("scale", [14, 20, 25, 28, 40])
+    def test_the_seed_identity_survives_any_scale(self, snapshot, crosswalk, scale):
+        """Predicted margins are identical at every scale; only Elo moves."""
+        here = self.scaled_seed(snapshot, crosswalk, scale)
+        reference = self.scaled_seed(snapshot, crosswalk, 28)
+
+        for home, away in [
+            ("texas", "ohio-state"),
+            ("ohio-state", "massachusetts"),
+            ("texas", "texas-state"),
+        ]:
+            assert self.margin(here, home, away, scale) == pytest.approx(
+                self.margin(reference, home, away, 28), abs=1e-9
+            )
+
+    def test_the_elo_values_do_move(self, snapshot, crosswalk):
+        """The control. Without this the test above would pass on a no-op."""
+        at_20 = self.scaled_seed(snapshot, crosswalk, 20)
+        at_28 = self.scaled_seed(snapshot, crosswalk, 28)
+        assert round(at_28["ohio-state"]) == 2486
+        assert round(at_20["ohio-state"]) == 2204
+
+    def test_the_shipped_seed_matches_the_formula_at_the_shipped_scale(
+        self, ratings, snapshot, crosswalk
+    ):
+        """And the implementation is the formula, not merely consistent with it."""
+        expected = self.scaled_seed(snapshot, crosswalk, ELO_PER_POINT)
+        assert ratings == pytest.approx(expected, abs=1e-9)
