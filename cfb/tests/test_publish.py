@@ -606,14 +606,39 @@ class TestLookingAhead:
         assert page.game.opponent == "Ohio State"
         assert page.game.week == "02"
 
-    def test_it_never_looks_backwards(self, crosswalk):
-        """A week before the one being published is finished business, and a
-        "next game" pointing backwards would be worse than the bug it replaces."""
+    def test_it_looks_backwards_too_and_that_is_what_saves_friday(self, crosswalk):
+        """**The regression this class nearly shipped a second time.**
+
+        An earlier draft fenced the search to weeks at or after the one being
+        published, reasoning that an earlier week is finished business. That is
+        false during a long week: `calendar.coming_week` returns "02" from
+        2026-08-30 onward, so the Friday publish targets week 2 while the next
+        game sits in week 1 on 09-05. The fence would have skipped it and the
+        page would have gone back to showing a game a fortnight out.
+
+        Looking backwards is safe because `kickoff >= now` already drops anything
+        played. An earlier week's game is either behind us or genuinely next.
+        """
         store = self.two_weeks(crosswalk)
         page = build_next_game(
             store=store, season=SEASON, week="02", now=GENERATED_AT, crosswalk=crosswalk
         )
+        assert page.game.opponent == "Texas State"
+        assert page.game.week == "01"
+
+    def test_a_played_earlier_week_is_still_skipped(self, crosswalk):
+        """The control for the test above: looking backwards must not resurrect
+        a game that has been played."""
+        store = self.two_weeks(crosswalk)
+        page = build_next_game(
+            store=store,
+            season=SEASON,
+            week="02",
+            now=datetime(2026, 9, 6, 12, tzinfo=UTC),
+            crosswalk=crosswalk,
+        )
         assert page.game.opponent == "Ohio State"
+        assert page.game.week == "02"
 
     def test_nothing_ahead_anywhere_is_a_bye(self, crosswalk):
         store = self.two_weeks(crosswalk)

@@ -82,6 +82,22 @@ function Slate({ document }: { document: SlateDocument }) {
         </table>
       </div>
 
+      {document.forecast_from && (
+        <div className="alert alert-info text-sm">
+          <p>
+            <strong>This week is longer than a week.</strong> The data source runs its week 1 from
+            Aug 27 to Sep 7 — ten days spanning <em>both</em> opening Saturdays — which is why this
+            slate is larger than a normal one and why its games fall on two different weekends. It
+            is the source&rsquo;s own numbering, not a renumbering here.
+          </p>
+          <p className="mt-1 opacity-80">
+            Games that had already kicked off when this forecast was generated are not listed:
+            the model went live mid-week, and predicting a game in progress is not a prediction.
+            The first game forecast here starts {formatKickoff(document.forecast_from)}.
+          </p>
+        </div>
+      )}
+
       <p className="text-xs text-base-content/50">
         Published {formatGeneratedAt(document.generated_at)} &middot; season {document.season}
       </p>

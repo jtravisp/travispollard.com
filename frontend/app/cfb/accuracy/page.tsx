@@ -99,7 +99,15 @@ function Accuracy({ document }: { document: AccuracyDocument }) {
             <tbody>
               {document.by_week.map((point) => (
                 <tr key={point.week}>
-                  <td>{formatWeek(point.week)}</td>
+                  <td>
+                    {formatWeek(point.week)}
+                    {/* A partial week's figures are right about fewer games than
+                        the label implies. Saying so is the same duty as the seed
+                        disclosure, in a different place. */}
+                    {point.forecast_from && (
+                      <span className="badge badge-warning badge-sm ml-2">partial</span>
+                    )}
+                  </td>
                   <td className="text-right tabular-nums">{point.games}</td>
                   <td className="text-right tabular-nums">{formatMean(point.mae)}</td>
                   <td className="text-right tabular-nums">
@@ -110,6 +118,15 @@ function Accuracy({ document }: { document: AccuracyDocument }) {
             </tbody>
           </table>
         </div>
+        {document.by_week.some((point) => point.forecast_from) && (
+          <p className="text-xs text-base-content/60 mt-2">
+            A <span className="badge badge-warning badge-sm align-middle">partial</span> week was
+            only forecast in part — the model went live partway through it, so its figures cover
+            the games that were still ahead and not the whole week. They are counted in the
+            season-to-date record above, which is why that record&rsquo;s game count is the honest
+            one to read.
+          </p>
+        )}
       </section>
 
       <section>

@@ -561,6 +561,23 @@ first day predated the first Sagarin capture in existence.
 forecasting was never forecastable, which is a fact about when the pipeline
 started rather than a join that failed.
 
+**This is a transitional path, not a normal mode.** It exists because a pipeline
+has to come online at some moment, and that moment landed inside CFBD's ten-day
+week 1 of 2026. From week 2 onward every week has Sagarin snapshots behind it and
+a Thursday run that precedes the whole slate, so `forecast_from` is `null` and a
+log covers its week entire — which is what §4.1 says and what it will keep saying.
+
+Two things follow, and both matter more than the mechanism:
+
+- **A reader must be told.** A week forecast in part produces figures that are
+  correct about fewer games than their label implies, which is the seed
+  disclosure's problem wearing different clothes. `forecast_from` is carried from
+  the prediction log into `ScoredWeek`, into §6.4's `by_week`, and onto the page,
+  which marks the week *partial* and says why.
+- **It should stay rare enough to notice.** If `forecast_from` is ever set on a
+  week the pipeline was live for, something skipped a scheduled run — the field
+  is then evidence of a gap rather than of a start.
+
 This does **not** move to per-game HFA. A prediction run happens at one moment and
 cannot use a snapshot that lands later, which is what §4.2's single `hfa` field
 means and what `test_a_snapshot_landing_mid_week_is_not_used` pins. Per-game HFA
