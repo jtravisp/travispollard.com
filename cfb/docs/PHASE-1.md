@@ -847,6 +847,35 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
 
+## OUTSTANDING: the v2 documents have not been published
+
+**Deliberate, not forgotten.** PR #50 renamed `national_rank` to `model_rank` and
+moved the published contract to version 2. The release order for a breaking
+rename is **routes first, then publish**, so that a page never meets a document it
+cannot read. The routes were merged at `2026-08-29T21:27Z` and the deploy was
+still running when this session ended.
+
+Until the publish runs, `/cfb/data/*` still carries **version 1** documents with
+`national_rank`. That is fine and is what the dual-version support is for: the
+deployed page accepts `{1, 2}` and reads either spelling, so the site is correct
+either way. What is missing is only the *new* content — `history`, `last_result`,
+`opponent_model_rank` — which the page renders as absent.
+
+To finish it, once the pipeline shows `Succeeded`:
+
+```bash
+export AWS_PROFILE=tp-site
+aws codepipeline list-pipeline-executions --pipeline-name travispollardcom-deploy --max-items 1
+cd cfb && uv run cfb publish --season 2026 --week 1
+```
+
+Then confirm the live document carries `model_rank` and the page shows "Elo rank".
+The Friday `cfb-publish` cron would also do it unattended on 09-04; running it by
+hand only makes the new sections appear sooner.
+
+**Version 1 support in the page can be dropped after that publish**, and should
+be — it exists only to make this one release seamless.
+
 ## Follow-up: every rank is labelled as this model's own
 
 A bare "#5" on a college football page reads as **AP** by default, and this model
