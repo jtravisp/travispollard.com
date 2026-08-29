@@ -576,9 +576,17 @@ the target week's own `/games` capture and never from a wall clock, for the reas
 /cfb/data/
   next-game.json        -> /cfb
   accuracy.json         -> /cfb/accuracy
-  notes/index.json      -> the note list
-  notes/<slug>.json     -> /cfb/notes/[slug]
 ```
+
+**The two `notes/` documents are dropped, resolved 2026-08-29.** This section used to
+publish `notes/index.json` and `notes/<slug>.json`, which contradicted §7 — that section says the
+finished note is committed to the repo as MDX under `frontend/app/cfb/notes/`, "because it is prose
+that ships with the site rather than data the pipeline owns". Both could not be the source for
+`/cfb/notes/[slug]`.
+
+§7 wins. The pipeline's only note output is the scaffold it writes to `notes/` in the bucket, which a
+person edits and commits; the site build publishes it. The route therefore does *zero* fetches, which
+satisfies this section's one-fetch rule more completely than a JSON document would have.
 
 Each route does exactly one fetch and renders. No client-side joining, no request waterfall, and the pages
 stay free of composition logic — which matters because they are static-exported and the PRD forbids
@@ -750,7 +758,25 @@ to `notes/season=2026/week=04/scaffold.md` in the bucket.
 Commentary is added by hand and the finished note is committed to the repo as MDX under
 `frontend/app/cfb/notes/`, because it is prose that ships with the site rather than data the pipeline
 owns. That is the one thing in this phase that is a human step by design, and the PRD's fifteen-minute
-target is what the scaffold exists to protect.
+target is what the scaffold exists to protect. §6.1's two `notes/` JSON documents are dropped in
+favour of this.
+
+**The key is `notes/season=2026/week=04/<ts>.md`, not the fixed `scaffold.md` named above.** A fixed
+name cannot be written twice: `put_bytes` refuses an existing key and the publisher role has no
+`s3:DeleteObject`, so the second run of a week — after a rescore, or after the first scaffold was
+edited badly — would fail on the write instead of producing a scaffold. Making it the one mutable
+non-JSON object in the layout would buy nothing, since it is derived entirely from `scored/` and a
+person simply takes the newest.
+
+**Team names in the scaffold are rendered, never canonical ids.** The first scaffold generated said
+"Texas hosted ohio-state" and "North Carolina at TCU" appeared as "north-carolina at tcu" — §6.3's
+rule broken in the most visible possible place, a document whose entire purpose is to be read by a
+person and then published as prose.
+
+`cfb note` has no `in_season` guard, unlike every other command in §9. The others are scheduled and
+gate on the calendar so an out-of-season cron is a skip rather than a failure; this one is only run by
+hand, by someone who has decided to write about a specific week, and skipping over the date would be
+answering a question they did not ask.
 
 ---
 

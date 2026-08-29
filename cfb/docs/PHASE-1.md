@@ -9,14 +9,50 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29)
+## Where this stands (2026-08-29, second session)
 
-§3, §4, §5 and §6's generator are complete, and §6's delivery half is built but **not applied**.
-`/cfb` and `/cfb/accuracy` exist and build; the CloudFront behaviour that would serve the JSON to
-them is written and planned and waiting on one `terraform apply`.
+**The pipeline has run against the real bucket for the first time, and `/cfb/data/*` is live.**
+§3-§7 are complete except §6's two routes, which are built but not deployed, and §7's MDX plumbing,
+which has nothing to render yet.
 
 | | |
 |---|---|
+| Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Landed | §3-§6 through PR #44, `12afc15` and `4fe2977`. This session's work is uncommitted |
+| Next | Deploy the frontend (merge to `main`; CodePipeline builds from there and does **not** invalidate — see the deploy-pipeline note). Then §8's three workflows |
+| Blocked | nothing |
+| Blocked on a human | the frontend deploy, and Phase 0's in-season Sagarin capture |
+
+Run against **production** this session:
+
+| Command | Result |
+|---|---|
+| `terraform apply` (root, by hand) | OAC created, distribution updated in place |
+| `cfb fetch cfbd --resource games --week 1` | exit 0 — 455 games, which is where the division problem surfaced |
+| `cfb predict --week 1` | exit 1, `ReplayError` — **correct**: week 1 opened before the first Sagarin capture existed |
+| `cfb fetch cfbd --resource games --week 2` | exit 0 |
+| `cfb predict --week 2` | exit 0, `games=120 hfa=2.41 benchmarked=0 priced=0` |
+| `cfb publish --week 2` | exit 0, both keys written, **`invalidated ... invalidation=I4VKE563KALNI7LATB9JQX0D90`** |
+| `curl https://travispollard.com/cfb/data/next-game.json` | **200**, `server: AmazonS3`, `cache-control: public, max-age=300, s-maxage=3600` |
+
+The live document reads Texas vs Ohio State, week 2, kickoff `2026-09-12T23:30Z`, `national_rank: 5`
+of 138 — and `accuracy.json` reads `through_week: null` with every mean `null`, which is the legal
+empty-season shape §6.4 requires rather than a page claiming zeros.
+
+Also verified, offline:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `865 passed, 23 skipped in 18.75s` — the division filter disturbed no fixture |
+| `cfb note --season 2026 --week 1` | exit 0, `games=3 texas=True ats=2-0` |
+| a second `cfb note` for the same week | **two keys under `notes/`**, first kept |
+| `cfb note` on an unscored week | exit 1, `ReplayError` naming `cfb score` |
+
+**Not verified: what the pages look like.** `/cfb` and `/cfb/accuracy` build, serve, and carry the
+right strings, and the live production documents are staged against a local build — but no browser
+was available in either session, so nobody has looked at them.
+
+---|---|
 | Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3-§5 and §6's generator, merged through PR #44 plus `12afc15`. This session's delivery work is uncommitted |
 | Next | Run the root apply, then look at the live pages. After that: the unit tests three sessions have now had to skip, and §7/§8 |
@@ -351,7 +387,9 @@ one test that enforces it.
 ## 6. The JSON contract — the generator, not yet the delivery
 
 - [x] `next-game.json` and `accuracy.json`, built by `src/cfb/publish/` and written by `cfb publish`
-- [ ] `notes/index.json`, `notes/<slug>.json` — **deferred deliberately, see the contradiction below**
+- [x] ~~`notes/index.json`, `notes/<slug>.json`~~ — **dropped, decided 2026-08-29.** §7 wins: the
+      finished note is MDX committed to the repo, so the route does zero fetches and the pipeline's
+      only note output is §7's scaffold. SPEC §6.1 records it
 - [x] The §6.2 envelope on both documents. Both carry the publish run's `season` and `week`, so the
       two pages are visibly one run; `accuracy.json` adds `through_week` because a Friday publish is
       for a week nobody has played
@@ -472,19 +510,37 @@ Both are repo-root scripts rather than `cfb/`, and both were in the way rather t
   while the real one goes stale, and the run reports success. Same fix, plus a refusal to upload an
   empty file.
 
-### Blocked on a decision: §6.1 and §7 disagree about notes
+### Resolved: §6.1 and §7 disagreed about notes, and §7 won
 
-§6.1 publishes `notes/index.json` and `notes/<slug>.json` for the routes to fetch. §7 says the
-finished note is MDX committed under `frontend/app/cfb/notes/`, "because it is prose that ships with
-the site rather than data the pipeline owns". **Both cannot be the source for `/cfb/notes/[slug]`.**
+§6.1 published `notes/index.json` and `notes/<slug>.json`; §7 said the finished note is MDX committed
+under `frontend/app/cfb/notes/`, "because it is prose that ships with the site rather than data the
+pipeline owns". Both could not be the source for `/cfb/notes/[slug]`.
 
-Deferred this session rather than guessed, because the answer decides whether the pipeline writes two
-more documents or only §7's `scaffold.md`. The §7 session should settle it with the scaffold in front
-of it. The three readings are: MDX wins and §6.1 loses two of its four documents; the JSON carries the
-week's figures so they cannot drift from `scored/` while the MDX carries prose; or the JSON is the
-whole note and §7's "ships with the site" reasoning is what gets dropped.
+**MDX wins and the two JSON documents are dropped.** The route does zero fetches, which satisfies
+§6.1's one-fetch rule more completely than a document would have, and the pipeline's only note output
+is the scaffold. Recorded in SPEC §6.1 and §7.
 
-## 7. The weekly note — not started
+## 7. The weekly note
+
+- [x] `src/cfb/publish/notes.py` and `cfb note --season --week`, writing the scaffold from the
+      newest scored generation of a week. Verified by command against a three-week store
+- [x] §7's content: Texas's game (prediction, result, error, line, verdict), the full-slate figures
+      with every denominator attached, and the week's biggest miss by absolute error
+- [x] **Team names are rendered, not canonical ids.** Caught by reading the first real scaffold,
+      which said "Texas hosted ohio-state" and "north-carolina at tcu" — §6.3's rule broken in the
+      most visible place there is, a document written to be published as prose
+- [x] The key is `notes/season=YYYY/week=NN/<ts>.md`, not §7's fixed `scaffold.md`. A fixed name
+      cannot be written twice under `put_bytes` with no `s3:DeleteObject`, so a rescore or a botched
+      first edit would fail on the write. Verified: a second `cfb note` for the same week leaves two
+      keys
+- [x] `biggest_miss` breaks ties on the game id, so one `ScoredWeek` always produces the same
+      scaffold. A note that changed between two runs over nothing would undercut the one property
+      the whole prediction log exists to have
+- [x] No `in_season` guard, deliberately — this is the only command run by hand rather than by a
+      schedule, and skipping over the date would answer a question nobody asked
+- [ ] The MDX plumbing and `/cfb/notes/[slug]`. **Not built, and nothing to render yet:** production
+      has no scored week, so there is no scaffold and no note. Needs `@next/mdx` wired into
+      `next.config.ts`, a note index page, and the first real note
 
 ## 8. Workflows — not started
 
@@ -500,7 +556,7 @@ whole note and §7's "ships with the site" reasoning is what gets dropped.
 - [x] `cfb score --season --week [--force]`, defaulting to `calendar.last_completed_week`
 - [x] `cfb publish --season --week [--force]`, defaulting to `calendar.coming_week` — the same
       default `predict` uses, because Thursday's forecast and Friday's page are one week
-- [ ] `cfb note`
+- [x] `cfb note --season --week`, defaulting to `calendar.last_completed_week`
 - [x] §9.1 records the five errors this phase adds to Phase 0 §9's hierarchy
 
 ## Repo layout, against §2
@@ -528,6 +584,37 @@ already owns the key format they parse. `sources.results_capture` is the one gen
 selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
+
+## Found this session
+
+- **`/games` returns every division, and nothing in this project knew.** The first real capture came
+  back with **455 games**: 110 D-III, 109 D-II, 72 FCS-FCS, 51 FBS-FBS, 48 FBS-FCS, 28 FCS-vs-D-II
+  and 37 against unclassified NAIA schools. Only **171 have both teams in the crosswalk**, and there
+  are **420 distinct unmapped names**. `cfb predict` could never have run against a real response —
+  every fixture in the suite is three or four FBS/FCS games. The `/teams` comment in
+  `collectors/cfbd.py` shows the project reasoned carefully about FBS+FCS and nobody considered that
+  `/games` reaches further down.
+  - Fixed by `RawGame.is_modelled` and a filter in `week_slate`. A game is out when either side is
+    classified below FCS, or when one side is classified and the other is not — the opponent of an
+    NCAA team that the NCAA does not classify is an NAIA school, and there are nine on week 1's
+    slate. **Both sides absent means in**, so the crosswalk stays the authority and an unmapped name
+    still raises rather than quietly becoming a filter. That is also what keeps every committed
+    fixture working: none of them set a classification.
+  - The rule selects exactly 171 games — the vendor's classification and this project's crosswalk
+    agreeing independently on the same set.
+- **The run that found it was stopped by a malformed row in a division that was never ours.**
+  `Delta State at Northeastern State`, `home=52 away=None`, on a D-II game that had not kicked off.
+  The division filter now runs ahead of the partially-scored check, so a vendor's bookkeeping in
+  D-II cannot redden a Friday.
+- **Week 1 of 2026 cannot be predicted, and that is correct.** Its slate opens
+  `2026-08-27T22:00Z`; the earliest Sagarin snapshot in the bucket is `2026-08-28T16:50Z`. §3.3
+  refuses to read an HFA from a page captured after kickoff, so `cfb predict --week 1` exits 1. 17 of
+  its games were already final. The pipeline came online mid-week-1 and the honest first week is 02.
+- **CFBD's `/calendar` and its `/games` disagree about when week 1 starts.** The calendar says
+  `2026-08-29T07:00Z`; `/games` files 55 games before that, the earliest on 08-27. So
+  `calendar.coming_week` said "01" while a third of week 1 was already played. Not acted on — the
+  calendar is what §9's defaults use and changing that is its own decision — but it is why a
+  scheduled Thursday run would have picked the wrong week on the season's first pass.
 
 ## Found in earlier sessions
 
@@ -581,7 +668,7 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 - **`terraform apply` has not been run for this change.** The policy is validated and formatted,
   not applied.
 
-## Found this session
+## Found in the §6 generator session
 
 - **`Crosswalk` had no way to render a name.** Publishing needs one — §6.3 puts rendered names in the
   documents — and the only thing available was `entries[id]["cfbd"]` read by hand at the call site.

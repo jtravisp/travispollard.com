@@ -20,10 +20,10 @@ happened", and a traceback means "this tool is broken" -- two different things
 that a wider catch would merge.
 
 SPEC 8 also lists ``crosswalk verify``; SPEC-phase1 9 lists ``elo seed``,
-``predict``, ``score``, ``publish`` and ``note``. All but ``note`` are
-registered; that one is not, for the reason the missing ones always were: a
-command whose module does not exist gives a workflow something that exits
-non-zero for a reason unrelated to the data. ``elo replay`` is here because
+``predict``, ``score``, ``publish`` and ``note``. All of them are registered as
+of Phase 1. SPEC 8's ``crosswalk verify`` is not, and will not be: the SPEC 6.5
+assertions it would run are `uv run pytest cfb/tests/test_crosswalk.py`, which
+SPEC 6.4's fix loop already tells you to type. ``elo replay`` is here because
 SPEC-phase1 11 step 5 is a command a human runs, and it is the check that keeps
 the stored Elo state a cache rather than a second source of truth.
 """
@@ -37,12 +37,13 @@ from urllib.parse import urlparse
 from cfb.calendar import coming_week, in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
-from cfb.errors import CfbError, SeedStateError, WeekResolutionError
+from cfb.errors import CfbError, ReplayError, SeedStateError, WeekResolutionError
 from cfb.logging import (
     EVENT_ELO_REPLAY,
     EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
     EVENT_INVALIDATED,
+    EVENT_NOTE_WRITTEN,
     EVENT_PREDICTIONS_WRITTEN,
     EVENT_PUBLISHED,
     EVENT_SNAPSHOT_WRITTEN,
@@ -217,6 +218,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_store(publish)
 
+    note = commands.add_parser(
+        "note", help="write a week's note scaffold (SPEC-phase1 7)"
+    )
+    note.add_argument("--season", type=int)
+    note.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week that just completed",
+    )
+    _add_store(note)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -262,6 +274,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _crosswalk_bootstrap(args)
     if args.command == "elo":
         return _elo(args, moment=moment)
+    if args.command == "note":
+        return _note(args, moment=moment)
     if args.command == "publish":
         return _publish(args, moment=moment)
     if args.command == "score":
@@ -720,6 +734,65 @@ def _invalidate(args, *, season: int, week: str, moment: datetime) -> None:
         paths=" ".join(DATA_PATHS),
         invalidation=invalidate(distribution=distribution, caller_reference=reference),
     )
+
+
+def _note(args, *, moment: datetime) -> int:
+    """SPEC-phase1 7: the scaffold a person turns into the week's note.
+
+    **No in-season guard, unlike every other command here.** The others are
+    scheduled and gate on the calendar so an out-of-season cron is a skip rather
+    than a failure; this one is only ever run by hand, by someone who has decided
+    to write about a specific week. Skipping silently because of the date would
+    be answering a question they did not ask.
+
+    Reads the newest scored generation for the week. There is no pre-kickoff
+    subtlety here of the kind `cfb score` has: a scaffold describes games that
+    have been played, so the newest scoring of them is simply the best one.
+    """
+    from cfb.elo.scoring import scored_weeks
+    from cfb.publish.notes import write_scaffold
+
+    season = args.season or _season_of(moment)
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else last_completed_week(moment, calendar=load_calendar(season, data_dir=_data_dir()))
+    )
+    if week is None:
+        log(
+            EVENT_NOTE_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+    scored = [found for found in scored_weeks(store, season=season) if found.week == week]
+    if not scored:
+        raise ReplayError(
+            f"week {week} of season {season} has not been scored, so there are no figures "
+            f"to build a note from. Score it first:\n"
+            f"  uv run cfb score --season {season} --week "
+            f"{int(week) if week.isdigit() else week}"
+        )
+
+    week_scored = scored[0]
+    key = write_scaffold(store, week_scored, generated_at=moment)
+    log(
+        EVENT_NOTE_WRITTEN,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        key=key,
+        games=len(week_scored.games),
+        # The three things the scaffold is built around, so the run says what it
+        # actually had to work with.
+        texas=any(game.home == "texas" or game.away == "texas" for game in week_scored.games),
+        ats=week_scored.full_slate.ats.record,
+        mae=week_scored.full_slate.mae,
+    )
+    return 0
 
 
 def _elo(args, *, moment: datetime) -> int:

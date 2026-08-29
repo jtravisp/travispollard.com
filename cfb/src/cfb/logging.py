@@ -32,6 +32,7 @@ __all__ = [
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
     "EVENT_INVALIDATED",
+    "EVENT_NOTE_WRITTEN",
     "EVENT_PREDICTIONS_WRITTEN",
     "EVENT_PUBLISHED",
     "EVENT_SNAPSHOT_WRITTEN",
@@ -86,6 +87,10 @@ EVENT_PUBLISHED = "published"
 #: only makes them visible sooner: a failure here is a slow page, not a wrong
 #: one, and a Friday run has to be readable at a glance on that distinction.
 EVENT_INVALIDATED = "invalidated"
+#: One per note scaffold written (SPEC-phase1 7). The only command a human
+#: runs on purpose rather than a schedule, so this line exists to say what the
+#: scaffold had to work with rather than to be alerted on.
+EVENT_NOTE_WRITTEN = "note_written"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
