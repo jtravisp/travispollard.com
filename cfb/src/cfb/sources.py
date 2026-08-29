@@ -47,6 +47,7 @@ __all__ = [
     "completed_games",
     "market_home_margin",
     "market_line_for",
+    "results_capture",
     "normalize_provider",
     "hfa_at",
     "hfa_for",
@@ -341,6 +342,40 @@ def completed_games(
     """
     games, read_keys = week_slate(store, season, keep)
     return [(game, key) for game, key in games if game.is_complete], read_keys
+
+
+def results_capture(store: SnapshotStore, season: int, week: str) -> Manifest:
+    """The newest ``/games`` capture of one week partition.
+
+    **Returned as a manifest rather than a moment, because the moment is a model
+    input.** SPEC-phase1 5.2 decides its second failure mode against evidence
+    rather than a clock -- a game that kicked off before the results were
+    captured should have a score in it -- so ``fetched_at`` changes which weeks
+    score and which go red, and a number that does that has to be traceable to
+    the object it came from.
+
+    The target week's own partition, not the whole season's newest capture. A
+    game that moved is read from whichever partition holds it (``week_slate``
+    prefers the newer capture per game id), but the question this answers is
+    narrower: *when was this week looked at*. The season's newest capture would
+    answer it with a pull about some other week, and in week 12 that would push
+    the boundary months past every week-1 kickoff and make the check toothless.
+    """
+    for manifest in _newest_manifest_per_week(store, season, "games"):
+        if manifest.week == week:
+            return manifest
+    fetch_it = (
+        f"\n  uv run cfb fetch cfbd --resource games --season {season} "
+        f"--week {int(week)}"
+        if week.isdigit()
+        else ""
+    )
+    raise ReplayError(
+        f"no /games capture for week {week} of season {season} under "
+        f"raw/cfbd/season={season}/. Scoring needs one to tell an unplayed game from a "
+        f"join that failed, and without it every prediction for the week would look "
+        f"unplayed:{fetch_it}"
+    )
 
 
 def _newest_manifest_per_week(

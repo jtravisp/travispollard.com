@@ -543,6 +543,29 @@ Per week and per season, for **Texas** and for the **full slate** separately, as
 
 Scored weeks are written to `scored/season=2026/week=04/<ts>.json`, write-once, same rules.
 
+### 5.4 Which generation is scored, and what the document records
+
+A week can hold several prediction objects — §4.1 makes them write-once precisely so a regenerate adds
+a key rather than replacing one — so a scoring run has to choose, and **the newest is the wrong
+choice.** One of them can have been written on Sunday. Grading it would publish an accuracy figure for
+a forecast made with the results in hand, which is the one overclaim §1.1 gives up git in order not to
+make.
+
+**The rule: the newest generation written strictly before its own slate's first kickoff.** If none
+qualifies, the week is not scored and the run goes red.
+
+The boundary comes from each candidate document's own slate rather than from the week's results. The
+two are the same number in the ordinary week and they come apart in the case that matters: a game
+moved *into* the week from an earlier one has already been played by the time the week is predicted,
+so a boundary taken from the results would sit in the past and reject an honest Thursday generation.
+This is the same property §11 step 1 checks from the bucket side, used rather than only asserted.
+
+**The scored document records `results_fetched_at`.** It is a model input, not a log field: §5.2
+decides "unplayed, or a join that failed" against it, so the same week re-scored against a different
+capture can legitimately reach a different verdict, and a document that named the predictions it
+graded but not the evidence it graded them against could not say why. It comes from the manifest of
+the target week's own `/games` capture and never from a wall clock, for the reason §3.3 gives.
+
 ---
 
 ## 6. The JSON contract

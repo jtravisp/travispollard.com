@@ -33,6 +33,7 @@ __all__ = [
     "EVENT_HTTP_ERROR",
     "EVENT_PREDICTIONS_WRITTEN",
     "EVENT_SNAPSHOT_WRITTEN",
+    "EVENT_WEEK_SCORED",
     "REASON_NOT_IN_SEASON",
     "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
@@ -67,6 +68,11 @@ EVENT_HTTP_ERROR = "http_error"
 #: prediction existed before kickoff -- the thing step 1 of SPEC-phase1 11 checks
 #: from the bucket side.
 EVENT_PREDICTIONS_WRITTEN = "predictions_written"
+#: One per week scored (SPEC-phase1 5.3), with the key and the counts the ATS
+#: record has to add up to. `games` and `unplayed` are on this line for the same
+#: reason the document carries them: "nothing was dropped" is only checkable if
+#: the run says how many it left out.
+EVENT_WEEK_SCORED = "week_scored"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"

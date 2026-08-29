@@ -63,7 +63,10 @@ __all__ = [
     "PredictionLog",
     "index_entries",
     "predict_week",
+    "prediction_generations",
     "prediction_key",
+    "predictions_to_score",
+    "read_predictions",
     "rebuild_index",
     "write_predictions",
 ]
@@ -334,6 +337,98 @@ def write_predictions(store: SnapshotStore, log: PredictionLog) -> str:
     key = prediction_key(season=log.season, week=log.week, generated_at=log.generated_at)
     store.put_bytes(key, log.model_dump_json(indent=2).encode("utf-8"), "application/json")
     return key
+
+
+def read_predictions(store: SnapshotStore, key: str) -> PredictionLog:
+    """One stored prediction log, validated at the boundary.
+
+    These bytes were written by an earlier run rather than by the code reading
+    them, so nothing guarantees they still match the schema this reader was built
+    against -- the same reason ``elo.state.load_state`` validates.
+    """
+    with validating(f"prediction log at {key}"):
+        return PredictionLog.model_validate_json(store.get_bytes(key))
+
+
+def prediction_generations(
+    store: SnapshotStore, *, season: int, week: str
+) -> list[tuple[datetime, str]]:
+    """Every generation stored for one season-week, oldest first.
+
+    Every one of them, not the newest. §4.1 makes these write-once precisely so a
+    regenerate leaves both, and something has to be able to see both to choose
+    between them -- which is what ``predictions_before`` does.
+
+    Read from the keys, like ``index_entries``: the stamp in the key is what
+    ordered the writes, and reading ``generated_at`` out of the objects to sort
+    them would let a document's contents disagree with its own name.
+    """
+    found = []
+    for key in store.list_keys(f"predictions/season={season}/week={week}/"):
+        parsed = _parse_prediction_key(key)
+        if parsed is None:
+            continue
+        _, parsed_week, generated_at = parsed
+        if parsed_week == week:
+            found.append((generated_at, key))
+    return sorted(found)
+
+
+def predictions_to_score(
+    store: SnapshotStore, *, season: int, week: str
+) -> PredictionLog:
+    """The generation a scoring run is allowed to grade: the newest one written
+    before its own slate had started.
+
+    **Not simply the newest.** A week can hold several generations -- write-once
+    means a regenerate adds a key rather than replacing one (§4.1) -- and some of
+    them can have been written after the games were played. Grading one of those
+    would publish an accuracy figure for a forecast made with the results in
+    hand, which is the single overclaim SPEC-phase1 1.1 gives up git to avoid.
+
+    **The boundary comes from each document's own slate, not from the week's
+    results.** Both are "the earliest kickoff that week" in the ordinary case,
+    and they come apart in exactly the case that matters: a game moved *into* the
+    week from an earlier one is already played by the time the week is predicted,
+    so a boundary taken from the results would sit in the past and reject a
+    perfectly honest Thursday generation. Judging each candidate against the
+    slate it actually claimed asks the only question worth asking -- did this
+    forecast precede the games it forecast -- and it is the same check
+    SPEC-phase1 11 step 1 runs from the bucket side.
+
+    Strictly before, because a generation stamped at the kickoff second knew the
+    game had started.
+    """
+    generations = prediction_generations(store, season=season, week=week)
+    if not generations:
+        raise ReplayError(
+            f"no predictions are stored for week {week} of season {season} under "
+            f"predictions/season={season}/week={week}/, so there is nothing to score "
+            f"the week against. A week with results and no prediction is a `cfb predict` "
+            f"run that never happened, not an empty scoring run"
+        )
+
+    rejected = []
+    for generated_at, key in reversed(generations):
+        candidate = read_predictions(store, key)
+        if not candidate.games:
+            raise ReplayError(
+                f"{key} holds no games. An empty prediction log would score as a week "
+                f"in which nothing was forecast and nothing was missed, which is the "
+                f"one shape §5.2's join failures cannot see"
+            )
+        first_kickoff = min(game.kickoff for game in candidate.games)
+        if generated_at < first_kickoff:
+            return candidate
+        rejected.append(f"{key} (slate opened {first_kickoff.isoformat()})")
+
+    listed = "\n  ".join(rejected)
+    raise ReplayError(
+        f"every generation stored for week {week} of season {season} was written after "
+        f"its own slate had started, so none of them can be scored:\n  {listed}\n"
+        f"Grading one would publish accuracy for a forecast made with the results in "
+        f"hand; run `cfb predict` before kickoff, not after"
+    )
 
 
 def index_entries(store: SnapshotStore) -> list[IndexEntry]:

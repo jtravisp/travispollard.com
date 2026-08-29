@@ -37,7 +37,8 @@ from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION
 from cfb.errors import UnscoredGameError
 from cfb.predict import PredictedGame, PredictionLog
-from cfb.sources import RawGame, market_home_margin
+from cfb.sources import RawGame, market_home_margin, week_position
+from cfb.storage import SnapshotStore
 
 __all__ = [
     "TEXAS",
@@ -47,6 +48,8 @@ __all__ = [
     "ScoredGame",
     "ScoredWeek",
     "score_week",
+    "scored_key",
+    "write_scored",
 ]
 
 #: The canonical id the PRD's per-team figures are about.
@@ -58,6 +61,9 @@ TEXAS = "texas"
 _BUCKET = 0.10
 
 _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+#: Second resolution and no colons, matching every other key this project builds.
+_STAMP_FORMAT = "%Y-%m-%dT%H%M%SZ"
 
 
 class CalibrationBucket(BaseModel):
@@ -192,6 +198,12 @@ class ScoredWeek(BaseModel):
     #: and a week can have several, so a scored week that cannot name one is not
     #: auditable.
     predictions_generated_at: datetime
+    #: When the results were captured. **A model input, not a log field**: it is
+    #: what decides whether a prediction with no result is an unplayed game or a
+    #: failed join (§5.2), so a re-run against a different capture can reach a
+    #: different verdict on the same week -- and a document that did not record it
+    #: could not say which capture it had been.
+    results_fetched_at: datetime
 
     games: list[ScoredGame]
     #: Predictions with no result that had not been played. Not an error (§5.2),
@@ -273,6 +285,7 @@ def score_week(
         week=predictions.week,
         generated_at=now,
         predictions_generated_at=predictions.generated_at,
+        results_fetched_at=results_fetched_at,
         games=scored,
         unplayed=unplayed,
         texas=_accuracy(
@@ -282,6 +295,30 @@ def score_week(
         calibration=_calibration(scored),
         sagarin_r=_sagarin_correlation(scored),
     )
+
+
+def scored_key(*, season: int, week: str, generated_at: datetime) -> str:
+    """``scored/season=2026/week=04/2026-09-21T123000Z.json`` (§5.3)."""
+    week_position(week)  # rejects a partition value that would open a second prefix
+    return (
+        f"scored/season={season}/week={week}/"
+        f"{generated_at.strftime(_STAMP_FORMAT)}.json"
+    )
+
+
+def write_scored(store: SnapshotStore, week: ScoredWeek) -> str:
+    """Store one scored week write-once. Returns the key.
+
+    ``put_bytes``, so an existing key raises rather than being replaced -- §5.3
+    gives this document the same rules as ``predictions/``, and for a sharper
+    reason. A prediction is a claim about the future and a rescore is a claim
+    about the past, so a scored week that could be overwritten would let a run
+    that did not like Sunday's numbers replace them with Monday's and leave no
+    trace that it had. A rescore writes a second key beside the first.
+    """
+    key = scored_key(season=week.season, week=week.week, generated_at=week.generated_at)
+    store.put_bytes(key, week.model_dump_json(indent=2).encode("utf-8"), "application/json")
+    return key
 
 
 def _refuse_unpredicted_results(
