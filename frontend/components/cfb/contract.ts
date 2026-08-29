@@ -98,6 +98,12 @@ export interface WeekPoint {
   games: number;
   mae: number | null;
   sagarin_r: number | null;
+  /**
+   * Set when the week was only partly forecast, so its figures cover fewer
+   * games than the week they are filed under. A partial week that reads as
+   * complete is the seed-disclosure problem in a new place.
+   */
+  forecast_from: string | null;
 }
 
 export interface SeedDisclosure {
@@ -156,5 +162,7 @@ export interface SlateGame {
 export interface SlateDocument extends Envelope {
   team: string;
   priced: number;
+  /** Set when the run covered less than the whole week; null otherwise. */
+  forecast_from: string | null;
   games: SlateGame[];
 }

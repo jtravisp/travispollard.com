@@ -9,14 +9,51 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29) — Phase 1 complete
+## Where this stands (2026-08-29) — Phase 1 closed, season pending
 
-**Every section of SPEC-phase1 is implemented and the pipeline is live and
-scheduled.** `travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` serve real
-documents, and five workflows run the week without a person in it.
+**Every section of SPEC-phase1 is implemented, live, and scheduled.**
+`travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` serve real documents,
+and five workflows run the week without a person in it.
 
 | | |
 |---|---|
+| Tests | **942 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Landed | §3–§8 through PRs #44–#48 |
+| Next | Nothing until the season exercises it. Then Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
+| Blocked | nothing |
+| Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
+
+### The schedule from here
+
+The first scheduled runs are **days away, not a week**:
+
+| | | |
+|---|---|---|
+| Sun **Aug 30** 12:00 / 12:30 | `cfb-cfbd`, `cfb-score` | First firing of `cfb-score`. Expect a green **skip**: week 1 does not end until 09-08, so `last_completed_week` is `None` |
+| Tue **Sep 1** | `cfb-sagarin` | The first in-season capture, which is also Phase 0's outstanding carry-over |
+| Thu **Sep 3** 12:00 | `cfb-predict` | First firing. `coming_week` returns **"02"**, because CFBD's week 1 opened on 08-29 |
+| Fri **Sep 4** 12:00 | `cfb-publish` | First firing of the SLO. `/cfb` must still show **Texas State on 09-05**, a week 1 game, which is what the look-ahead exists for |
+| Sun **Sep 13** | `cfb-score` | The first real scoring run, against week 1's **partial** log |
+
+**Sunday Sep 13 is the one to watch.** It is the first time `cfb score` runs
+against real results, and the first time `forecast_from` does anything outside a
+test: week 1's log covers 150 of its 171 modelled games, and §5.2's first failure
+mode has to treat the other 21 as unforecastable rather than as failed joins.
+
+### What is left, honestly
+
+Phase 1's deliverable was "one Saturday end to end with no manual intervention".
+Every part exists; **it has not yet happened.** Until it does:
+
+- **`cfb score` has never run against real results.** Every scoring test is
+  constructed, which §5.2's failure modes require anyway — no vendor publishes a
+  game whose id matches a prediction and whose teams do not.
+- **The production backtest waits on week 1 closing** (2026-09-07). §5.2 cannot
+  distinguish a failed join from a game in progress.
+- **No weekly note exists**, so §7's MDX plumbing and `/cfb/notes/[slug]` are
+  unbuilt. There is nothing to render until a week has been scored.
+
+---|---|
 | Tests | **931 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3–§8 through PRs #44, #45 and #46. This session's §8 workflows, tests and README are uncommitted |
 | Next | Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
@@ -772,6 +809,37 @@ already owns the key format they parse. `sources.results_capture` is the one gen
 selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
+
+## Wrap-up: three gaps closed, and one regression caught before it shipped
+
+- [x] **`forecast_from` now reaches the page.** It stopped at `scoring`, which read
+      it and threw it away, so a partially-forecast week would have appeared on
+      `/cfb/accuracy` as a complete one — the seed disclosure's problem in a new
+      place. It is carried into `ScoredWeek`, into §6.4's `by_week`, and rendered
+      as a **partial** badge with a note saying the season-to-date count is the
+      honest number to read. `SlateDocument` carries it too
+- [x] **SPEC §4.4 now says the partial-log path is transitional.** It arises only
+      because a pipeline has to come online at some moment, and this one landed
+      inside a ten-day week 1. From week 2 every week has snapshots behind it and
+      a Thursday run ahead of its whole slate, so `forecast_from` is `null`. The
+      spec also records the corollary: if it is ever set on a week the pipeline
+      was live for, that is evidence of a **missed run**, not of a start
+- [x] **`/cfb/slate` explains its own size.** CFBD's week 1 runs 08-27 to 09-07,
+      ten days across both opening Saturdays, so the slate is larger than a normal
+      week and its games fall on two weekends. The footnote says that is the
+      source's numbering, not a renumbering here, and that games already under way
+      are not listed
+  - The brief said "the eight games the media calls Week 0". The real number is
+    **19**, all FCS, on 08-27 and 08-28 — and they are *not* in the slate at all,
+    because they had already kicked off when the forecast was generated. The
+    footnote says what is true rather than the count in the brief
+- [x] **The look-ahead was six days from reintroducing the bug it fixed.**
+      `_next_fixture` searched only weeks at or after the one being published, on
+      the reasoning that an earlier week is finished business. `coming_week`
+      returns `"02"` from 08-30 onward, so Friday 09-04's publish targets week 2
+      while Texas's next game sits in week 1 on 09-05 — and the fence would have
+      skipped it. It now searches every week; `kickoff >= now` already drops
+      anything played, so looking back is safe and looking only forward was not
 
 ## Found this session: /cfb showed the wrong game, and the data was fine
 

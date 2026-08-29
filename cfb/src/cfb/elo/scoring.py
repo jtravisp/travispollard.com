@@ -209,6 +209,11 @@ class ScoredWeek(BaseModel):
     #: different verdict on the same week -- and a document that did not record it
     #: could not say which capture it had been.
     results_fetched_at: datetime
+    #: Carried through from the prediction log (§4.4). Set when that log covered
+    #: only part of its week, so these figures describe fewer games than the week
+    #: they are filed under -- and §6.4 has to be able to say so. ``None`` on any
+    #: week forecast in full, which is every ordinary week.
+    forecast_from: datetime | None = None
 
     games: list[ScoredGame]
     #: Predictions with no result that had not been played. Not an error (§5.2),
@@ -291,6 +296,7 @@ def score_week(
         generated_at=now,
         predictions_generated_at=predictions.generated_at,
         results_fetched_at=results_fetched_at,
+        forecast_from=predictions.forecast_from,
         games=scored,
         unplayed=unplayed,
         texas=accuracy_of(

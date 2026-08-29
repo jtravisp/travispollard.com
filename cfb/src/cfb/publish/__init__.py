@@ -257,6 +257,11 @@ class SlateDocument(BaseModel):
     #: because a week where it collapses is a `/lines` pull that did not happen,
     #: and the page should be able to say so rather than showing blanks.
     priced: int = Field(ge=0)
+    #: The earliest kickoff forecast, when the run covered less than the whole
+    #: week (§4.4). ``None`` on an ordinary week. Carried so the page can say why
+    #: a slate is shorter than the week it names, rather than leaving a reader to
+    #: conclude the model missed games.
+    forecast_from: datetime | None
     games: list[SlateGame]
 
 
@@ -317,6 +322,11 @@ class WeekPoint(BaseModel):
     #: §3.6's weekly correlation. ``None`` when the week had fewer than two games
     #: Sagarin's page covered.
     sagarin_r: float | None
+    #: Set when the week was only partly forecast (§4.4), so its figures cover
+    #: less than the week they are filed under. **A partial week that reads as
+    #: complete is the seed-disclosure problem in a new place**: the number is
+    #: right and the thing it describes is smaller than the label suggests.
+    forecast_from: datetime | None
 
 
 class SeedDisclosure(BaseModel):
@@ -472,6 +482,7 @@ def build_slate(
         week=log.week,
         team=resolver.display_name(team),
         priced=sum(1 for game in games if game.market_line is not None),
+        forecast_from=log.forecast_from,
         games=games,
     )
 
@@ -514,6 +525,7 @@ def build_accuracy(
                 games=len(scored.games),
                 mae=scored.full_slate.mae,
                 sagarin_r=scored.sagarin_r,
+                forecast_from=scored.forecast_from,
             )
             for scored in weeks
         ],
@@ -578,11 +590,20 @@ def _next_fixture(
 ) -> tuple[PredictionLog, PredictedGame | None]:
     """The log to describe, and the team's next unplayed game in it.
 
-    Searches the requested week first, then every later week that has stored
-    predictions, and takes the earliest kickoff still ahead of ``now``. Earlier
-    weeks are never searched: a week before the one being published is finished
-    business, and a "next game" pointing backwards would be worse than the bug
-    this replaces.
+    Searches **every** week of the season that has stored predictions and takes
+    the earliest kickoff still ahead of ``now``.
+
+    An earlier draft fenced this to weeks at or after the one being published, on
+    the reasoning that a week before it is finished business. That is false during
+    a long week and it was six days from reintroducing the bug it was written to
+    fix: `calendar.coming_week` returns "02" from 2026-08-30 onward, so the Friday
+    publish targets week 2 while Texas's next game sits in week 1 on 09-05. The
+    fence would have skipped it.
+
+    Searching backwards is safe because the ``kickoff >= now`` filter already
+    excludes anything played. An earlier week's games are either behind us --
+    dropped -- or genuinely still ahead, in which case they *are* the next game
+    and the week they are filed under is beside the point.
 
     Returns the requested week's log with ``None`` when the team has nothing
     ahead of it anywhere -- a bye, or a season that has run out. The document
@@ -593,8 +614,7 @@ def _next_fixture(
         {entry.week for entry in index_entries(store) if entry.season == season},
         key=week_position,
     )
-    ordered = [found for found in weeks if week_position(found) >= week_position(week)]
-    if week not in ordered:
+    if week not in weeks:
         # The requested week has no predictions at all. `_newest_predictions`
         # raises with the message naming `cfb predict`, which is the right
         # failure for a Friday and the one SPEC 8 calls the SLO.
@@ -602,7 +622,7 @@ def _next_fixture(
 
     here = _newest_predictions(store, season=season, week=week)
     best: tuple[datetime, PredictionLog, PredictedGame] | None = None
-    for candidate in ordered:
+    for candidate in weeks:
         log = (
             here
             if candidate == week
@@ -613,12 +633,11 @@ def _next_fixture(
                 continue
             if best is None or game.kickoff < best[0]:
                 best = (game.kickoff, log, game)
-        if best is not None:
-            # Weeks are searched in order, so the first one holding a fixture
-            # ahead of `now` holds the earliest. Reading further would spend
-            # object reads to find a game that cannot be sooner.
-            break
 
+    # Every week is read rather than stopping at the first with a fixture. Weeks
+    # do not overlap in kickoff order *today*, so stopping early would usually be
+    # right -- and "usually right about the calendar" is exactly the assumption
+    # that produced the bug above. A season is fifteen small documents.
     return (best[1], best[2]) if best else (here, None)
 
 
@@ -747,6 +766,7 @@ def _backtest(weeks: list[ScoredWeek]) -> Backtest | None:
                 games=len(scored.games),
                 mae=scored.full_slate.mae,
                 sagarin_r=scored.sagarin_r,
+                forecast_from=scored.forecast_from,
             )
             for scored in weeks
         ],
