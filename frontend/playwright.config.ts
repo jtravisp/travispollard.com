@@ -66,10 +66,22 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    /* webkit is deliberately absent.
+     *
+     * It cannot launch on this CI image -- Amazon Linux 2023 supplies none of
+     * libicudata.so.66, libwoff2dec.so.1.0.2, libx264.so and eleven more, and
+     * the usual remedy (`playwright install --with-deps`) shells out to apt-get,
+     * which this image does not have either. On 2026-08-29 all 7 CI failures
+     * were webkit; chromium and firefox ran clean.
+     *
+     * Dropping it costs nothing this project was actually getting. **webkit on
+     * Linux is not what tests Safari on iOS** -- different rendering stack,
+     * different fonts, different media support, and no touch or viewport
+     * behaviour of an actual phone. It reads like Safari coverage and is not.
+     *
+     * If cross-browser coverage matters later, the fix is a **different
+     * CodeBuild image** with the libraries -- an Ubuntu-based one, or
+     * Playwright's own container -- not a dependency flag on this one. */
 
     /* Test against mobile viewports. */
     // {

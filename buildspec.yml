@@ -7,13 +7,15 @@ phases:
     commands:
       - cd frontend
       - npm ci
-      # --with-deps installs the system libraries the browsers need. Without it
-      # the download succeeds and webkit then cannot launch: the 2026-08-29 run
-      # failed 7 specs on missing libicudata.so.66, libwoff2dec, libx264 and ten
-      # more, while chromium and firefox ran clean. The image also warns that its
-      # OS is not officially supported and falls back to an ubuntu20.04 build,
-      # which is why the gap shows up on webkit first.
-      - npx playwright install --with-deps
+      # No --with-deps. This image is Amazon Linux 2023, which has no apt-get,
+      # and Playwright's dependency step shells out to it: the run on 2026-08-29
+      # died in one second with `apt-get: command not found` and exit 127 --
+      # before downloading a single browser, because the dependency step runs
+      # first and aborts the whole install.
+      #
+      # The libraries it would have installed were only ever needed by webkit,
+      # which is no longer in the projects list. See playwright.config.ts.
+      - npx playwright install
 
   build:
     commands:
