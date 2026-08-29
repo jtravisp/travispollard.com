@@ -49,6 +49,7 @@ export default function HeaderWithTheme() {
               <li><Link href="/resume" className="link link-hover">Resume</Link></li>
               <li><Link href="/projects" className="link link-hover">Projects</Link></li>
               <li><Link href="/stack" className="link link-hover">Stack</Link></li>
+              <li><Link href="/cfb" className="link link-hover">CFB Forecast</Link></li>
               <li><a href="https://github.com/jtravisp" target="_blank" rel="noopener noreferrer" className="link link-hover">GitHub</a></li>
               <li><a href="https://www.linkedin.com/in/travis-pollard" target="_blank" rel="noopener noreferrer" className="link link-hover">LinkedIn</a></li>
             </ul>

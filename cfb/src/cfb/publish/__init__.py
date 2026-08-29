@@ -54,19 +54,24 @@ __all__ = [
     "ACCURACY_KEY",
     "CACHE_CONTROL",
     "NEXT_GAME_KEY",
+    "SLATE_KEY",
     "PROBABILITY_CEILING",
     "PROBABILITY_FLOOR",
     "SEED_DISCLOSURE_THRESHOLD",
     "AccuracyDocument",
     "AsOf",
     "AtsSummary",
+    "Backtest",
     "NextGameDocument",
     "PublishedGame",
     "Record",
+    "SlateDocument",
+    "SlateGame",
     "SeedDisclosure",
     "WeekPoint",
     "build_accuracy",
     "build_next_game",
+    "build_slate",
     "clamp",
     "publish",
 ]
@@ -76,6 +81,7 @@ __all__ = [
 #: what ``cfb/terraform/main.tf`` says the bucket layout exists for.
 NEXT_GAME_KEY = "cfb/data/next-game.json"
 ACCURACY_KEY = "cfb/data/accuracy.json"
+SLATE_KEY = "cfb/data/slate.json"
 
 #: §3.7. A model that prints 100% claims a certainty no model has, and the first
 #: time it is wrong the page had no way to have been right.
@@ -121,6 +127,11 @@ class PublishedGame(BaseModel):
     #: A rendered name, not a canonical id (§6.3).
     opponent: str = Field(min_length=1)
     home: bool
+    #: **Needed because ``home`` alone is misleading at a neutral site.** CFBD
+    #: nominates one team as home for a game played on neither campus, and the
+    #: page was saying "X is at home" about it. §5.1 records that the two sources
+    #: can even disagree about which team that is.
+    neutral_site: bool
     #: **Signed for the subject team, not for the home team.** Everything in
     #: ``predictions/`` is from the home team's perspective (§4.2); this document
     #: is read by a page about one team, and an away game whose margin was left in
@@ -177,6 +188,63 @@ class NextGameDocument(BaseModel):
     #: statement than the missing game.
     game: PublishedGame | None
     as_of: AsOf
+
+
+class SlateGame(BaseModel):
+    """One game on the week's board.
+
+    **Home perspective, unlike ``next-game.json``.** That document is about one
+    team and re-signs everything to it; this one is a list of games with no
+    subject, so it keeps the storage convention (§4.2) and the page renders the
+    sign against the home team's name. Mixing the two conventions in one contract
+    is how a page ends up drawing a favourite as an underdog.
+    """
+
+    model_config = _STRICT
+
+    cfbd_game_id: int
+    kickoff: datetime
+    #: Rendered names (§6.3), home first in the field order the page reads.
+    home: str = Field(min_length=1)
+    away: str = Field(min_length=1)
+    neutral_site: bool
+    #: Positive favours the home team.
+    predicted_margin: float
+    #: The home team's, clamped (§3.7).
+    win_probability: float
+    #: As the book published it: negative favours the home team (§4.3).
+    market_line: float | None
+    line_source: str | None
+    #: ``True`` when this game involves the team ``next-game.json`` is about, so
+    #: the page can mark it without knowing who that is.
+    featured: bool
+
+
+class SlateDocument(BaseModel):
+    """``cfb/data/slate.json`` (this project's addition to §6.1), for ``/cfb/slate``.
+
+    §6.1 named three routes and none of them showed the other 119 games the model
+    forecasts every week. The document exists because the pipeline was already
+    computing every row and publishing one of them.
+
+    Its own route rather than a section of ``/cfb``, so §6.1's one-fetch-per-page
+    rule survives: the front page stays a small document that loads fast, and the
+    full board is a page you choose to open.
+    """
+
+    model_config = _STRICT
+
+    schema_version: int = Field(ge=1)
+    generated_at: datetime
+    season: int = Field(ge=1869)
+    week: str = Field(min_length=1)
+    #: Which team's games are flagged ``featured``.
+    team: str = Field(min_length=1)
+    #: How many of the slate a book had priced when this was generated. Carried
+    #: because a week where it collapses is a `/lines` pull that did not happen,
+    #: and the page should be able to say so rather than showing blanks.
+    priced: int = Field(ge=0)
+    games: list[SlateGame]
 
 
 # --- accuracy.json ------------------------------------------------------------
@@ -257,6 +325,34 @@ class SeedDisclosure(BaseModel):
     retired_week: str | None
 
 
+class Backtest(BaseModel):
+    """Weeks scored retrospectively, kept apart from the live record (§6.4).
+
+    **This is not the model's record and the page must never present it as one.**
+    A backtested week was scored after its games were played, so it carries none
+    of the evidence `predictions/` exists to provide -- SPEC-phase1 1.1 gives up
+    git specifically to keep "written before kickoff" true, and folding these
+    into `full_slate` would spend that.
+
+    For week 1 in particular the figures measure something else entirely. The
+    seed is ``1500 + (rating - mean) * 28`` and the preseason page's rating
+    columns are identical (§1.2), so a week 1 forecast reproduces Sagarin's
+    PREDICTOR exactly and ``sagarin_r`` opens at 1.0. What a week 1 backtest
+    reports is the accuracy of Sagarin's preseason page. ``measures_the_seed``
+    says so in the document rather than leaving the page to know it.
+    """
+
+    model_config = _STRICT
+
+    through_week: str | None
+    #: True while every backtested week is one whose forecast is arithmetically
+    #: the seed -- which is week 1, and only week 1.
+    measures_the_seed: bool
+    texas: Record
+    full_slate: Record
+    by_week: list[WeekPoint]
+
+
 class AccuracyDocument(BaseModel):
     """``cfb/data/accuracy.json`` (§6.4), rendered by ``/cfb/accuracy``."""
 
@@ -278,6 +374,8 @@ class AccuracyDocument(BaseModel):
     calibration: list[CalibrationBucket]
     by_week: list[WeekPoint]
     seed_disclosure: SeedDisclosure
+    #: ``None`` when no week has been backtested, which is the ordinary case.
+    backtest: Backtest | None
 
 
 # --- building them ------------------------------------------------------------
@@ -311,6 +409,51 @@ def build_next_game(
     state = load_state(store, log.model.elo_state)
 
     return _next_game_document(log, state, resolver, team=team, now=now)
+
+
+def build_slate(
+    *,
+    store: SnapshotStore,
+    season: int,
+    week: str,
+    now: datetime,
+    team: str = TEXAS,
+    crosswalk: Crosswalk | None = None,
+    crosswalk_dir: Path | None = None,
+) -> SlateDocument:
+    """Every game the model forecast this week, in kickoff order.
+
+    Reads the same generation ``build_next_game`` does, so the featured game on
+    ``/cfb`` and its row here can never be two different forecasts.
+    """
+    resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
+    log = _newest_predictions(store, season=season, week=week)
+
+    games = [
+        SlateGame(
+            cfbd_game_id=game.cfbd_game_id,
+            kickoff=game.kickoff,
+            home=resolver.display_name(game.home),
+            away=resolver.display_name(game.away),
+            neutral_site=game.neutral_site,
+            predicted_margin=game.predicted_margin,
+            win_probability=clamp(game.win_probability),
+            market_line=game.market_line,
+            line_source=game.market_line_source,
+            featured=team in (game.home, game.away),
+        )
+        for game in sorted(log.games, key=lambda g: (g.kickoff, g.cfbd_game_id))
+    ]
+
+    return SlateDocument(
+        schema_version=SCHEMA_VERSION,
+        generated_at=now,
+        season=season,
+        week=log.week,
+        team=resolver.display_name(team),
+        priced=sum(1 for game in games if game.market_line is not None),
+        games=games,
+    )
 
 
 def build_accuracy(
@@ -355,6 +498,7 @@ def build_accuracy(
             for scored in weeks
         ],
         seed_disclosure=_seed_disclosure(weeks),
+        backtest=_backtest(scored_weeks(store, season=season, prefix="backtest")),
     )
 
 
@@ -388,13 +532,22 @@ def publish(
         crosswalk=crosswalk,
         crosswalk_dir=crosswalk_dir,
     )
+    slate = build_slate(
+        store=store,
+        season=season,
+        week=week,
+        now=now,
+        crosswalk=crosswalk,
+        crosswalk_dir=crosswalk_dir,
+    )
     accuracy = build_accuracy(store=store, season=season, week=week, now=now)
 
     store.put_json(
         NEXT_GAME_KEY, next_game.model_dump(mode="json"), cache_control=CACHE_CONTROL
     )
+    store.put_json(SLATE_KEY, slate.model_dump(mode="json"), cache_control=CACHE_CONTROL)
     store.put_json(ACCURACY_KEY, accuracy.model_dump(mode="json"), cache_control=CACHE_CONTROL)
-    return {NEXT_GAME_KEY: "next-game", ACCURACY_KEY: "accuracy"}
+    return {NEXT_GAME_KEY: "next-game", SLATE_KEY: "slate", ACCURACY_KEY: "accuracy"}
 
 
 # --- the pieces ---------------------------------------------------------------
@@ -458,6 +611,7 @@ def _published_game(
         kickoff=prediction.kickoff,
         opponent=resolver.display_name(opponent),
         home=at_home,
+        neutral_site=prediction.neutral_site,
         predicted_margin=(
             prediction.predicted_margin if at_home else -prediction.predicted_margin
         ),
@@ -497,6 +651,31 @@ def _fbs_rank(state: EloState, resolver: Crosswalk, *, team: str) -> tuple[int, 
         )
     ahead = sum(1 for rating in fbs.values() if rating > fbs[team])
     return ahead + 1, len(fbs)
+
+
+def _backtest(weeks: list[ScoredWeek]) -> Backtest | None:
+    """§6.4's retrospective block, or ``None`` when nothing has been backtested."""
+    if not weeks:
+        return None
+    games = [game for scored in weeks for game in scored.games]
+    return Backtest(
+        through_week=weeks[-1].week,
+        # Week 1 is the only week whose forecast is arithmetically the seed. A
+        # backtest reaching week 2 is measuring a model that has folded results,
+        # and the caveat stops applying.
+        measures_the_seed=all(scored.week == "01" for scored in weeks),
+        texas=_record([game for game in games if TEXAS in (game.home, game.away)]),
+        full_slate=_record(games),
+        by_week=[
+            WeekPoint(
+                week=scored.week,
+                games=len(scored.games),
+                mae=scored.full_slate.mae,
+                sagarin_r=scored.sagarin_r,
+            )
+            for scored in weeks
+        ],
+    )
 
 
 def _record(games: list[ScoredGame]) -> Record:
