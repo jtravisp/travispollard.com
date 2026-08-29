@@ -99,7 +99,7 @@ function NextGame({ document }: { document: NextGameDocument }) {
       <div className="card bg-base-200">
         <div className="card-body">
           <div className="text-sm uppercase tracking-wide text-base-content/60">
-            {formatWeek(document.week)} &middot; {formatKickoff(game.kickoff)}
+            {formatWeek(game.week)} &middot; {formatKickoff(game.kickoff)}
           </div>
           <h2 className="card-title text-2xl">
             {away} <span className="text-base-content/50 font-normal">at</span> {home}

@@ -31,6 +31,8 @@ export interface Envelope {
 /** §6.3's `game` block. Signed for the subject team, not the home team. */
 export interface PublishedGame {
   kickoff: string;
+  /** The game's own week, which is not always the document's. */
+  week: string;
   opponent: string;
   home: boolean;
   /** `home` alone is misleading at a neutral site, where CFBD nominates one. */

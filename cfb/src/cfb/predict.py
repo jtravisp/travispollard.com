@@ -156,6 +156,17 @@ class PredictionLog(BaseModel):
     season: int = Field(ge=1869)
     week: str = Field(min_length=1)
     generated_at: datetime
+    #: The earliest kickoff this log forecasts, when it covers less than the
+    #: whole week. ``None`` means it covers the slate entire, which is the
+    #: ordinary case and what every log written before this field existed means.
+    #:
+    #: **A pipeline that comes online mid-week can only forecast what has not
+    #: happened**, and §4.1's "every game on that week's slate" was written
+    #: assuming that never happens. CFBD's week 1 of 2026 is ten days long and
+    #: spans two Saturdays, so a run on the first of them legitimately covers
+    #: half a week. `scoring` reads this to tell a game nobody could have
+    #: forecast from a join that failed.
+    forecast_from: datetime | None = None
     model: ModelBlock
     games: list[PredictedGame]
 
@@ -206,16 +217,20 @@ def predict_week(
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
     hfa_manifest: Manifest | None = None,
+    retrospective: bool = False,
 ) -> PredictionLog:
     """Forecast every week's slate. Does not write.
 
-    **One HFA for the whole slate, not one per game.** ``sources.hfa_for`` takes a
+    **One HFA for the whole run, not one per game.** ``sources.hfa_for`` takes a
     game's own kickoff as the boundary, which is right for scoring a game that has
-    already been played. A prediction run is different: it happens once, before any
-    of the week's games, and it cannot use a snapshot that lands mid-week without
-    claiming knowledge it did not have. So the boundary here is the slate's
-    *first* kickoff, which is what §4.2's single ``hfa`` field describes and what
-    §3.3 means by "the current snapshot" on a Thursday.
+    already been played. A prediction run is different: it happens once, and it
+    cannot use a snapshot that lands mid-week without claiming knowledge it did
+    not have. `test_a_snapshot_landing_mid_week_is_not_used` pins that.
+
+    The boundary is the first kickoff **among the games this run is forecasting**,
+    which is the slate's first kickoff on any ordinary week. The two come apart
+    only when a run happens partway through a week, and then the earlier number
+    would be a boundary for games this document does not contain.
 
     The two rules agree in the ordinary week -- the Sagarin cron is Tuesday and
     games run Thursday to Saturday, so the newest capture before the first kickoff
@@ -255,6 +270,33 @@ def predict_week(
     # is path-dependent but nothing here folds anything, so this is presentational
     # -- unlike the identical sort in `replay`, which is load-bearing.
     slate.sort(key=lambda pair: (pair[0].start_date, pair[0].id))
+
+    # **Games already under way are not forecast.** Predicting a game that has
+    # kicked off is not a prediction, and on an ordinary Thursday this filter
+    # removes nothing -- the whole slate is ahead. It matters exactly once per
+    # season, and it mattered in 2026: CFBD's week 1 runs ten days across two
+    # Saturdays, so a run during it covers the second Saturday and not the first.
+    #
+    # Before this, the HFA boundary below was the *slate's* first kickoff, and
+    # week 1 was refused entire because one 08-27 FCS game predated the first
+    # Sagarin capture this project ever took -- taking eight days of forecastable
+    # games down with it, including Texas's.
+    # `retrospective` is passed by `cfb backtest` and by nothing else. A backtest
+    # grades a week the model was not live for, so every game in it has been
+    # played and the filter below would empty the slate. It opts out here for the
+    # same reason it supplies its own `hfa_manifest`: the honesty of a backtest
+    # comes from where it is stored and how it is labelled, not from pretending
+    # its inputs were available earlier than they were.
+    ahead = slate if retrospective else [pair for pair in slate if pair[0].start_date >= now]
+    played = len(slate) - len(ahead)
+    if not ahead:
+        raise ReplayError(
+            f"every game on the week {week} slate for season {season} had already kicked "
+            f"off at {now.isoformat()}, so there is nothing to forecast. A prediction "
+            f"written after the games is not a prediction (SPEC-phase1 5.4); score the "
+            f"week instead, or use `cfb backtest` to grade it retrospectively"
+        )
+    slate = ahead
     first_kickoff = slate[0][0].start_date
 
     lines, lines_keys = week_lines(store, season, lambda record: record.order == target)
@@ -315,6 +357,9 @@ def predict_week(
             season=season,
             week=week,
             generated_at=now,
+            # Only when the log is partial. A full slate says nothing, so an
+            # ordinary week's document is unchanged by any of this.
+            forecast_from=first_kickoff if played else None,
             model=ModelBlock(
                 name="elo",
                 elo_per_point=ELO_PER_POINT,

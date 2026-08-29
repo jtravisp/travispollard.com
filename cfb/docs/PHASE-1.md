@@ -773,6 +773,63 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
 
+## Found this session: /cfb showed the wrong game, and the data was fine
+
+Reported from the live page: it showed *Ohio State at Texas, 9/12* while Texas was
+idle that weekend and actually played **Texas State on 9/5**.
+
+**Nothing was mislabelled.** CFBD's `/calendar` puts week 1 at `2026-08-29` to
+`2026-09-08` — **ten days, spanning two Saturdays** — so the 9/5 Texas State game
+is a CFBD *week 1* game and the 9/12 Ohio State game is week 2. The published
+week-2 document was internally correct in every row.
+
+**The bug was three sessions old and mine.** `cfb predict --week 1` had failed, so
+week 2 was published instead and called "the honest first week". It failed for
+this reason:
+
+```
+hfa_at(manifests, before=first_kickoff)   # first_kickoff = 2026-08-27T22:00Z
+                                          # earliest Sagarin capture = 2026-08-28T16:50Z
+```
+
+`predict_week` bounded the HFA by the **slate's** first kickoff, so one 08-27 FCS
+game that predated the first capture this project ever took refused **eight days
+of forecastable games with it** — Texas's among them.
+
+### Three fixes, and one option that was wrong
+
+- [x] **A run forecasts only the games that have not kicked off**, and the HFA
+      boundary is the first kickoff *among those*. On an ordinary Thursday this
+      removes nothing. It matters exactly once a season and it mattered here:
+      week 1 now predicts, with 150 games and 122 priced
+- [x] **`PredictionLog.forecast_from`** records the boundary when a log is
+      partial, and `scoring` reads it. A result that kicked off before the log
+      began forecasting was unforecastable, not a failed join — §5.2's first mode
+      would otherwise redden week 1's scoring run over the 08-29 games. `None`
+      for a whole slate, which is every ordinary week
+- [x] **`next-game.json` looks ahead across weeks** for the team's next *unplayed*
+      game rather than taking the published week's featured one, and the game
+      carries **its own week** so the page cannot label a week 1 game "Week 2".
+      This fixes the class rather than the instance: a bye, or any week whose
+      game has already been played, would have shown the wrong thing again
+- [x] `cfb backtest` passes `retrospective=True` to opt out of the kickoff filter.
+      A backtest grades a week that has been played, so the filter would empty its
+      slate
+
+**The option originally proposed for this was per-game HFA, and it was wrong.**
+`test_predict.py::test_a_snapshot_landing_mid_week_is_not_used` pins a snapshot
+captured between two kickoffs and asserts it is *not* used, because "the run never
+saw it. §4.2 carries one `hfa` per run for exactly this reason." That test is
+right: per-game HFA is correct when reconstructing what was knowable before each
+game (`hfa_for`, used by `score` and `replay`) and wrong for predicting, where one
+run happens at one moment. Bounding by the first *forecast* kickoff keeps one HFA
+per run, keeps that test's guarantee, and fixes the bug.
+
+- [x] Verified live: `/cfb/data/next-game.json` reads `week: "01"`,
+      `Texas State`, kickoff `2026-09-05T19:30Z`, model `+39.30`, market `-30.5`
+      (DraftKings). `slate.json` went from 120 games and **7** priced to 150 and
+      **122**
+
 ## Found this session
 
 - **`/games` returns every division, and nothing in this project knew.** The first real capture came
