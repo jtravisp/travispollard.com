@@ -19,10 +19,13 @@ clean exit code is a bug nobody finds. SPEC 9 promises an exit code for
 happened", and a traceback means "this tool is broken" -- two different things
 that a wider catch would merge.
 
-Four commands. SPEC 8 also lists ``crosswalk bootstrap`` and ``crosswalk
-verify``; section 6 does not exist, and registering a command whose module is
-missing gives a workflow something that exits non-zero for a reason unrelated to
-the data.
+SPEC 8 also lists ``crosswalk verify``; SPEC-phase1 9 lists ``elo seed``,
+``predict``, ``score``, ``publish`` and ``note``. The first three are registered
+and ``publish`` and ``note`` are not, for the reason the missing ones always
+were: a command whose module does not exist gives a workflow something that exits
+non-zero for a reason unrelated to the data. ``elo replay`` is here because
+SPEC-phase1 11 step 5 is a command a human runs, and it is the check that keeps
+the stored Elo state a cache rather than a second source of truth.
 """
 
 import argparse
@@ -31,11 +34,25 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from cfb.calendar import in_season, load_calendar
+from cfb.calendar import coming_week, in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
-from cfb.errors import CfbError, WeekResolutionError
-from cfb.logging import EVENT_SNAPSHOT_WRITTEN, RESULT_OK, RESULT_SKIP, log
+from cfb.errors import CfbError, SeedStateError, WeekResolutionError
+from cfb.logging import (
+    EVENT_ELO_REPLAY,
+    EVENT_ELO_STATE,
+    EVENT_ELO_VERIFY,
+    EVENT_PREDICTIONS_WRITTEN,
+    EVENT_SNAPSHOT_WRITTEN,
+    EVENT_WEEK_SCORED,
+    REASON_NO_COMING_WEEK,
+    REASON_NO_COMPLETED_WEEK,
+    REASON_NO_STORED_STATE,
+    REASON_NOT_IN_SEASON,
+    RESULT_OK,
+    RESULT_SKIP,
+    log,
+)
 from cfb.models import SagarinSnapshot, validating
 from cfb.parsers.sagarin_predictions import parse_predictions
 from cfb.parsers.sagarin_ratings import (
@@ -77,8 +94,17 @@ def build_parser() -> argparse.ArgumentParser:
     cfbd = sources.add_parser("cfbd", help="one CFBD resource")
     _add_store(cfbd)
     cfbd.add_argument("--resource", choices=RESOURCES, required=True)
-    cfbd.add_argument("--week", type=int, help="required for games and lines")
+    cfbd.add_argument(
+        "--week",
+        type=int,
+        help="games and lines only; defaults to the week that just completed",
+    )
     cfbd.add_argument("--season", type=int)
+    cfbd.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
 
     freshness = commands.add_parser(
         "check-freshness", help="has the source's own date stamp advanced"
@@ -97,6 +123,91 @@ def build_parser() -> argparse.ArgumentParser:
     )
     replay.add_argument("key", help="a key within the store")
     _add_store(replay)
+
+    # `elo replay` rather than a flag on `replay` above: that one re-parses one
+    # Sagarin page and this one rebuilds a season. Sharing a verb would make
+    # `--key` and `--season` mutually exclusive arguments on one command, which
+    # is two commands wearing one name.
+    elo = commands.add_parser("elo", help="the Elo model (SPEC-phase1 3)")
+    elo_actions = elo.add_subparsers(dest="action", required=True)
+    elo_replay = elo_actions.add_parser(
+        "replay",
+        help="rebuild a season's ratings from raw/ and check the stored state",
+    )
+    elo_replay.add_argument("--season", type=int, required=True)
+    elo_replay.add_argument(
+        "--through-week",
+        metavar="N",
+        help="stop after this week: 1-15, zero-padded or not, or 'postseason'. "
+        "Default: the whole season",
+    )
+    _add_store(elo_replay)
+
+    elo_seed = elo_actions.add_parser(
+        "seed", help="write the season's opening state from the preseason page"
+    )
+    elo_seed.add_argument("--season", type=int, required=True)
+    elo_seed.add_argument(
+        "--force",
+        action="store_true",
+        help="re-seed a season that already has later states, e.g. after a parser fix",
+    )
+    _add_store(elo_seed)
+
+    # Not in SPEC-phase1 9's list, and kept anyway. §8 gives the Elo update to the
+    # Sunday `cfb score` run, and `score` does call the same `advance()` -- but it
+    # also needs a week's predictions and its results, so this is the verb that
+    # brings a season's state up to date when there is nothing to score against:
+    # a backfill, or the run that gives step 5 of §11 something to check.
+    elo_advance = elo_actions.add_parser(
+        "advance", help="apply one week's results to the previous state"
+    )
+    elo_advance.add_argument("--season", type=int, required=True)
+    elo_advance.add_argument("--week", metavar="N", required=True)
+    _add_store(elo_advance)
+
+    predict = commands.add_parser(
+        "predict", help="write a week's predictions (SPEC-phase1 4)"
+    )
+    predict.add_argument("--season", type=int)
+    predict.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week about to be played",
+    )
+    predict.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
+    _add_store(predict)
+
+    score = commands.add_parser(
+        "score", help="score a completed week against its predictions (SPEC-phase1 5)"
+    )
+    score.add_argument("--season", type=int)
+    score.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week that just completed",
+    )
+    score.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
+    _add_store(score)
+
+    # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
+    # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
+    # fix loop already tells you to type. A second way to run the same checks is
+    # a second thing to keep in step with them.
+    crosswalk = commands.add_parser("crosswalk", help="crosswalk tooling")
+    crosswalk_actions = crosswalk.add_subparsers(dest="action", required=True)
+    boot = crosswalk_actions.add_parser(
+        "bootstrap", help="write the exact matches and rank the rest for review"
+    )
+    boot.add_argument("--season", type=int, required=True)
 
     return parser
 
@@ -128,6 +239,14 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _fetch_cfbd(args, moment=moment, fetch=fetch)
     if args.command == "check-freshness":
         return _check_freshness(args, moment=moment)
+    if args.command == "crosswalk":
+        return _crosswalk_bootstrap(args)
+    if args.command == "elo":
+        return _elo(args, moment=moment)
+    if args.command == "score":
+        return _score(args, moment=moment)
+    if args.command == "predict":
+        return _predict(args, moment=moment)
     return _replay(args)
 
 
@@ -136,7 +255,12 @@ def _fetch_sagarin(args, *, moment: datetime, fetch) -> int:
         # SPEC 11: the collect workflows exit 0 immediately when out of season.
         # That is the entire off-season story -- no runs to mute, no suppression
         # state, no false alarms from February to August.
-        log(EVENT_SNAPSHOT_WRITTEN, source="sagarin", result=RESULT_SKIP, reason="not_in_season")
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="sagarin",
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
         return 0
 
     store = _store(args.store)
@@ -158,8 +282,43 @@ def _fetch_sagarin(args, *, moment: datetime, fetch) -> int:
 
 
 def _fetch_cfbd(args, *, moment: datetime, fetch) -> int:
+    # Loaded once and used for both gates below. Unlike `fetch sagarin`, a
+    # calendar that will not load is fatal here rather than something to proceed
+    # past: SPEC 3.3's "never lose the capture" is about a page that exists only
+    # today, and CFBD history is backfillable. There is nothing to save by
+    # guessing, and a guessed week misfiles real games permanently.
+    calendar = load_calendar(_season_of(moment), data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        # SPEC 11, and it runs before the week default on purpose. Off-season
+        # both conditions are true and only one of them is the reason; reporting
+        # "no completed week" in May would send whoever reads it to the calendar
+        # looking for a bug that is not there.
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="cfbd",
+            resource=args.resource,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
     season = args.season or _season_of(moment)
-    week = "season" if args.resource in ("teams", "calendar") else _week_arg(args)
+    week = _cfbd_week(args, calendar=calendar, moment=moment)
+    if week is None:
+        # No regular week has finished yet -- normal on the season's first
+        # Sundays (SPEC 5.2). Exit 0: raising would turn those Sundays red before
+        # anything had gone wrong, and an alert that is wrong twice before it is
+        # ever right is one nobody reads by October. Nothing was requested, so
+        # the budget of SPEC 5.1 is untouched.
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="cfbd",
+            resource=args.resource,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
 
     # SPEC 5.5. Building the fetcher touches nothing -- the key is read from SSM on
     # the first request -- so `cfb --help` and a usage error still need no
@@ -231,6 +390,388 @@ def _replay(args) -> int:
     return 0
 
 
+def _predict(args, *, moment: datetime) -> int:
+    """SPEC-phase1 4: write the coming week's predictions, once, before kickoff.
+
+    **The index is rebuilt in the same command.** §4.1 keeps
+    ``predictions/index.json`` so the publish step and the site never list a
+    prefix, and an index that lags the objects it describes is worse than no index
+    -- the site would serve a key that is not the newest generation. It is a pure
+    projection of the listing, so rebuilding costs one LIST and cannot disagree
+    with what it describes.
+
+    The week default is the calendar's, not this module's: `coming_week` is the
+    mirror of `last_completed_week` that `fetch cfbd` already uses, and SPEC 11
+    wants the workflow running the command a human runs rather than a week
+    expression in YAML.
+    """
+    from cfb.predict import predict_week, rebuild_index, write_predictions
+
+    season = args.season or _season_of(moment)
+    calendar = load_calendar(season, data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        log(
+            EVENT_PREDICTIONS_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else coming_week(moment, calendar=calendar)
+    )
+    if week is None:
+        # Past the last regular week's first kickoff. Nothing is ahead to predict,
+        # and raising would redden every December Thursday.
+        log(
+            EVENT_PREDICTIONS_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMING_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+    log_document = predict_week(store=store, season=season, week=week, now=moment)
+    key = write_predictions(store, log_document)
+    index = rebuild_index(store, now=moment)
+
+    log(
+        EVENT_PREDICTIONS_WRITTEN,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        key=key,
+        games=len(log_document.games),
+        hfa=log_document.model.hfa,
+        elo_state=log_document.model.elo_state,
+        benchmarked=sum(
+            1 for game in log_document.games if game.sagarin_predictor_margin is not None
+        ),
+        # How many of the slate a book actually priced. A Thursday run where this
+        # collapses is a /lines pull that did not happen, and §5.3's ATS record
+        # would quietly shrink rather than fail.
+        priced=sum(1 for game in log_document.games if game.market_line is not None),
+        indexed=len(index.weeks),
+    )
+    return 0
+
+
+def _score(args, *, moment: datetime) -> int:
+    """SPEC-phase1 8's Sunday run: update Elo, score last week, write ``scored/``.
+
+    **Two things happen and they are independent**, which is the only reason it is
+    safe for one command to do both. The advance folds the week's completed games
+    onto the previous state and reads nothing from ``predictions/``; the scoring
+    grades a document written days earlier against results and reads no rating.
+    Neither can quietly consume the other's output. §8 lists the Elo update first,
+    so it goes first among the *writes* -- and if the scoring then raises on a
+    join failure, the state already written is still correct, because a prediction
+    that went missing says nothing about whether the game was played.
+
+    **The advance is `replay.advance`, the same function `cfb elo advance` calls.**
+    Not a copy of it -- a second implementation of "which games, which names,
+    which HFA" is precisely what step 5 of §11 would stop being able to detect,
+    since it would be comparing a rebuild against a cache that drifted for reasons
+    the model never saw.
+
+    A rerun writes new keys beside the old ones rather than replacing them, for
+    both documents. That is the same behaviour `cfb predict` has and it is the
+    point of write-once: a rescore that disliked Sunday's numbers cannot quietly
+    become the only surviving record.
+    """
+    from cfb.elo.scoring import score_week, write_scored
+    from cfb.elo.state import write_state
+    from cfb.predict import predictions_to_score
+    from cfb.replay import advance
+    from cfb.sources import results_capture, week_position, week_slate
+
+    season = args.season or _season_of(moment)
+    calendar = load_calendar(season, data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        log(
+            EVENT_WEEK_SCORED,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else last_completed_week(moment, calendar=calendar)
+    )
+    if week is None:
+        # No regular week has finished. Normal on the season's first Sundays, and
+        # a skip rather than an error for the same reason `fetch cfbd` skips.
+        log(
+            EVENT_WEEK_SCORED,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+
+    # **Everything is read before anything is written.** Not tidiness: `advance`
+    # writes a state whatever it finds, and a week whose results never landed is
+    # a week it legitimately folds zero games into. Left after the write, a Sunday
+    # where the CFBD pull failed would go red on the missing capture *and* leave
+    # an empty week state behind it -- harmless, since a replay of the same empty
+    # `raw/` reproduces it and the next run absorbs the week, but it is a state
+    # object asserting a week happened that nobody has evidence for yet. Reading
+    # first makes a run that cannot do its job write nothing at all.
+    #
+    # The capture is read for its `fetched_at`, and that is a model input rather
+    # than a log field: §5.2 decides "unplayed, or a join that failed" against
+    # when the results were looked at rather than against a clock, so a scoring
+    # run that took the moment from `now` could not be replayed.
+    capture = results_capture(store, season, week)
+    target = week_position(week, label="--week")
+    slate, _ = week_slate(store, season, lambda raw: raw.order == target)
+    predictions = predictions_to_score(store, season=season, week=week)
+
+    advanced = advance(store=store, season=season, week=week, now=moment)
+    state = write_state(store, advanced.state)
+    log(
+        EVENT_ELO_STATE,
+        season=advanced.state.season,
+        week=advanced.state.week,
+        result=RESULT_OK,
+        key=state,
+        games=advanced.games_applied,
+        season_games=advanced.state.games_applied,
+        previous=advanced.previous.key,
+    )
+
+    scored = score_week(
+        predictions,
+        [raw for raw, _ in slate],
+        results_fetched_at=capture.fetched_at,
+        now=moment,
+    )
+    key = write_scored(store, scored)
+
+    log(
+        EVENT_WEEK_SCORED,
+        season=scored.season,
+        week=scored.week,
+        result=RESULT_OK,
+        key=key,
+        games=len(scored.games),
+        # Every prediction is accounted for: scored, or left out and counted.
+        # §5.2 makes anything else an error, so a run where these do not add up to
+        # the slate is a bug in the scorer rather than a quiet week.
+        unplayed=scored.unplayed,
+        results_from=capture.snapshot_key,
+        predictions_generated_at=scored.predictions_generated_at.isoformat(),
+        ats=scored.full_slate.ats.record,
+        # The two figures the accuracy page opens with, and the two whose
+        # denominators §5.3 insists travel with them.
+        mae=scored.full_slate.mae,
+        brier=scored.full_slate.brier,
+        texas_games=scored.texas.games,
+        elo_state=state,
+    )
+    return 0
+
+
+def _elo(args, *, moment: datetime) -> int:
+    if args.action == "seed":
+        return _elo_seed(args, moment=moment)
+    if args.action == "advance":
+        return _elo_advance(args, moment=moment)
+    return _elo_replay(args)
+
+
+def _elo_seed(args, *, moment: datetime) -> int:
+    """SPEC-phase1 9's `cfb elo seed`: the season's opening state, written once.
+
+    **Refuses a season that already has later states**, which is what §9's
+    "refuses in-season" means at this level. §3.2's refusal is about the *page* and
+    is enforced in `seed()`; it cannot fire here, because the seed snapshot is
+    selected by `page_state == "preseason"` and an in-season page is never a
+    candidate. The failure this guard catches is the other one: re-seeding a season
+    that is under way. Re-seeding is not destructive on its own -- week states are
+    separate objects and `advance` builds on the nearest earlier one, not on the
+    seed -- but a second preseason state that nothing rebuilt the chain from is a
+    season whose states no longer share an origin, and `--force` is there for the
+    case where that is deliberate.
+    """
+    from cfb.elo.state import season_states, write_state
+    from cfb.replay import seed_state
+
+    store = _store(args.store)
+
+    existing = [
+        stored for stored in season_states(store, season=args.season)
+        if stored.state.week != "preseason"
+    ]
+    if existing and not args.force:
+        raise SeedStateError(
+            f"season {args.season} already has {len(existing)} Elo state"
+            f"{'' if len(existing) == 1 else 's'} past the preseason, the latest at "
+            f"{existing[-1].key}. Re-seeding leaves those built on the old seed, so the "
+            f"season would no longer share one origin. Pass --force if that is intended, "
+            f"then rebuild the chain with `cfb elo advance` from week 01 forward"
+        )
+
+    state = seed_state(store=store, season=args.season, now=moment)
+    key = write_state(store, state)
+
+    log(
+        EVENT_ELO_STATE,
+        season=state.season,
+        week=state.week,
+        result=RESULT_OK,
+        key=key,
+        teams=len(state.ratings),
+        seeded_from=state.seeded_from,
+    )
+    return 0
+
+
+def _elo_advance(args, *, moment: datetime) -> int:
+    """One week's results folded onto the previous state, and written.
+
+    The Elo half of SPEC-phase1 8's Sunday run, ahead of the `cfb score` command
+    that will own it. Writing zero games is a legitimate outcome and still writes a
+    state -- a week that was entirely postponed, or a run that fires before any
+    result has landed, both leave the ratings unchanged and both should leave a
+    state at that week so the next advance has something to build on.
+    """
+    from cfb.elo.state import write_state
+    from cfb.replay import advance
+
+    week = _week_partition(args.week, flag="--week")
+    advanced = advance(store=(store := _store(args.store)), season=args.season,
+                       week=week, now=moment)
+    key = write_state(store, advanced.state)
+
+    log(
+        EVENT_ELO_STATE,
+        season=advanced.state.season,
+        week=advanced.state.week,
+        result=RESULT_OK,
+        key=key,
+        games=advanced.games_applied,
+        season_games=advanced.state.games_applied,
+        previous=advanced.previous.key,
+    )
+    return 0
+
+
+def _elo_replay(args) -> int:
+    """SPEC-phase1 11 step 5: rebuild the season from ``raw/`` and check the cache.
+
+    Two things happen and the log says which. The rebuild always runs and always
+    reports what it read -- the seed snapshot, the games keys, the count applied --
+    because that is the artifact SPEC-phase1 3.5 promises can be regenerated
+    without a state file. The comparison runs only when there is a stored state to
+    compare against, and its absence is a logged skip rather than a failure: the
+    Sunday scoring run of SPEC-phase1 8 writes those, and nothing orders a replay
+    after it, so a replay in week 1 legitimately finds nothing.
+
+    A mismatch is a ``StateMismatchError``, which `main` turns into exit 1 and a
+    red run. That is the point of the check -- a stored state nobody can regenerate
+    is a second source of truth wearing a cache's clothes, and it should cost a
+    red run the first Sunday it stops being reproducible.
+    """
+    from cfb.replay import load_state, newest_state_key, replay, verify
+
+    store = _store(args.store)
+    rebuilt = replay(store=store, season=args.season, through_week=_through_week(args))
+
+    log(
+        EVENT_ELO_REPLAY,
+        season=rebuilt.season,
+        week=rebuilt.week,
+        result=RESULT_OK,
+        seeded_from=rebuilt.seeded_from,
+        games=rebuilt.games_applied,
+        snapshots=len(rebuilt.games_keys),
+        teams=len(rebuilt.ratings),
+    )
+
+    key = newest_state_key(store, season=rebuilt.season, week=rebuilt.week)
+    if key is None:
+        log(
+            EVENT_ELO_VERIFY,
+            season=rebuilt.season,
+            week=rebuilt.week,
+            result=RESULT_SKIP,
+            reason=REASON_NO_STORED_STATE,
+        )
+        return 0
+
+    verify(rebuilt, load_state(store, key), key=key)
+    log(
+        EVENT_ELO_VERIFY,
+        season=rebuilt.season,
+        week=rebuilt.week,
+        result=RESULT_OK,
+        key=key,
+        games=rebuilt.games_applied,
+    )
+    return 0
+
+
+def _crosswalk_bootstrap(args) -> int:
+    """SPEC 6.3. Imported here, not at module scope, and that is the point.
+
+    ``bootstrap`` is the only module in this package that scores string
+    similarity, and SPEC 6.3 quarantines it from the runtime path so a score can
+    never become a mapping. A top-level import would put it one refactor away
+    from the collectors; a function-local one keeps the CLI the only caller, and
+    ``tests/test_crosswalk.py`` asserts the quarantine holds.
+    """
+    from cfb.crosswalk.bootstrap import bootstrap, candidates_path
+
+    rosters = Path(__file__).parent.parent.parent / "tests" / "fixtures" / "rosters"
+    data_dir = Path(__file__).parent.parent.parent / "data" / "crosswalk"
+
+    matched, undecided = bootstrap(
+        season=args.season,
+        sagarin_roster=rosters / f"sagarin-{args.season}.txt",
+        cfbd_roster=rosters / f"cfbd-{args.season}.json",
+        data_dir=data_dir,
+    )
+    print(f"  auto-matched exactly: {matched}")
+    print(f"  needs review -> {candidates_path(args.season, data_dir=data_dir)}")
+    print(f"    {undecided} names, ranked best-first; scoring orders them and decides none")
+    return 0
+
+
+def _through_week(args) -> str | None:
+    """``--through-week`` as a partition value, or ``None`` for the whole season."""
+    if args.through_week is None:
+        return None
+    return _week_partition(args.through_week, flag="--through-week")
+
+
+def _week_partition(raw: str, *, flag: str) -> str:
+    """A typed week as a partition value (SPEC-phase0 3.2).
+
+    Accepts ``4`` and ``04`` and normalises both, because the value the user types
+    is a week number and the value it becomes is a literal S3 path segment. SPEC
+    11 step 5 writes it zero-padded and a person at a terminal will not.
+    """
+    if raw == "postseason":
+        return raw
+    if raw.isdigit() and 1 <= int(raw) <= 15:
+        return f"{int(raw):02d}"
+    build_parser().error(
+        f"{flag} must be 1-15 or 'postseason' (SPEC-phase0 3.2), got {raw!r}"
+    )
+
+
 def _add_store(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--store",
@@ -255,9 +796,22 @@ def _store(url: str):
     build_parser().error(f"--store must be s3:// or file://, got {url!r}")
 
 
+def _cfbd_week(args, *, calendar, moment: datetime) -> str | None:
+    """The ``week=`` partition for this pull, or ``None`` if nothing has completed.
+
+    An explicit ``--week`` always wins. CFBD history is backfillable (SPEC 5.3),
+    so re-pulling an older week is ordinary and must not require editing the
+    committed calendar to do it.
+    """
+    if args.resource in ("teams", "calendar"):
+        # Season-level resources are not week-scoped (SPEC 3.2's `season`).
+        return "season"
+    if args.week is not None:
+        return _week_arg(args)
+    return last_completed_week(moment, calendar=calendar)
+
+
 def _week_arg(args) -> str:
-    if args.week is None:
-        build_parser().error(f"--week is required for --resource {args.resource}")
     if not 1 <= args.week <= 15:
         build_parser().error(f"--week must be 1-15 (SPEC 3.2), got {args.week}")
     # The partition value, zero-padded: it reaches S3 as a literal path segment

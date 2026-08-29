@@ -1,5 +1,11 @@
 [
   {
+    "id": 2000,
+    "school": "Abilene Christian",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
     "id": 2005,
     "school": "Air Force",
     "conference": "Mountain West",
@@ -16,6 +22,24 @@
     "school": "Alabama",
     "conference": "SEC",
     "classification": "fbs"
+  },
+  {
+    "id": 2010,
+    "school": "Alabama A&M",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2011,
+    "school": "Alabama State",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2016,
+    "school": "Alcorn State",
+    "conference": "SWAC",
+    "classification": "fcs"
   },
   {
     "id": 2026,
@@ -48,6 +72,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2029,
+    "school": "Arkansas-Pine Bluff",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
     "id": 349,
     "school": "Army",
     "conference": "American Athletic",
@@ -58,6 +88,12 @@
     "school": "Auburn",
     "conference": "SEC",
     "classification": "fbs"
+  },
+  {
+    "id": 2046,
+    "school": "Austin Peay",
+    "conference": "UAC",
+    "classification": "fcs"
   },
   {
     "id": 252,
@@ -78,6 +114,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2065,
+    "school": "Bethune-Cookman",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
     "id": 68,
     "school": "Boise State",
     "conference": "Pac-12",
@@ -96,10 +138,40 @@
     "classification": "fbs"
   },
   {
+    "id": 225,
+    "school": "Brown",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
+    "id": 2803,
+    "school": "Bryant",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 2083,
+    "school": "Bucknell",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
     "id": 2084,
     "school": "Buffalo",
     "conference": "Mid-American",
     "classification": "fbs"
+  },
+  {
+    "id": 2086,
+    "school": "Butler",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
+    "id": 13,
+    "school": "Cal Poly",
+    "conference": "Big Sky",
+    "classification": "fcs"
   },
   {
     "id": 25,
@@ -108,16 +180,52 @@
     "classification": "fbs"
   },
   {
+    "id": 2097,
+    "school": "Campbell",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 2110,
+    "school": "Central Arkansas",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2115,
+    "school": "Central Connecticut",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
     "id": 2117,
     "school": "Central Michigan",
     "conference": "Mid-American",
     "classification": "fbs"
   },
   {
+    "id": 2127,
+    "school": "Charleston Southern",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
     "id": 2429,
     "school": "Charlotte",
     "conference": "American Athletic",
     "classification": "fbs"
+  },
+  {
+    "id": 236,
+    "school": "Chattanooga",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2130,
+    "school": "Chicago State",
+    "conference": "FCS Independents",
+    "classification": "fcs"
   },
   {
     "id": 2132,
@@ -138,6 +246,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2142,
+    "school": "Colgate",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
     "id": 38,
     "school": "Colorado",
     "conference": "Big 12",
@@ -150,10 +264,52 @@
     "classification": "fbs"
   },
   {
+    "id": 171,
+    "school": "Columbia",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
+    "id": 172,
+    "school": "Cornell",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
+    "id": 159,
+    "school": "Dartmouth",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
+    "id": 2166,
+    "school": "Davidson",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
+    "id": 2168,
+    "school": "Dayton",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
     "id": 48,
     "school": "Delaware",
     "conference": "Conference USA",
     "classification": "fbs"
+  },
+  {
+    "id": 2169,
+    "school": "Delaware State",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2181,
+    "school": "Drake",
+    "conference": "Pioneer",
+    "classification": "fcs"
   },
   {
     "id": 150,
@@ -162,10 +318,40 @@
     "classification": "fbs"
   },
   {
+    "id": 2184,
+    "school": "Duquesne",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
     "id": 151,
     "school": "East Carolina",
     "conference": "American Athletic",
     "classification": "fbs"
+  },
+  {
+    "id": 2193,
+    "school": "East Tennessee State",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2837,
+    "school": "East Texas A&M",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
+    "id": 2197,
+    "school": "Eastern Illinois",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2198,
+    "school": "Eastern Kentucky",
+    "conference": "UAC",
+    "classification": "fcs"
   },
   {
     "id": 2199,
@@ -174,10 +360,28 @@
     "classification": "fbs"
   },
   {
+    "id": 331,
+    "school": "Eastern Washington",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2210,
+    "school": "Elon",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
     "id": 57,
     "school": "Florida",
     "conference": "SEC",
     "classification": "fbs"
+  },
+  {
+    "id": 50,
+    "school": "Florida A&M",
+    "conference": "SWAC",
+    "classification": "fcs"
   },
   {
     "id": 2226,
@@ -198,10 +402,34 @@
     "classification": "fbs"
   },
   {
+    "id": 2230,
+    "school": "Fordham",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
     "id": 278,
     "school": "Fresno State",
     "conference": "Pac-12",
     "classification": "fbs"
+  },
+  {
+    "id": 231,
+    "school": "Furman",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2241,
+    "school": "Gardner-Webb",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 46,
+    "school": "Georgetown",
+    "conference": "Patriot",
+    "classification": "fcs"
   },
   {
     "id": 61,
@@ -228,10 +456,34 @@
     "classification": "fbs"
   },
   {
+    "id": 2755,
+    "school": "Grambling",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2261,
+    "school": "Hampton",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 108,
+    "school": "Harvard",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
     "id": 62,
     "school": "Hawai'i",
     "conference": "Mountain West",
     "classification": "fbs"
+  },
+  {
+    "id": 107,
+    "school": "Holy Cross",
+    "conference": "Patriot",
+    "classification": "fcs"
   },
   {
     "id": 248,
@@ -240,16 +492,58 @@
     "classification": "fbs"
   },
   {
+    "id": 2277,
+    "school": "Houston Christian",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
+    "id": 47,
+    "school": "Howard",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 70,
+    "school": "Idaho",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 304,
+    "school": "Idaho State",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
     "id": 356,
     "school": "Illinois",
     "conference": "Big Ten",
     "classification": "fbs"
   },
   {
+    "id": 2287,
+    "school": "Illinois State",
+    "conference": "MVFC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2916,
+    "school": "Incarnate Word",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
     "id": 84,
     "school": "Indiana",
     "conference": "Big Ten",
     "classification": "fbs"
+  },
+  {
+    "id": 282,
+    "school": "Indiana State",
+    "conference": "MVFC",
+    "classification": "fcs"
   },
   {
     "id": 2294,
@@ -262,6 +556,12 @@
     "school": "Iowa State",
     "conference": "Big 12",
     "classification": "fbs"
+  },
+  {
+    "id": 2296,
+    "school": "Jackson State",
+    "conference": "SWAC",
+    "classification": "fcs"
   },
   {
     "id": 55,
@@ -312,10 +612,40 @@
     "classification": "fbs"
   },
   {
+    "id": 322,
+    "school": "Lafayette",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
+    "id": 2320,
+    "school": "Lamar",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
+    "id": 2329,
+    "school": "Lehigh",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
     "id": 2335,
     "school": "Liberty",
     "conference": "Conference USA",
     "classification": "fbs"
+  },
+  {
+    "id": 2815,
+    "school": "Lindenwood",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2341,
+    "school": "Long Island University",
+    "conference": "NEC",
+    "classification": "fcs"
   },
   {
     "id": 309,
@@ -336,6 +666,18 @@
     "classification": "fbs"
   },
   {
+    "id": 311,
+    "school": "Maine",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 2368,
+    "school": "Marist",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
     "id": 276,
     "school": "Marshall",
     "conference": "Sun Belt",
@@ -354,10 +696,34 @@
     "classification": "fbs"
   },
   {
+    "id": 2377,
+    "school": "McNeese",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
     "id": 235,
     "school": "Memphis",
     "conference": "American Athletic",
     "classification": "fbs"
+  },
+  {
+    "id": 2382,
+    "school": "Mercer",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2385,
+    "school": "Mercyhurst",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2771,
+    "school": "Merrimack",
+    "conference": "FCS Independents",
+    "classification": "fcs"
   },
   {
     "id": 2390,
@@ -402,6 +768,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2400,
+    "school": "Mississippi Valley State",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
     "id": 142,
     "school": "Missouri",
     "conference": "SEC",
@@ -412,6 +784,42 @@
     "school": "Missouri State",
     "conference": "Conference USA",
     "classification": "fbs"
+  },
+  {
+    "id": 2405,
+    "school": "Monmouth",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 149,
+    "school": "Montana",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 147,
+    "school": "Montana State",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2413,
+    "school": "Morehead State",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
+    "id": 2415,
+    "school": "Morgan State",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 93,
+    "school": "Murray State",
+    "conference": "MVFC",
+    "classification": "fcs"
   },
   {
     "id": 152,
@@ -438,6 +846,18 @@
     "classification": "fbs"
   },
   {
+    "id": 160,
+    "school": "New Hampshire",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 2441,
+    "school": "New Haven",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
     "id": 167,
     "school": "New Mexico",
     "conference": "Mountain West",
@@ -450,10 +870,46 @@
     "classification": "fbs"
   },
   {
+    "id": 2447,
+    "school": "Nicholls",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
+    "id": 2450,
+    "school": "Norfolk State",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2453,
+    "school": "North Alabama",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
     "id": 153,
     "school": "North Carolina",
     "conference": "ACC",
     "classification": "fbs"
+  },
+  {
+    "id": 2448,
+    "school": "North Carolina A&T",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 2428,
+    "school": "North Carolina Central",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 155,
+    "school": "North Dakota",
+    "conference": "MVFC",
+    "classification": "fcs"
   },
   {
     "id": 2449,
@@ -468,16 +924,40 @@
     "classification": "fbs"
   },
   {
+    "id": 2464,
+    "school": "Northern Arizona",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2458,
+    "school": "Northern Colorado",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
     "id": 2459,
     "school": "Northern Illinois",
     "conference": "Mountain West",
     "classification": "fbs"
   },
   {
+    "id": 2460,
+    "school": "Northern Iowa",
+    "conference": "MVFC",
+    "classification": "fcs"
+  },
+  {
     "id": 77,
     "school": "Northwestern",
     "conference": "Big Ten",
     "classification": "fbs"
+  },
+  {
+    "id": 2466,
+    "school": "Northwestern State",
+    "conference": "Southland",
+    "classification": "fcs"
   },
   {
     "id": 87,
@@ -540,10 +1020,40 @@
     "classification": "fbs"
   },
   {
+    "id": 219,
+    "school": "Pennsylvania",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
     "id": 221,
     "school": "Pittsburgh",
     "conference": "ACC",
     "classification": "fbs"
+  },
+  {
+    "id": 2502,
+    "school": "Portland State",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2504,
+    "school": "Prairie View A&M",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2506,
+    "school": "Presbyterian",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
+    "id": 163,
+    "school": "Princeton",
+    "conference": "Ivy",
+    "classification": "fcs"
   },
   {
     "id": 2509,
@@ -552,16 +1062,40 @@
     "classification": "fbs"
   },
   {
+    "id": 227,
+    "school": "Rhode Island",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
     "id": 242,
     "school": "Rice",
     "conference": "American Athletic",
     "classification": "fbs"
   },
   {
+    "id": 257,
+    "school": "Richmond",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
+    "id": 2523,
+    "school": "Robert Morris",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
     "id": 164,
     "school": "Rutgers",
     "conference": "Big Ten",
     "classification": "fbs"
+  },
+  {
+    "id": 2545,
+    "school": "SE Louisiana",
+    "conference": "Southland",
+    "classification": "fcs"
   },
   {
     "id": 2567,
@@ -576,10 +1110,28 @@
     "classification": "fbs"
   },
   {
+    "id": 2529,
+    "school": "Sacred Heart",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
     "id": 2534,
     "school": "Sam Houston",
     "conference": "Conference USA",
     "classification": "fbs"
+  },
+  {
+    "id": 2535,
+    "school": "Samford",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 301,
+    "school": "San Diego",
+    "conference": "Pioneer",
+    "classification": "fcs"
   },
   {
     "id": 21,
@@ -606,10 +1158,46 @@
     "classification": "fbs"
   },
   {
+    "id": 2569,
+    "school": "South Carolina State",
+    "conference": "MEAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 233,
+    "school": "South Dakota",
+    "conference": "MVFC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2571,
+    "school": "South Dakota State",
+    "conference": "MVFC",
+    "classification": "fcs"
+  },
+  {
     "id": 58,
     "school": "South Florida",
     "conference": "American Athletic",
     "classification": "fbs"
+  },
+  {
+    "id": 2546,
+    "school": "Southeast Missouri State",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2582,
+    "school": "Southern",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 79,
+    "school": "Southern Illinois",
+    "conference": "MVFC",
+    "classification": "fcs"
   },
   {
     "id": 2572,
@@ -618,10 +1206,46 @@
     "classification": "fbs"
   },
   {
+    "id": 253,
+    "school": "Southern Utah",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2900,
+    "school": "St. Thomas (MN)",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
     "id": 24,
     "school": "Stanford",
     "conference": "ACC",
     "classification": "fbs"
+  },
+  {
+    "id": 2617,
+    "school": "Stephen F. Austin",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
+    "id": 56,
+    "school": "Stetson",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
+    "id": 284,
+    "school": "Stonehill",
+    "conference": "NEC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2619,
+    "school": "Stony Brook",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
   },
   {
     "id": 183,
@@ -636,6 +1260,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2627,
+    "school": "Tarleton State",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
     "id": 218,
     "school": "Temple",
     "conference": "American Athletic",
@@ -646,6 +1276,18 @@
     "school": "Tennessee",
     "conference": "SEC",
     "classification": "fbs"
+  },
+  {
+    "id": 2634,
+    "school": "Tennessee State",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2635,
+    "school": "Tennessee Tech",
+    "conference": "Southern",
+    "classification": "fcs"
   },
   {
     "id": 251,
@@ -660,6 +1302,12 @@
     "classification": "fbs"
   },
   {
+    "id": 2640,
+    "school": "Texas Southern",
+    "conference": "SWAC",
+    "classification": "fcs"
+  },
+  {
     "id": 326,
     "school": "Texas State",
     "conference": "Pac-12",
@@ -672,10 +1320,22 @@
     "classification": "fbs"
   },
   {
+    "id": 2643,
+    "school": "The Citadel",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
     "id": 2649,
     "school": "Toledo",
     "conference": "Mid-American",
     "classification": "fbs"
+  },
+  {
+    "id": 119,
+    "school": "Towson",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
   },
   {
     "id": 2653,
@@ -700,6 +1360,18 @@
     "school": "UAB",
     "conference": "American Athletic",
     "classification": "fbs"
+  },
+  {
+    "id": 399,
+    "school": "UAlbany",
+    "conference": "Coastal Athletic",
+    "classification": "fcs"
+  },
+  {
+    "id": 302,
+    "school": "UC Davis",
+    "conference": "Big Sky",
+    "classification": "fcs"
   },
   {
     "id": 2116,
@@ -738,6 +1410,18 @@
     "classification": "fbs"
   },
   {
+    "id": 2630,
+    "school": "UT Martin",
+    "conference": "OVC",
+    "classification": "fcs"
+  },
+  {
+    "id": 292,
+    "school": "UT Rio Grande Valley",
+    "conference": "Southland",
+    "classification": "fcs"
+  },
+  {
     "id": 2638,
     "school": "UTEP",
     "conference": "Mountain West",
@@ -762,10 +1446,34 @@
     "classification": "fbs"
   },
   {
+    "id": 3101,
+    "school": "Utah Tech",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 2678,
+    "school": "VMI",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2674,
+    "school": "Valparaiso",
+    "conference": "Pioneer",
+    "classification": "fcs"
+  },
+  {
     "id": 238,
     "school": "Vanderbilt",
     "conference": "SEC",
     "classification": "fbs"
+  },
+  {
+    "id": 222,
+    "school": "Villanova",
+    "conference": "Patriot",
+    "classification": "fcs"
   },
   {
     "id": 258,
@@ -778,6 +1486,12 @@
     "school": "Virginia Tech",
     "conference": "ACC",
     "classification": "fbs"
+  },
+  {
+    "id": 2681,
+    "school": "Wagner",
+    "conference": "NEC",
+    "classification": "fcs"
   },
   {
     "id": 154,
@@ -798,10 +1512,40 @@
     "classification": "fbs"
   },
   {
+    "id": 2692,
+    "school": "Weber State",
+    "conference": "Big Sky",
+    "classification": "fcs"
+  },
+  {
+    "id": 110242,
+    "school": "West Florida",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
+    "id": 2698,
+    "school": "West Georgia",
+    "conference": "UAC",
+    "classification": "fcs"
+  },
+  {
     "id": 277,
     "school": "West Virginia",
     "conference": "Big 12",
     "classification": "fbs"
+  },
+  {
+    "id": 2717,
+    "school": "Western Carolina",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
+    "id": 2710,
+    "school": "Western Illinois",
+    "conference": "OVC",
+    "classification": "fcs"
   },
   {
     "id": 98,
@@ -816,15 +1560,39 @@
     "classification": "fbs"
   },
   {
+    "id": 2729,
+    "school": "William & Mary",
+    "conference": "Patriot",
+    "classification": "fcs"
+  },
+  {
     "id": 275,
     "school": "Wisconsin",
     "conference": "Big Ten",
     "classification": "fbs"
   },
   {
+    "id": 2747,
+    "school": "Wofford",
+    "conference": "Southern",
+    "classification": "fcs"
+  },
+  {
     "id": 2751,
     "school": "Wyoming",
     "conference": "Mountain West",
     "classification": "fbs"
+  },
+  {
+    "id": 43,
+    "school": "Yale",
+    "conference": "Ivy",
+    "classification": "fcs"
+  },
+  {
+    "id": 2754,
+    "school": "Youngstown State",
+    "conference": "MVFC",
+    "classification": "fcs"
   }
 ]

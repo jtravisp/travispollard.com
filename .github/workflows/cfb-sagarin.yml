@@ -39,9 +39,9 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
 
@@ -51,7 +51,7 @@ jobs:
       - name: Install
         run: uv sync --extra s3
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1

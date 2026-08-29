@@ -2,7 +2,7 @@
 
 This section matters more than the ratings table (SPEC-phase0 4.4). It is a
 published competitor's game-by-game predictions with totals and moneylines, which
-can be scored head-to-head against ours and against the closing line. A rating
+can be scored head-to-head against ours and against the market line. A rating
 would have to be converted into a prediction first; these already are one.
 
 Two traps, both live on the 2026 preseason capture:

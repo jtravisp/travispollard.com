@@ -26,12 +26,20 @@ from typing import Any
 
 __all__ = [
     "EVENT_CFBD_CALL",
+    "EVENT_ELO_REPLAY",
+    "EVENT_ELO_STATE",
+    "EVENT_ELO_VERIFY",
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
+    "EVENT_PREDICTIONS_WRITTEN",
     "EVENT_SNAPSHOT_WRITTEN",
+    "EVENT_WEEK_SCORED",
     "REASON_NOT_IN_SEASON",
+    "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
+    "REASON_NO_COMING_WEEK",
+    "REASON_NO_STORED_STATE",
     "RESULT_OK",
     "RESULT_SKIP",
     "log",
@@ -43,11 +51,28 @@ EVENT_FRESHNESS = "freshness"
 #: One per CFBD request, carrying the running count against the per-run budget.
 #: SPEC 5.1 recovers the real monthly figure from these lines.
 EVENT_CFBD_CALL = "cfbd_call"
+#: One per season rebuilt from raw/ (SPEC-phase1 3.5), carrying what it read.
+EVENT_ELO_REPLAY = "elo_replay"
+#: One per Elo state object written (SPEC-phase1 3.5), seed or weekly advance.
+EVENT_ELO_STATE = "elo_state"
+#: The SPEC-phase1 11 step 5 comparison: does the rebuild reproduce the stored
+#: state. A pass here is the evidence that the stored object is a cache.
+EVENT_ELO_VERIFY = "elo_verify"
 #: Every non-2xx, with status and body. SPEC 5.3 requires this without exception:
 #: the vendor no longer documents which status means "over quota", so a real
 #: response body is the only thing that will ever settle it, and a run that threw
 #: it away leaves nothing to decide from.
 EVENT_HTTP_ERROR = "http_error"
+#: One per week of predictions written (SPEC-phase1 4.1), with the key. The
+#: Friday publish is the SLO (SPEC-phase1 8), so this line is what says a
+#: prediction existed before kickoff -- the thing step 1 of SPEC-phase1 11 checks
+#: from the bucket side.
+EVENT_PREDICTIONS_WRITTEN = "predictions_written"
+#: One per week scored (SPEC-phase1 5.3), with the key and the counts the ATS
+#: record has to add up to. `games` and `unplayed` are on this line for the same
+#: reason the document carries them: "nothing was dropped" is only checkable if
+#: the run says how many it left out.
+EVENT_WEEK_SCORED = "week_scored"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
@@ -61,6 +86,22 @@ REASON_NO_PRIOR_MANIFEST = "no_prior_manifest"
 REASON_NO_PAGE_DATE_STAMP = "no_page_date_stamp"
 #: Out of season. Sagarin does not update from roughly February through August.
 REASON_NOT_IN_SEASON = "not_in_season"
+#: No regular week has finished yet (SPEC 5.2). Normal on the season's first
+#: Sundays, and a skip rather than an error for exactly that reason.
+REASON_NO_COMPLETED_WEEK = "no_completed_week"
+
+# --- why an Elo verification was skipped (SPEC-phase1 3.5) --------------------
+#: Nothing under `elo/season=YYYY/week=NN/`. The rebuild ran and there is no
+#: cached state to check it against -- normal before the first scored week, since
+#: SPEC-phase1 8 has the Sunday run write these and nothing orders a replay after
+#: it. The rebuilt ratings are still on the `elo_replay` line above.
+REASON_NO_STORED_STATE = "no_stored_state"
+
+# --- why a prediction run had nothing to do (SPEC-phase1 4) -------------------
+#: No regular week is still ahead of us. Normal from the last week's first
+#: kickoff onward, and a skip rather than an error for the same reason
+#: `no_completed_week` is: every December Thursday would otherwise be red.
+REASON_NO_COMING_WEEK = "no_coming_week"
 
 
 def log(event: str, **fields: Any) -> None:

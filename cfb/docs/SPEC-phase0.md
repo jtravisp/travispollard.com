@@ -485,7 +485,7 @@ figure — at the cost of a call.
 | Call | Frequency | Snapshot partition |
 |---|---|---|
 | `/calendar?year=2026` | once per season | `week=season/calendar/` |
-| `/teams/fbs?year=2026` | once per season | `week=season/teams/` |
+| `/teams?year=2026` | once per season | `week=season/teams/` |
 | `/games?year=2026&week=N` | weekly | `week=NN/games/` |
 | `/lines?year=2026&week=N` | weekly | `week=NN/lines/` |
 
@@ -645,8 +645,26 @@ crosswalk question, so there is no "warn for FCS" tier.
 
 ### 6.5 Tests
 
-Fixture rosters are the contract: `tests/fixtures/rosters/sagarin-2026.txt` (all ~266 names from a real
-page) and `cfbd-2026.json`.
+**The crosswalk spans FBS and FCS, and the reason is `/games` rather than tidiness.** Sagarin rates 266
+teams, 128 of them FCS, and `/teams/fbs` returns none of those — so "every Sagarin name resolves" was
+unsatisfiable as this section originally read. Scoping the crosswalk to FBS-only does not rescue it:
+`/games` returns FCS opponents by CFBD name, so the first FBS-vs-FCS game of September needs that join to
+work or the game vanishes from the training set. That is the failure this whole project is built to
+prevent.
+
+So the season-level pull is **`/teams?year=2026`**, not `/teams/fbs` (§5.2), and the roster fixture carries
+both divisions.
+
+`/teams` returns 684: 138 FBS, 128 FCS, 171 D-II, 247 D-III. The fixture keeps **FBS and FCS only, 266
+rows — exactly the number Sagarin rates, and the two 128s agree independently.** The 418 lower-division
+rows are dropped because Sagarin rates none of them, so the crosswalk can never be asked about one. An FBS
+team scheduling a D-II opponent raises `UnmappedTeamError` and turns a run red, which is §6.4's fix loop
+working as designed rather than a gap to pre-empt with 418 rows nobody would review.
+
+Fixture rosters are the contract: `tests/fixtures/rosters/sagarin-2026.txt` (all 266 names from the golden
+capture, one per line, sorted) and `cfbd-2026.json` (266 rows: id, school, conference, classification).
+Their exact-name overlap is 234, which is why §6.3's bootstrap has roughly 30 decisions to order and not
+zero.
 
 - every Sagarin name in the roster fixture resolves
 - every CFBD name in the roster fixture resolves
@@ -721,11 +739,22 @@ class UnmappedTeamError(CfbError): ...
 class WeekResolutionError(CfbError): ...
 class StaleSourceError(CfbError): ...
 class CallBudgetExceeded(CfbError): ...
+class MissingDependencyError(CfbError): ...  # an optional extra is not installed
 ```
 
 Any `CfbError` → exit 1, message to stderr, workflow red. There is no exit code meaning "partially ok".
 Nothing catches these to log-and-continue; a validation failure demoted to a warning is the exact failure
 mode this project exists to prevent.
+
+**`MissingDependencyError` is the one environment fault in the list**, and it is in the list because this
+clause does not carve out failures that are the operator's fault rather than the data's. `boto3` is an
+optional extra (§10), so a bare `uv sync` prunes it and every S3-backed command then fails — at the store
+constructor, or on the first CFBD request when the SSM credential read happens. Unwrapped that arrived as
+a `ModuleNotFoundError` nine frames deep, which is not a `CfbError`, misses the exit-1 clause entirely,
+and names neither the extra nor the command that fixes it. `errors.optional_import` wraps every optional
+import site and the message leads with `uv sync --extra s3`.
+
+Phase 1 adds five more classes; SPEC-phase1 §9.1 lists them.
 
 Logging is structured key=value to stdout —
 `event=snapshot_written source=sagarin season=2026 week=04 key=raw/… bytes=184320 sha256=9f2c…` — so an

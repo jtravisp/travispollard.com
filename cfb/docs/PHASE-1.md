@@ -1,0 +1,427 @@
+# Phase 1 — the model, the predictions, the pages
+
+Progress against `SPEC-phase1.md`. Phase 0's tracking stays in `PHASE-0.md`; its two
+carry-overs are listed at the bottom of this file because they still gate the "one Saturday end to
+end" that §11 defines done as, and neither is on the Phase 1 code path.
+
+The rule that decides a mark, unchanged from Phase 0: **a module with exhaustive offline tests and
+no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the real bucket yet, so
+every item below is at best `[~]` on that axis — the marks record whether the code and its tests
+exist, and the "verified by" column says what was actually run.
+
+## Where this stands (2026-08-28)
+
+§3, §4 and §5 are complete. The Sunday run exists: `cfb score` folds the week's results into the
+Elo state, grades the predictions that anticipated them, and writes `scored/` write-once — and
+`cfb elo replay` reproduces the state that run wrote, so §11 step 5 is green against the real
+command rather than against a debugging verb.
+
+| | |
+|---|---|
+| Tests | **865 passing, 23 skipped**, `ruff check .` clean, `terraform validate` clean |
+| Landed | `fa40c16` (§3), `c9ec3c9`+`03a054a` (§4), `084c6d9` (§5's library), `50a4a09` (crosswalk id inheritance). This session's `cfb score` work is uncommitted |
+| Next | §6, the JSON contract and the three routes. §3.6's contamination series is now unblocked — `sagarin_r` is in the scored document |
+| Blocked | nothing |
+| Blocked on a human | nothing in Phase 1. Phase 0's in-season Sagarin capture still stands |
+
+Verified this session, in `cfb/`, against a `file://` store holding a seeded 2026, a week 1 slate
+of three games, a `/lines` capture pricing two of them, and a `/games` capture taken after they
+were played:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `865 passed, 23 skipped in 31.31s` |
+| `uv run ruff check .` | `All checks passed!` |
+| `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
+| `uv run cfb elo seed --season 2026` | exit 0, `week=preseason teams=266` |
+| `uv run cfb predict --season 2026 --week 1` | exit 0, `games=3 benchmarked=2 priced=2 indexed=1` |
+| `uv run cfb score --season 2026 --week 1` | exit 0, `games=3 unplayed=0 ats=2-0 mae=7.23 brier=0.300` |
+| `uv run cfb elo replay --season 2026 --through-week 01` | exit 0, `elo_verify result=ok` against the state **`cfb score` wrote** — **§11 step 5, green** |
+| a second `cfb score` for the same week | exit 0, **second `scored/` and `elo/` key written, first of each kept** |
+| `cfb score` with a post-kickoff regenerate as the newest prediction | exit 0, and it graded the **pre-kickoff** generation |
+| `cfb score` when every stored generation postdates its slate | exit 1, `ReplayError`, **nothing written** |
+| `cfb score` with a result no prediction covered | exit 1, `UnscoredGameError` naming game 999 |
+| `cfb score` with the week's `/games` capture removed | exit 1, `ReplayError`, **nothing written** |
+| `cfb score` on a week captured mid-slate | exit 0, `games=1 unplayed=2` — unplayed is counted, not an error |
+| `cfb score` with no `--week` before any week completed | exit 0, `result=skip reason=no_completed_week` |
+
+The scored document for that week reads `sagarin_r: 1.0`, `texas.mae: 9.16` on one game and
+`texas.market_mae: null` — the first is §3.6's opening correlation arriving at exactly 1.0 as §4
+predicted it would, and the last two are §5.3's "every mean carries its own denominator" showing up
+in a real document rather than in a test.
+
+**Earlier sessions' verifications, still standing:** `cfb elo advance --week {1,2,3}` exit 0 each,
+`cfb elo seed` on a season in progress exit 1 with `SeedStateError`, a second `cfb predict` writing
+a second key and keeping the first.
+
+---
+
+## 3. The model
+
+- [x] **§3.1 the scale.** `ELO_PER_POINT = 28`, and the win-probability `elo_diff` is the
+      HFA-adjusted gap. The §3.1 table's six rows are pinned by
+      `test_the_spec_3_1_calibration_table`.
+  - [x] The table's right-hand column was headed "Observed" and claimed a provenance it does not
+        have. Relabelled: it is a plausibility check against recalled figures, and §5.3's
+        calibration curve is the only calibration number this project can currently defend
+- [x] **§3.2 seeding.** `elo/seed.py`. 266 teams, centred on the snapshot's FBS mean.
+      `SeedStateError` on an in-season page
+- [x] **§3.3 home-field advantage.** Read from the snapshot manifest's `hfa["predictor"]`, per
+      game, from the newest snapshot captured **strictly before that game's kickoff**
+  - [x] That rule is a decision §3.3 does not make. "The current snapshot" cannot be replayed — a
+        replay has no run time to anchor to — so it is stated as a function of the data. It
+        reproduces what a Sunday run sees on §8's schedule and stays stable as later snapshots
+        land. **`cfb score` must use the same rule or step 5 fails**, which is now structural
+        rather than a warning: `sources.hfa_at` is the single implementation, and `hfa_for`
+        (a game's kickoff) and `predict` (a slate's first kickoff) are two boundaries into it
+- [x] **§3.4 the update step.** `K = 20`, signed `elo_diff_winner`, no HFA at a neutral site, MOV
+      denominator floored at 0.25 with a raise if the unclamped value would have crossed it
+  - [x] `mov_denominator()` is public because the clamp is unreachable through `update` — the raise
+        stands in front of it, so a test that only went through `update` passed with the clamp
+        deleted. Confirmed by sabotage before the test was written
+- [x] **§3.5 state is a cache, not a source of truth.** Two independent paths, and a command that
+      compares them
+  - [x] `replay()` — whole season from `raw/`, no network, no state file
+  - [x] `advance()` — one week folded onto the previous state. **Not** `replay() -> write`, which
+        would make step 5 compare a replay against a replay and verify nothing
+  - [x] `elo/state.py` — the document: write-once through `put_bytes`, partition ordering,
+        nearest-earlier-state lookup
+  - [x] `cfb elo seed`, `cfb elo advance`, `cfb elo replay`
+- [~] **§3.6 the seed contamination series.** The weekly Pearson correlation against Sagarin
+      PREDICTOR, and the disclosure that retires the first week `r` falls below 0.90. **No longer
+      blocked:** `sagarin_r` is computed and written on every scored week, and week 1 of the
+      verification store reads exactly `1.0`, which is the identity §4 predicted. What is left is
+      §6's half — reading the series across weeks and publishing the disclosure with it
+- [ ] **§3.7 the probability clamp.** `[0.001, 0.999]` applied at publish time, unclamped in
+      storage so the Brier scores are computed on what the model said. Needs §6.
+      `test_probabilities_are_not_clamped_here` already pins the storage half
+
+### What the state work decided that the spec does not say
+
+Three things came up that §3.5 leaves open, and all three are load-bearing enough to write down.
+
+**An advance's batch is bounded twice: by the week, and by the previous state's kickoff cutoff.**
+`EloState.through_kickoff` exists for the second bound. The week cut alone cannot work: a week 1
+game postponed past week 2 would be applied in week 1's batch — before week 2's games — while a
+replay sorts it after them. Elo is path-dependent, so the two would disagree **permanently, with no
+re-run able to reconcile them.** With both bounds, each advance is the next contiguous block of the
+season in kickoff order, so the chain composes to exactly the sequence one sorted pass produces.
+
+Two consequences, both tested:
+
+- A missed Sunday and a postponed game **self-heal.** The next advance takes everything after the
+  last cutoff, so it absorbs whatever the previous run missed. No intervention.
+- **Regeneration must go forward from the latest state, never backward into an earlier week.**
+  Re-running week 01 after a postponed week 1 game lands makes its batch `{G1, G3}` and pushes its
+  cutoff past week 2's game, stranding it. The replay check catches this, so it is detectable
+  rather than silent — but it is a real sharp edge.
+
+**The sharp edge stays, for now.** A time-window partition would remove it and costs more than it
+saves today — the decision and its reasoning are recorded under §5 below.
+
+**`cfb elo advance` is not in §9's command list.** §8 gives the Elo update to the Sunday `cfb score`
+run, which is §5 and does not exist. Without something writing a week state, `cfb elo replay` has
+nothing to check and step 5 verifies nothing — so the command exists now and `cfb score` will call
+the same `advance()`. Fold it in or keep it as a debugging verb; either is fine, but do not end up
+with two implementations.
+
+---
+
+## 4. The prediction log
+
+- [x] `predictions/season=2026/week=NN/<ts>.json`, write-once through `put_bytes`, one object per
+      week. A regenerate writes a second key and the first stays — verified by command, not only
+      by test
+- [x] The §4.2 shape. Field names match the spec exactly, plus one addition:
+      `model.sagarin_predictions_from`, because `sagarin_predictor_margin` is a number from a
+      source and the model block exists so no number in the document is unattributed
+- [x] `predictions/index.json` — a **pure projection of a key listing**. It reads no prediction
+      objects, so it cannot disagree with what it describes; that is what makes it safe as the one
+      mutable object
+- [x] `cfb predict --season 2026 --week N`, defaulting to `calendar.coming_week`
+- [x] IAM: `s3:PutObject` on `predictions/*` with no `s3:DeleteObject`
+- [x] **Market lines from CFBD `/lines`**, joined on `cfbd_game_id`, provider-normalized and signed verbatim. See the four findings below
+
+### What the real `/lines` capture changed
+
+The capture is `tests/fixtures/cfbd_lines_2026_week01.json` — a verbatim
+`/lines?year=2026&week=1` response, 143 games, 194 line entries. It contradicted the spec in three
+places and confirmed a fourth. All four are now in SPEC-phase1 §4.3.
+
+1. **There is no closing line.** The fields are `spread` (the price at capture) and `spreadOpen`;
+   nothing in the response has "clos" in its name. §4.2, §5.3 and §6.3 all said "closing line" and
+   none of them could have had one — a Thursday generate cannot know a number that does not exist
+   until kickoff. Renamed to `market_line` throughout, and the spec now says what it is.
+2. **The sign is opposite to `predicted_margin`.** `spread: -29.5` with
+   `formattedSpread: "Iowa State -29.5"`, Iowa State home — so negative favours the home team, while
+   `predicted_margin` positive favours the home team. Verified across all 194 entries in both
+   directions with no exceptions. The value is stored verbatim and `sources.market_home_margin` is
+   the **single** conversion site. Without the flip every §5.3 ATS record is complete, plausible and
+   backwards.
+3. **Providers need normalizing before selection.** One book, two spellings: `DraftKings` (131) and
+   `Draft Kings` (12). Selecting first drops the 12 games whose only line uses the second. And
+   selection is a real decision — the two books **disagree on 21 of 143 games** — so
+   `PROVIDER_PREFERENCE` changes the published number. DraftKings leads on coverage (143 of 143 vs
+   Bovada's 51), and the resolved book is carried into the row so §6.3's `line_source` is a fact
+   rather than the `"consensus"` guess it used to be. An unrecognised provider raises.
+4. **Null stays legal and is never a zero.** In *this* capture every game has a line and no `spread`
+   is null, so the null path is the join: a slate game with no entry in the `/lines` response.
+   Asserted at both the selection and document level, because zero is a pick'em and conflating them
+   would put unpriced games into the ATS record as pushes against a spread nobody quoted.
+
+Verified end to end: `cfb predict` over the real capture produced
+`games=4 benchmarked=1 priced=3`, with Portland State reading `model=-12.91, market=+24.5` — both
+saying the away team is favoured, which is only true once the sign is converted.
+
+### What §4 confirmed about §3.6
+
+§3.6 argues that a week 1 prediction *is* Sagarin's prediction, and uses that to justify the seed
+disclosure. It is not an approximation: the seed is `1500 + (rating - mean) * 28`, so an Elo gap
+over 28 is exactly a Sagarin rating gap, and adding the same HFA reproduces PREDICTOR to the
+floating-point bit. The first real generated document shows `predicted_margin` and
+`sagarin_predictor_margin` both `10.67` on one game and both `6.2` on a neutral-site one.
+
+So **§3.6's Pearson correlation opens the season at exactly 1.0**, not near it, and
+`TestTheWeekOneContamination` pins the identity that makes it so.
+
+## 5. Scoring
+
+- [x] `elo/scoring.py`, `score_week()`, joining on `cfbd_game_id` (§5.1)
+- [x] Every §5.2 failure mode raises `UnscoredGameError`, and **each is confirmed by sabotage**
+      rather than by assertion alone: the implementation was broken four ways and the tests that
+      should have caught each one did (8, 5, 4 and 3 failures respectively)
+- [x] §5.3's figures, for Texas and the full slate separately, every mean carrying its own
+      denominator and `null` rather than `0.0` on an empty population
+- [x] The Elo advance moves into `cfb score`. **The same `replay.advance`, imported, not restated** —
+      a second implementation of "which games, which names, which HFA" is exactly what §11 step 5
+      would stop being able to detect, since it would be comparing a rebuild against a cache that
+      drifted for reasons the model never saw. `cfb elo advance` stays as the verb for a week with
+      nothing to score against: a backfill, or bringing a season's state up to date
+- [x] `scored/season=2026/week=NN/<ts>.json` — the write-once document and `cfb score`. Verified by
+      command: two runs of the same week leave two `scored/` keys and two `elo/` keys, and
+      `cfb elo replay --through-week 01` reproduces the state the scoring run wrote
+- [x] **Beating the line goes through `sources.market_home_margin`.** Dropping the conversion fails
+      8 tests, and fails them as reversed *verdicts* rather than as different numbers
+- [x] **A null `market_line` is excluded and counted**, never scored as a push. Scoring one as a
+      push fails 5 tests, every one of them on the denominator
+
+### Two decisions §5 settled
+
+**`score_week`'s signature departs from §5.2's sketch, and both departures are forced.** `predictions`
+is a `PredictionLog` rather than a dict because the third failure mode compares teams and a mapping of
+margins cannot; the dict predates §4 giving the log a type. `results_fetched_at` is added because the
+second failure mode needs to know whether a game was played and `/games` carries no `completed` flag —
+so the boundary is the evidence, matching §3.3's HFA rule. SPEC-phase1 §5.2 now records the real
+signature.
+
+**A model margin exactly equal to the market's is excluded, not pushed**, counted in its own
+`excluded_no_edge`. A push is a position that tied; this is the absence of a position. The ATS record
+carries five counters whose sum is the slate, which is the property that makes a game falling out of it
+visible at all.
+- [x] **The HFA rule is already shared and cannot drift.** `sources.hfa_at` is the single
+      implementation of §3.3, and `hfa_for` (a game's own kickoff) and `predict` (a slate's first
+      kickoff) are two boundaries into it. `cfb score` uses `hfa_for` by importing it, not by
+      restating it — which is what keeps §11 step 5 honest
+
+### What `cfb score` decided that §5 leaves open
+
+Four things, all load-bearing enough to write down.
+
+**Which generation gets graded, and it is not the newest.** A week can hold several prediction
+objects — write-once means a regenerate adds a key rather than replacing one — and nothing stops one
+of them being written on Sunday. `predictions_to_score` takes the newest generation written
+**strictly before its own slate's first kickoff**, and refuses the week if none qualifies. Grading a
+post-kickoff regenerate would publish an accuracy figure for a forecast made with the results in
+hand, which is the single overclaim SPEC-phase1 1.1 gives up git in order not to make.
+
+**The boundary comes from each candidate document's own slate, not from the week's results.** They
+are the same number in the ordinary week and they come apart in the case that matters: a game moved
+*into* the week from an earlier one has already been played by the time the week is predicted, so a
+boundary taken from the results would sit in the past and reject a perfectly honest Thursday
+generation. Asking each candidate whether it preceded the games *it* claimed is the only question
+worth asking, and it is the same check §11 step 1 runs from the bucket side — so this is step 1's
+property being used rather than only asserted.
+
+Verified by command, not only by construction: with a generation stamped `2026-09-07T00:00Z` sitting
+as the newest object for a week whose slate opened `2026-09-03T23:00Z`, `cfb score` graded the
+`2026-08-29T02:55:14Z` one. With the pre-kickoff generation deleted, it exits 1 and writes nothing.
+
+**`ScoredWeek` gained `results_fetched_at`, because it is a model input.** §5.2 decides "unplayed, or
+a join that failed" against when the results were captured rather than against a clock, so the same
+week re-scored against a different capture can legitimately reach a different verdict. A document
+that recorded which predictions it graded but not which evidence it graded them against could not
+say why. It comes from the manifest of the target week's own `/games` capture — `sources.results_capture`
+— and never from `now`, for the reason §3.3's HFA rule gives: a wall clock cannot be replayed.
+
+**Everything is read before anything is written.** Found by sabotage rather than by design: with the
+week's `/games` capture deleted, the first version of the command advanced the Elo state (legitimately
+folding zero games), wrote it, and *then* went red on the missing capture. The state was harmless — a
+replay of the same empty `raw/` reproduces it and the next run absorbs the week — but it is an object
+asserting a week happened that nobody has evidence for yet. The command now resolves the capture, the
+slate and the prediction generation first, so a run that cannot do its job writes nothing at all.
+
+The two writes stay in §8's order once they start. They are genuinely independent — the advance reads
+nothing from `predictions/` and the scoring reads no rating — which is the only reason it is safe for
+one command to do both.
+
+### Decision: the batch-partition rule stays week-scoped for now
+
+The open question from last session was whether `advance` should batch by game week or by a
+calendar time window. **Keep the week cut.** The kickoff cutoff added with `EloState.through_kickoff`
+already fixed the failure that mattered — a missed Sunday and a postponed game both self-heal on the
+next run — and the residual sharp edge is narrow: *regeneration must go forward from the latest
+state, never backward into an earlier week*, because re-running an earlier week widens its batch and
+strands a later game. That is detected by the replay check, not silent, and it is asserted in
+`test_elo_state.py::test_regenerating_an_earlier_week_strands_a_later_game_and_is_caught`.
+
+The time-window alternative is still the cleaner design and it is still not free:
+
+- it needs the committed calendar inside `advance`, which currently reads none
+- it changes what `elo/week=01` *means*, from "after week 1's games" to "after week 1's window"
+- **it contradicts a committed test.** `test_replay.py::test_it_cuts_on_the_week_the_game_belongs_to_not_on_the_clock`
+  asserts that `replay --through-week` is week-scoped, and the session rules forbid changing a test
+  during an implementation session
+
+So it needs a decision session of its own rather than being smuggled into §5. Revisit if a real
+postponed game ever forces a backward regeneration; until then the cost is a documented rule and
+one test that enforces it.
+
+## 6. The JSON contract — not started
+
+- [ ] `next-game.json`, `accuracy.json`, `notes/index.json`, `notes/<slug>.json`
+- [ ] The §6.2 envelope, and routes that render a "data is newer than this page" state rather than
+      throwing on an unknown `schema_version`
+- [ ] §3.7's presentational clamp, and `<1%` / `>99%` at the endpoints
+- [ ] `Cache-Control`, and the CloudFront invalidation for `/cfb/data/*` — which also needs the
+      root-stack work deferred from Phase 0 §10.2
+
+## 7. The weekly note — not started
+
+## 8. Workflows — not started
+
+- [ ] `cfb-score.yml` (Sun 12:30), `cfb-predict.yml` (Thu 12:00), `cfb-publish.yml` (Fri 12:00)
+- [ ] The Friday publish is the SLO and its deadline is first kickoff Saturday
+
+## 9. CLI
+
+- [x] `cfb elo replay --season --through-week`
+- [x] `cfb elo seed --season [--force]`
+- [x] `cfb elo advance --season --week` *(not in §9's list; see the note in §3)*
+- [x] `cfb predict --season --week [--force]`
+- [x] `cfb score --season --week [--force]`, defaulting to `calendar.last_completed_week`
+- [ ] `cfb publish`, `cfb note`
+- [x] §9.1 records the five errors this phase adds to Phase 0 §9's hierarchy
+
+## Repo layout, against §2
+
+§2's file list predates this work and two modules are not in it. Both are recorded here rather than
+silently added:
+
+- **`src/cfb/sources.py`** — reading model inputs out of `raw/`. Extracted this session because
+  `replay`, `advance` and `predict` all select games, resolve names and read an HFA, and §11 step 5
+  is only meaningful if they agree on all three. Two copies of "the newest Sagarin manifest before
+  kickoff" is how that check starts failing for reasons unrelated to the model.
+- **`src/cfb/predict.py`** — §4 has no entry in §2's tree at all. It sits beside `replay.py` for the
+  same reason `replay.py` does: a top-level verb, not a piece of the model.
+
+`src/cfb/elo/state.py` is the third, recorded last session.
+
+§2 does give `elo/scoring.py` an entry, and `cfb score` did not need a fourth module: `scored_key`
+and `write_scored` sit beside `score_week` for the same reason `write_predictions` sits beside
+`predict_week`, and the three readers `cfb score` needs from the prediction log
+(`read_predictions`, `prediction_generations`, `predictions_to_score`) sit in `predict.py`, which
+already owns the key format they parse. `sources.results_capture` is the one genuinely new
+selector, and it belongs where every other "read this out of `raw/`" does.
+
+---
+
+## Found in earlier sessions
+
+- **There are no real results yet, and there could not be.** The bucket holds no `/games` capture at
+  all — only lines, calendar and teams — because the season had not started: week 1's first kickoff is
+  `2026-08-29T07:00Z` and `last_completed_week` returns `None`. Every scoring fixture is constructed,
+  which the §5.2 failure modes require anyway — no vendor publishes a game whose id matches a
+  prediction and whose teams do not. `test_scoring.py::TestARealWeek` is skipped and waiting on the
+  first played Saturday.
+- **`USC` resolves to `southern-california`, not `usc`.** Found by the team-mismatch check firing on a
+  test fixture that had guessed the slug. The check catching its own author is reasonable evidence it
+  will catch a vendor.
+
+## Also found in earlier sessions
+
+- **`cfb/lines-wk1.json` is a stray in the repo root.** It is the raw capture, untracked, and it has
+  been copied to `tests/fixtures/cfbd_lines_2026_week01.json`. Safe to delete; left alone because it
+  is not this session's to remove.
+- **A `/lines` response read as *text* on Windows mangles accented team names.** `San José State`
+  decodes to `San JosÃ© State` under the cp1252 default and then fails to resolve against a crosswalk
+  that has the name correctly. Production was never affected — `sources._rows` is handed bytes and
+  `json.loads` detects UTF-8 — but a diagnostic script written the obvious way reports a crosswalk
+  gap that does not exist. `_rows` now says why it takes bytes.
+
+## Also found in earlier sessions
+
+- **A bare `uv sync` prunes boto3, and every S3-backed command then died with a raw
+  `ModuleNotFoundError`** from inside `S3SnapshotStore.__init__` — no traceback contract, no mention of
+  the extra, no fix named. Both optional-import sites (`S3SnapshotStore.__init__` and
+  `cfbd.ssm_secret`) now go through `errors.optional_import` and raise `MissingDependencyError`, which
+  is a `CfbError` and so gets SPEC-phase0 §9's exit 1 with a message and no traceback. The sync command
+  is `uv sync --extra s3`, now stated in `cfb/CLAUDE.md`.
+  - The SSM site had **never** been covered. There was no prior `CredentialError` or anything like it;
+    `grep` finds the name nowhere in the repo, so nothing had landed for that path at all.
+  - The two `botocore` imports in `storage.py` are deliberately left unwrapped: reaching them means
+    `__init__` already imported boto3, and botocore is boto3's own dependency, so a guard would be for a
+    state pip cannot produce.
+
+## Also found in earlier sessions
+
+- **`elo/` was not writable by the publisher role.** The Terraform policy granted `raw/*` and
+  `cfb/data/*` and nothing else, so `cfb elo seed` and `cfb elo advance` would have failed with
+  `AccessDenied` on the first scheduled Sunday. Nothing was broken in production because both have
+  only ever run against `file://` stores. Fixed in the same statement that adds `predictions/*`,
+  which now covers `elo/`, `predictions/`, `scored/` and `notes/` — `PutObject` and `GetObject`, no
+  `DeleteObject`.
+- **`PutObject` alone still permits an overwrite.** The write-once guarantee for `raw/`, `elo/` and
+  `predictions/` comes from the conditional `IfNoneMatch` PUT in `S3SnapshotStore.put_bytes`, not
+  from IAM; the missing `DeleteObject` is the second layer, not the first. Worth knowing before
+  anyone reads the policy as the whole guarantee.
+- **`terraform apply` has not been run for this change.** The policy is validated and formatted,
+  not applied.
+
+## Found this session
+
+- **The crosswalk's canonical ids were re-derived every season, and now are not.** Found in the
+  working tree at the start of this session, reviewed and committed as `50a4a09`. `bootstrap` minted
+  every id with `canonical_slug(sagarin_name)`, so a team Sagarin respelled between seasons got a
+  different id in each — and 31 of the 266 committed ids are the Sagarin spelling rather than the
+  CFBD one, `southern-california` among them. Nothing would have raised: both seasons load, both
+  validate, every name resolves, and the team simply has two identities where Phase 2's backfill
+  joins. Ids are now inherited by `cfbd_id`. Not Phase 1 work and not on its code path, but it is
+  the join Phase 2 is built on.
+- **`data/crosswalk/_candidates-2026.yaml` is deleted.** It was scratch, fully absorbed into
+  `teams-2026.yaml`, and git history has the similarity scoring if it is ever wanted again.
+  `test_crosswalk.py`'s failure message now says so, since it used to point at the file.
+- **`cfb/lines-wk1.json` is still a stray in the repo root**, untracked, already copied to
+  `tests/fixtures/`. Carried over from last session; still not this session's to remove.
+- **`PHASE-0.md`'s status block is still stale**, unchanged from last session's note.
+- **The new code has no unit tests, and that is a deliberate gap this session could not close.**
+  The session rules forbid writing under `cfb/tests/`, so `cfb score`, `write_scored`,
+  `predictions_to_score`, `prediction_generations`, `read_predictions` and
+  `sources.results_capture` are verified only by the command runs in the table above — including
+  four sabotage runs, which is what the §5.2 modes were held to. The committed suite still passes
+  at 865 because it does not reach any of them. **The next session should write them**, and the
+  three worth the most are: a post-kickoff regenerate is not the generation graded; a week whose
+  every generation postdates its slate exits 1 and writes nothing; and a `/games` capture missing
+  for the week leaves `elo/` untouched.
+
+## Carried over from Phase 0
+
+Neither is on the Phase 1 code path, and both still gate §11's "one Saturday end to end".
+
+1. **An in-season Sagarin capture, by hand.** Closes the date formats in
+   `parse_page_date_stamp`, the `"in-season"` branch of `parse_page_state`, and the two PROVISIONAL
+   assertions in `test_freshness.py`. The gate is the page dropping `STARTING`, not a week number.
+2. **The two unattended scheduled runs Phase 0 is "done when",** and `ssm_secret`'s botocore errors
+   escaping SPEC-phase0 §9's exit-1 clause as a traceback.
+
+`PHASE-0.md`'s status block is stale — it reports 536 tests and "Uncommitted: nothing", both of
+which predate three sessions of work. Its §1–§7 item marks are still accurate.

@@ -27,7 +27,13 @@ from pathlib import Path
 
 import pytest
 
-from cfb.calendar import PRESEASON_LEAD, in_season, load_calendar, resolve
+from cfb.calendar import (
+    PRESEASON_LEAD,
+    in_season,
+    last_completed_week,
+    load_calendar,
+    resolve,
+)
 from cfb.errors import WeekResolutionError
 from cfb.manifest import snapshot_key
 
@@ -243,6 +249,92 @@ class TestResolvePartitionValues:
 
         ref = resolve(at(2026, 12, 28, 12), calendar=calendar)  # must not raise
         assert ref.week == "unknown"
+
+
+class TestLastCompletedWeek:
+    """Which regular week has finished as of ``now`` (SPEC 5.2's "N").
+
+    The CFBD workflow pulls the week that just completed, and SPEC 11 forbids
+    that arithmetic living in YAML where nothing tests it. So the calendar owns
+    it, and these run over both calendars because the two disagree about what a
+    week's end *is*: the synthetic fixture's ``last_game_start`` is a kickoff,
+    the real one's is the window boundary a week later.
+
+    **The empty answer is the interesting one.** On the real calendar week 1 runs
+    2026-08-29 to 2026-09-08, so no week has completed on any Sunday before
+    September 13. A collector that treated that as an error would turn the first
+    two Sundays of the season red and teach whoever reads the alerts to ignore
+    them -- which is the same failure mode SPEC 4.6 avoids by skipping rather
+    than raising.
+    """
+
+    def test_nothing_has_completed_before_the_season_opens(self, calendar):
+        assert last_completed_week(calendar.opens - timedelta(days=1), calendar=calendar) is None
+
+    def test_nothing_has_completed_during_week_one(self, calendar):
+        """Week 1 is in progress, so there is no completed week to pull."""
+        first = calendar.entries[0]
+        assert last_completed_week(first.first_game_start, calendar=calendar) is None
+        assert last_completed_week(first.last_game_start, calendar=calendar) is None
+
+    def test_week_one_completes_the_instant_after_its_window_ends(self, calendar):
+        """The boundary, and it is inclusive on the wrong side deliberately.
+
+        A week is complete once ``now`` is past its end, not at it. At exactly
+        ``last_game_start`` the last game has started and has not finished.
+        """
+        first = calendar.entries[0]
+        assert last_completed_week(first.last_game_start, calendar=calendar) is None
+        assert (
+            last_completed_week(
+                first.last_game_start + timedelta(seconds=1), calendar=calendar
+            )
+            == "01"
+        )
+
+    @pytest.mark.parametrize("week", [1, 2, 4, 9, 14])
+    def test_the_week_before_the_current_one_is_what_completed(self, calendar, week):
+        """Mid-season: standing inside week N+1, week N is the answer."""
+        following = next(
+            e for e in calendar.entries if not e.is_postseason and e.week == week + 1
+        )
+        assert last_completed_week(
+            following.first_game_start + timedelta(hours=1), calendar=calendar
+        ) == f"{week:02d}"
+
+    def test_it_is_zero_padded(self, calendar):
+        """SPEC 3.2. It becomes a literal S3 path segment two calls later."""
+        second = next(e for e in calendar.entries if not e.is_postseason and e.week == 2)
+        assert last_completed_week(
+            second.first_game_start + timedelta(hours=1), calendar=calendar
+        ) == "01"
+
+    def test_after_the_last_regular_week_it_stays_at_fifteen(self, calendar):
+        """Postseason and beyond report week 15, which is the honest answer.
+
+        Nothing here knows how to express "the bowl slate" as a CFBD week number,
+        and inventing one would file real games under a wrong partition. Fifteen
+        is the last regular week that actually completed; re-pulling it on a
+        January Sunday is redundant rather than wrong, and SPEC 5.4 already says
+        every invocation fetches for real.
+        """
+        assert last_completed_week(calendar.closes, calendar=calendar) == "15"
+
+    def test_the_first_sunday_that_has_anything_to_pull(self, entries, calendar):
+        """The case that motivated all of this, asserted on the real calendar only.
+
+        The synthetic fixture's weeks are short, so it completes week 1 much
+        earlier and would hide the gap this test exists to pin.
+        """
+        if len(entries[0].get("endDate", "")) == 0:
+            pytest.skip("synthetic fixture: week windows are kickoffs, not boundaries")
+
+        sundays = [at(2026, 8, 30, 12), at(2026, 9, 6, 12), at(2026, 9, 13, 12)]
+        assert [last_completed_week(s, calendar=calendar) for s in sundays] == [
+            None,
+            None,
+            "01",
+        ]
 
 
 class TestInSeason:

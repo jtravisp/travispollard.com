@@ -1,0 +1,1360 @@
+# Crosswalk for the 2026 season (SPEC-phase0 6.1).
+#
+# canonical_id: project-owned slug, minted once from a vendor's spelling -- so it
+# is not vendor-neutral. Every id below is a slug of the Sagarin name, and 31 of
+# the 266 differ from the CFBD spelling for exactly that reason: USC is
+# `southern-california`, UCF is `central-florida-ucf`, UConn is `connecticut`.
+#
+# Where an id came from stops mattering once it is frozen, and it is frozen twice
+# over. Within the season, because a played season's mapping never changes. Across
+# seasons, because `cfb crosswalk bootstrap` inherits ids by cfbd_id rather than
+# re-deriving them from names -- without which Sagarin respelling "Southern
+# California" to "USC" next year would mint `usc`, and this team's history would
+# split in half precisely where Phase 2's backfill joins across seasons.
+#
+# So cfbd_id is load-bearing here, not decoration. It has to be present and unique
+# on every row: a row missing one is re-minted next season under whatever the
+# vendor calls it then, and two rows sharing one make the inheritance ambiguous.
+# tests/test_crosswalk_stability.py pins both against this file.
+#
+# 266 entries: all 266 teams Sagarin rates, 138 FBS and 128 FCS. 234 matched
+# exactly on name via `cfb crosswalk bootstrap`; the other 32 were decided by hand
+# from _candidates-2026.yaml, which was scratch, is now fully absorbed here, and
+# has been deleted -- git history has it if the scoring is ever wanted again.
+# cfbd_id and division on those 32 were filled from
+# tests/fixtures/rosters/cfbd-2026.json by exact name lookup, which is also what
+# test_crosswalk.py cross-checks them against.
+#
+# Conference is deliberately absent: it is time-varying and belongs in each
+# snapshot's parsed output, not in a mapping that a played season freezes.
+
+abilene-christian:
+  cfbd: Abilene Christian
+  cfbd_id: 2000
+  division: FCS
+  sagarin: Abilene Christian
+air-force:
+  cfbd: Air Force
+  cfbd_id: 2005
+  division: FBS
+  sagarin: Air Force
+akron:
+  cfbd: Akron
+  cfbd_id: 2006
+  division: FBS
+  sagarin: Akron
+alabama:
+  cfbd: Alabama
+  cfbd_id: 333
+  division: FBS
+  sagarin: Alabama
+alabama-a-m:
+  cfbd: Alabama A&M
+  cfbd_id: 2010
+  division: FCS
+  sagarin: Alabama A&M
+alabama-state:
+  cfbd: Alabama State
+  cfbd_id: 2011
+  division: FCS
+  sagarin: Alabama State
+albany-ny:
+  cfbd: UAlbany
+  cfbd_id: 399
+  division: FCS
+  sagarin: Albany-NY
+alcorn-state:
+  cfbd: Alcorn State
+  cfbd_id: 2016
+  division: FCS
+  sagarin: Alcorn State
+appalachian-state:
+  cfbd: App State
+  cfbd_id: 2026
+  division: FBS
+  sagarin: Appalachian State
+arizona:
+  cfbd: Arizona
+  cfbd_id: 12
+  division: FBS
+  sagarin: Arizona
+arizona-state:
+  cfbd: Arizona State
+  cfbd_id: 9
+  division: FBS
+  sagarin: Arizona State
+ark-pine-bluff:
+  cfbd: Arkansas-Pine Bluff
+  cfbd_id: 2029
+  division: FCS
+  sagarin: Ark.-Pine Bluff
+arkansas:
+  cfbd: Arkansas
+  cfbd_id: 8
+  division: FBS
+  sagarin: Arkansas
+arkansas-state:
+  cfbd: Arkansas State
+  cfbd_id: 2032
+  division: FBS
+  sagarin: Arkansas State
+army-west-point:
+  cfbd: Army
+  cfbd_id: 349
+  division: FBS
+  sagarin: Army West Point
+auburn:
+  cfbd: Auburn
+  cfbd_id: 2
+  division: FBS
+  sagarin: Auburn
+austin-peay:
+  cfbd: Austin Peay
+  cfbd_id: 2046
+  division: FCS
+  sagarin: Austin Peay
+ball-state:
+  cfbd: Ball State
+  cfbd_id: 2050
+  division: FBS
+  sagarin: Ball State
+baylor:
+  cfbd: Baylor
+  cfbd_id: 239
+  division: FBS
+  sagarin: Baylor
+bethune-cookman:
+  cfbd: Bethune-Cookman
+  cfbd_id: 2065
+  division: FCS
+  sagarin: Bethune-Cookman
+boise-state:
+  cfbd: Boise State
+  cfbd_id: 68
+  division: FBS
+  sagarin: Boise State
+boston-college:
+  cfbd: Boston College
+  cfbd_id: 103
+  division: FBS
+  sagarin: Boston College
+bowling-green:
+  cfbd: Bowling Green
+  cfbd_id: 189
+  division: FBS
+  sagarin: Bowling Green
+brown:
+  cfbd: Brown
+  cfbd_id: 225
+  division: FCS
+  sagarin: Brown
+bryant:
+  cfbd: Bryant
+  cfbd_id: 2803
+  division: FCS
+  sagarin: Bryant
+bucknell:
+  cfbd: Bucknell
+  cfbd_id: 2083
+  division: FCS
+  sagarin: Bucknell
+buffalo:
+  cfbd: Buffalo
+  cfbd_id: 2084
+  division: FBS
+  sagarin: Buffalo
+butler:
+  cfbd: Butler
+  cfbd_id: 2086
+  division: FCS
+  sagarin: Butler
+byu:
+  cfbd: BYU
+  cfbd_id: 252
+  division: FBS
+  sagarin: BYU
+cal-poly-slo:
+  cfbd: Cal Poly
+  cfbd_id: 13
+  division: FCS
+  sagarin: Cal Poly-SLO
+california:
+  cfbd: California
+  cfbd_id: 25
+  division: FBS
+  sagarin: California
+campbell:
+  cfbd: Campbell
+  cfbd_id: 2097
+  division: FCS
+  sagarin: Campbell
+central-arkansas:
+  cfbd: Central Arkansas
+  cfbd_id: 2110
+  division: FCS
+  sagarin: Central Arkansas
+central-connecticut:
+  cfbd: Central Connecticut
+  cfbd_id: 2115
+  division: FCS
+  sagarin: Central Connecticut
+central-florida-ucf:
+  cfbd: UCF
+  cfbd_id: 2116
+  division: FBS
+  sagarin: Central Florida(UCF)
+central-michigan:
+  cfbd: Central Michigan
+  cfbd_id: 2117
+  division: FBS
+  sagarin: Central Michigan
+charleston-southern:
+  cfbd: Charleston Southern
+  cfbd_id: 2127
+  division: FCS
+  sagarin: Charleston Southern
+charlotte:
+  cfbd: Charlotte
+  cfbd_id: 2429
+  division: FBS
+  sagarin: Charlotte
+chattanooga:
+  cfbd: Chattanooga
+  cfbd_id: 236
+  division: FCS
+  sagarin: Chattanooga
+chicago-state:
+  cfbd: Chicago State
+  cfbd_id: 2130
+  division: FCS
+  sagarin: Chicago State
+cincinnati:
+  cfbd: Cincinnati
+  cfbd_id: 2132
+  division: FBS
+  sagarin: Cincinnati
+clemson:
+  cfbd: Clemson
+  cfbd_id: 228
+  division: FBS
+  sagarin: Clemson
+coastal-carolina:
+  cfbd: Coastal Carolina
+  cfbd_id: 324
+  division: FBS
+  sagarin: Coastal Carolina
+colgate:
+  cfbd: Colgate
+  cfbd_id: 2142
+  division: FCS
+  sagarin: Colgate
+colorado:
+  cfbd: Colorado
+  cfbd_id: 38
+  division: FBS
+  sagarin: Colorado
+colorado-state:
+  cfbd: Colorado State
+  cfbd_id: 36
+  division: FBS
+  sagarin: Colorado State
+columbia:
+  cfbd: Columbia
+  cfbd_id: 171
+  division: FCS
+  sagarin: Columbia
+connecticut:
+  cfbd: UConn
+  cfbd_id: 41
+  division: FBS
+  sagarin: Connecticut
+cornell:
+  cfbd: Cornell
+  cfbd_id: 172
+  division: FCS
+  sagarin: Cornell
+dartmouth:
+  cfbd: Dartmouth
+  cfbd_id: 159
+  division: FCS
+  sagarin: Dartmouth
+davidson:
+  cfbd: Davidson
+  cfbd_id: 2166
+  division: FCS
+  sagarin: Davidson
+dayton:
+  cfbd: Dayton
+  cfbd_id: 2168
+  division: FCS
+  sagarin: Dayton
+delaware:
+  cfbd: Delaware
+  cfbd_id: 48
+  division: FBS
+  sagarin: Delaware
+delaware-state:
+  cfbd: Delaware State
+  cfbd_id: 2169
+  division: FCS
+  sagarin: Delaware State
+drake:
+  cfbd: Drake
+  cfbd_id: 2181
+  division: FCS
+  sagarin: Drake
+duke:
+  cfbd: Duke
+  cfbd_id: 150
+  division: FBS
+  sagarin: Duke
+duquesne:
+  cfbd: Duquesne
+  cfbd_id: 2184
+  division: FCS
+  sagarin: Duquesne
+east-carolina:
+  cfbd: East Carolina
+  cfbd_id: 151
+  division: FBS
+  sagarin: East Carolina
+east-tennessee-state:
+  cfbd: East Tennessee State
+  cfbd_id: 2193
+  division: FCS
+  sagarin: East Tennessee State
+east-texas-a-m:
+  cfbd: East Texas A&M
+  cfbd_id: 2837
+  division: FCS
+  sagarin: East Texas A&M
+eastern-illinois:
+  cfbd: Eastern Illinois
+  cfbd_id: 2197
+  division: FCS
+  sagarin: Eastern Illinois
+eastern-kentucky:
+  cfbd: Eastern Kentucky
+  cfbd_id: 2198
+  division: FCS
+  sagarin: Eastern Kentucky
+eastern-michigan:
+  cfbd: Eastern Michigan
+  cfbd_id: 2199
+  division: FBS
+  sagarin: Eastern Michigan
+eastern-washington:
+  cfbd: Eastern Washington
+  cfbd_id: 331
+  division: FCS
+  sagarin: Eastern Washington
+elon:
+  cfbd: Elon
+  cfbd_id: 2210
+  division: FCS
+  sagarin: Elon
+fla-international:
+  cfbd: Florida International
+  cfbd_id: 2229
+  division: FBS
+  sagarin: Fla. International
+florida:
+  cfbd: Florida
+  cfbd_id: 57
+  division: FBS
+  sagarin: Florida
+florida-a-m:
+  cfbd: Florida A&M
+  cfbd_id: 50
+  division: FCS
+  sagarin: Florida A&M
+florida-atlantic:
+  cfbd: Florida Atlantic
+  cfbd_id: 2226
+  division: FBS
+  sagarin: Florida Atlantic
+florida-state:
+  cfbd: Florida State
+  cfbd_id: 52
+  division: FBS
+  sagarin: Florida State
+fordham:
+  cfbd: Fordham
+  cfbd_id: 2230
+  division: FCS
+  sagarin: Fordham
+fresno-state:
+  cfbd: Fresno State
+  cfbd_id: 278
+  division: FBS
+  sagarin: Fresno State
+furman:
+  cfbd: Furman
+  cfbd_id: 231
+  division: FCS
+  sagarin: Furman
+gardner-webb:
+  cfbd: Gardner-Webb
+  cfbd_id: 2241
+  division: FCS
+  sagarin: Gardner-Webb
+georgetown:
+  cfbd: Georgetown
+  cfbd_id: 46
+  division: FCS
+  sagarin: Georgetown
+georgia:
+  cfbd: Georgia
+  cfbd_id: 61
+  division: FBS
+  sagarin: Georgia
+georgia-southern:
+  cfbd: Georgia Southern
+  cfbd_id: 290
+  division: FBS
+  sagarin: Georgia Southern
+georgia-state:
+  cfbd: Georgia State
+  cfbd_id: 2247
+  division: FBS
+  sagarin: Georgia State
+georgia-tech:
+  cfbd: Georgia Tech
+  cfbd_id: 59
+  division: FBS
+  sagarin: Georgia Tech
+grambling-state:
+  cfbd: Grambling
+  cfbd_id: 2755
+  division: FCS
+  sagarin: Grambling State
+hampton:
+  cfbd: Hampton
+  cfbd_id: 2261
+  division: FCS
+  sagarin: Hampton
+harvard:
+  cfbd: Harvard
+  cfbd_id: 108
+  division: FCS
+  sagarin: Harvard
+hawai-i:
+  cfbd: Hawai'i
+  cfbd_id: 62
+  division: FBS
+  sagarin: Hawai'i
+holy-cross:
+  cfbd: Holy Cross
+  cfbd_id: 107
+  division: FCS
+  sagarin: Holy Cross
+houston:
+  cfbd: Houston
+  cfbd_id: 248
+  division: FBS
+  sagarin: Houston
+houston-christian:
+  cfbd: Houston Christian
+  cfbd_id: 2277
+  division: FCS
+  sagarin: Houston Christian
+howard:
+  cfbd: Howard
+  cfbd_id: 47
+  division: FCS
+  sagarin: Howard
+idaho:
+  cfbd: Idaho
+  cfbd_id: 70
+  division: FCS
+  sagarin: Idaho
+idaho-state:
+  cfbd: Idaho State
+  cfbd_id: 304
+  division: FCS
+  sagarin: Idaho State
+illinois:
+  cfbd: Illinois
+  cfbd_id: 356
+  division: FBS
+  sagarin: Illinois
+illinois-state:
+  cfbd: Illinois State
+  cfbd_id: 2287
+  division: FCS
+  sagarin: Illinois State
+incarnate-word:
+  cfbd: Incarnate Word
+  cfbd_id: 2916
+  division: FCS
+  sagarin: Incarnate Word
+indiana:
+  cfbd: Indiana
+  cfbd_id: 84
+  division: FBS
+  sagarin: Indiana
+indiana-state:
+  cfbd: Indiana State
+  cfbd_id: 282
+  division: FCS
+  sagarin: Indiana State
+iowa:
+  cfbd: Iowa
+  cfbd_id: 2294
+  division: FBS
+  sagarin: Iowa
+iowa-state:
+  cfbd: Iowa State
+  cfbd_id: 66
+  division: FBS
+  sagarin: Iowa State
+jackson-state:
+  cfbd: Jackson State
+  cfbd_id: 2296
+  division: FCS
+  sagarin: Jackson State
+jacksonville-state:
+  cfbd: Jacksonville State
+  cfbd_id: 55
+  division: FBS
+  sagarin: Jacksonville State
+james-madison:
+  cfbd: James Madison
+  cfbd_id: 256
+  division: FBS
+  sagarin: James Madison
+kansas:
+  cfbd: Kansas
+  cfbd_id: 2305
+  division: FBS
+  sagarin: Kansas
+kansas-state:
+  cfbd: Kansas State
+  cfbd_id: 2306
+  division: FBS
+  sagarin: Kansas State
+kennesaw-state:
+  cfbd: Kennesaw State
+  cfbd_id: 338
+  division: FBS
+  sagarin: Kennesaw State
+kent-state:
+  cfbd: Kent State
+  cfbd_id: 2309
+  division: FBS
+  sagarin: Kent State
+kentucky:
+  cfbd: Kentucky
+  cfbd_id: 96
+  division: FBS
+  sagarin: Kentucky
+lafayette:
+  cfbd: Lafayette
+  cfbd_id: 322
+  division: FCS
+  sagarin: Lafayette
+lamar:
+  cfbd: Lamar
+  cfbd_id: 2320
+  division: FCS
+  sagarin: Lamar
+lehigh:
+  cfbd: Lehigh
+  cfbd_id: 2329
+  division: FCS
+  sagarin: Lehigh
+liberty:
+  cfbd: Liberty
+  cfbd_id: 2335
+  division: FBS
+  sagarin: Liberty
+lindenwood:
+  cfbd: Lindenwood
+  cfbd_id: 2815
+  division: FCS
+  sagarin: Lindenwood
+liu-post:
+  cfbd: Long Island University
+  cfbd_id: 2341
+  division: FCS
+  sagarin: LIU Post
+louisiana-lafayette:
+  cfbd: Louisiana
+  cfbd_id: 309
+  division: FBS
+  sagarin: Louisiana-Lafayette
+louisiana-tech:
+  cfbd: Louisiana Tech
+  cfbd_id: 2348
+  division: FBS
+  sagarin: Louisiana Tech
+louisianamonroe-ulm:
+  cfbd: UL Monroe
+  cfbd_id: 2433
+  division: FBS
+  sagarin: LouisianaMonroe(ULM)
+louisville:
+  cfbd: Louisville
+  cfbd_id: 97
+  division: FBS
+  sagarin: Louisville
+lsu:
+  cfbd: LSU
+  cfbd_id: 99
+  division: FBS
+  sagarin: LSU
+maine:
+  cfbd: Maine
+  cfbd_id: 311
+  division: FCS
+  sagarin: Maine
+marist:
+  cfbd: Marist
+  cfbd_id: 2368
+  division: FCS
+  sagarin: Marist
+marshall:
+  cfbd: Marshall
+  cfbd_id: 276
+  division: FBS
+  sagarin: Marshall
+maryland:
+  cfbd: Maryland
+  cfbd_id: 120
+  division: FBS
+  sagarin: Maryland
+massachusetts:
+  cfbd: Massachusetts
+  cfbd_id: 113
+  division: FBS
+  sagarin: Massachusetts
+mcneese-state:
+  cfbd: McNeese
+  cfbd_id: 2377
+  division: FCS
+  sagarin: McNeese State
+memphis:
+  cfbd: Memphis
+  cfbd_id: 235
+  division: FBS
+  sagarin: Memphis
+mercer:
+  cfbd: Mercer
+  cfbd_id: 2382
+  division: FCS
+  sagarin: Mercer
+mercyhurst:
+  cfbd: Mercyhurst
+  cfbd_id: 2385
+  division: FCS
+  sagarin: Mercyhurst
+merrimack:
+  cfbd: Merrimack
+  cfbd_id: 2771
+  division: FCS
+  sagarin: Merrimack
+miami-florida:
+  cfbd: Miami
+  cfbd_id: 2390
+  division: FBS
+  sagarin: Miami-Florida
+miami-ohio:
+  cfbd: Miami (OH)
+  cfbd_id: 193
+  division: FBS
+  sagarin: Miami-Ohio
+michigan:
+  cfbd: Michigan
+  cfbd_id: 130
+  division: FBS
+  sagarin: Michigan
+michigan-state:
+  cfbd: Michigan State
+  cfbd_id: 127
+  division: FBS
+  sagarin: Michigan State
+middle-tennessee:
+  cfbd: Middle Tennessee
+  cfbd_id: 2393
+  division: FBS
+  sagarin: Middle Tennessee
+minnesota:
+  cfbd: Minnesota
+  cfbd_id: 135
+  division: FBS
+  sagarin: Minnesota
+miss-valley-state:
+  cfbd: Mississippi Valley State
+  cfbd_id: 2400
+  division: FCS
+  sagarin: Miss. Valley State
+mississippi:
+  cfbd: Ole Miss
+  cfbd_id: 145
+  division: FBS
+  sagarin: Mississippi
+mississippi-state:
+  cfbd: Mississippi State
+  cfbd_id: 344
+  division: FBS
+  sagarin: Mississippi State
+missouri:
+  cfbd: Missouri
+  cfbd_id: 142
+  division: FBS
+  sagarin: Missouri
+missouri-state:
+  cfbd: Missouri State
+  cfbd_id: 2623
+  division: FBS
+  sagarin: Missouri State
+monmouth-nj:
+  cfbd: Monmouth
+  cfbd_id: 2405
+  division: FCS
+  sagarin: Monmouth-NJ
+montana:
+  cfbd: Montana
+  cfbd_id: 149
+  division: FCS
+  sagarin: Montana
+montana-state:
+  cfbd: Montana State
+  cfbd_id: 147
+  division: FCS
+  sagarin: Montana State
+morehead-state:
+  cfbd: Morehead State
+  cfbd_id: 2413
+  division: FCS
+  sagarin: Morehead State
+morgan-state:
+  cfbd: Morgan State
+  cfbd_id: 2415
+  division: FCS
+  sagarin: Morgan State
+murray-state:
+  cfbd: Murray State
+  cfbd_id: 93
+  division: FCS
+  sagarin: Murray State
+navy:
+  cfbd: Navy
+  cfbd_id: 2426
+  division: FBS
+  sagarin: Navy
+nc-a-t:
+  cfbd: North Carolina A&T
+  cfbd_id: 2448
+  division: FCS
+  sagarin: NC A&T
+nc-central:
+  cfbd: North Carolina Central
+  cfbd_id: 2428
+  division: FCS
+  sagarin: NC Central
+nc-state:
+  cfbd: NC State
+  cfbd_id: 152
+  division: FBS
+  sagarin: NC State
+nebraska:
+  cfbd: Nebraska
+  cfbd_id: 158
+  division: FBS
+  sagarin: Nebraska
+nevada:
+  cfbd: Nevada
+  cfbd_id: 2440
+  division: FBS
+  sagarin: Nevada
+new-hampshire:
+  cfbd: New Hampshire
+  cfbd_id: 160
+  division: FCS
+  sagarin: New Hampshire
+new-haven:
+  cfbd: New Haven
+  cfbd_id: 2441
+  division: FCS
+  sagarin: New Haven
+new-mexico:
+  cfbd: New Mexico
+  cfbd_id: 167
+  division: FBS
+  sagarin: New Mexico
+new-mexico-state:
+  cfbd: New Mexico State
+  cfbd_id: 166
+  division: FBS
+  sagarin: New Mexico State
+nicholls-state:
+  cfbd: Nicholls
+  cfbd_id: 2447
+  division: FCS
+  sagarin: Nicholls State
+norfolk-state:
+  cfbd: Norfolk State
+  cfbd_id: 2450
+  division: FCS
+  sagarin: Norfolk State
+north-alabama:
+  cfbd: North Alabama
+  cfbd_id: 2453
+  division: FCS
+  sagarin: North Alabama
+north-carolina:
+  cfbd: North Carolina
+  cfbd_id: 153
+  division: FBS
+  sagarin: North Carolina
+north-dakota:
+  cfbd: North Dakota
+  cfbd_id: 155
+  division: FCS
+  sagarin: North Dakota
+north-dakota-state:
+  cfbd: North Dakota State
+  cfbd_id: 2449
+  division: FBS
+  sagarin: North Dakota State
+north-texas:
+  cfbd: North Texas
+  cfbd_id: 249
+  division: FBS
+  sagarin: North Texas
+northern-arizona:
+  cfbd: Northern Arizona
+  cfbd_id: 2464
+  division: FCS
+  sagarin: Northern Arizona
+northern-colorado:
+  cfbd: Northern Colorado
+  cfbd_id: 2458
+  division: FCS
+  sagarin: Northern Colorado
+northern-illinois:
+  cfbd: Northern Illinois
+  cfbd_id: 2459
+  division: FBS
+  sagarin: Northern Illinois
+northern-iowa:
+  cfbd: Northern Iowa
+  cfbd_id: 2460
+  division: FCS
+  sagarin: Northern Iowa
+northwestern:
+  cfbd: Northwestern
+  cfbd_id: 77
+  division: FBS
+  sagarin: Northwestern
+northwestern-state:
+  cfbd: Northwestern State
+  cfbd_id: 2466
+  division: FCS
+  sagarin: Northwestern State
+notre-dame:
+  cfbd: Notre Dame
+  cfbd_id: 87
+  division: FBS
+  sagarin: Notre Dame
+ohio:
+  cfbd: Ohio
+  cfbd_id: 195
+  division: FBS
+  sagarin: Ohio
+ohio-state:
+  cfbd: Ohio State
+  cfbd_id: 194
+  division: FBS
+  sagarin: Ohio State
+oklahoma:
+  cfbd: Oklahoma
+  cfbd_id: 201
+  division: FBS
+  sagarin: Oklahoma
+oklahoma-state:
+  cfbd: Oklahoma State
+  cfbd_id: 197
+  division: FBS
+  sagarin: Oklahoma State
+old-dominion:
+  cfbd: Old Dominion
+  cfbd_id: 295
+  division: FBS
+  sagarin: Old Dominion
+oregon:
+  cfbd: Oregon
+  cfbd_id: 2483
+  division: FBS
+  sagarin: Oregon
+oregon-state:
+  cfbd: Oregon State
+  cfbd_id: 204
+  division: FBS
+  sagarin: Oregon State
+penn-state:
+  cfbd: Penn State
+  cfbd_id: 213
+  division: FBS
+  sagarin: Penn State
+pennsylvania:
+  cfbd: Pennsylvania
+  cfbd_id: 219
+  division: FCS
+  sagarin: Pennsylvania
+pittsburgh:
+  cfbd: Pittsburgh
+  cfbd_id: 221
+  division: FBS
+  sagarin: Pittsburgh
+portland-state:
+  cfbd: Portland State
+  cfbd_id: 2502
+  division: FCS
+  sagarin: Portland State
+prairie-view-a-m:
+  cfbd: Prairie View A&M
+  cfbd_id: 2504
+  division: FCS
+  sagarin: Prairie View A&M
+presbyterian-college:
+  cfbd: Presbyterian
+  cfbd_id: 2506
+  division: FCS
+  sagarin: Presbyterian College
+princeton:
+  cfbd: Princeton
+  cfbd_id: 163
+  division: FCS
+  sagarin: Princeton
+purdue:
+  cfbd: Purdue
+  cfbd_id: 2509
+  division: FBS
+  sagarin: Purdue
+rhode-island:
+  cfbd: Rhode Island
+  cfbd_id: 227
+  division: FCS
+  sagarin: Rhode Island
+rice:
+  cfbd: Rice
+  cfbd_id: 242
+  division: FBS
+  sagarin: Rice
+richmond:
+  cfbd: Richmond
+  cfbd_id: 257
+  division: FCS
+  sagarin: Richmond
+robert-morris:
+  cfbd: Robert Morris
+  cfbd_id: 2523
+  division: FCS
+  sagarin: Robert Morris
+rutgers:
+  cfbd: Rutgers
+  cfbd_id: 164
+  division: FBS
+  sagarin: Rutgers
+sacramento-state:
+  cfbd: Sacramento State
+  cfbd_id: 16
+  division: FBS
+  sagarin: Sacramento State
+sacred-heart:
+  cfbd: Sacred Heart
+  cfbd_id: 2529
+  division: FCS
+  sagarin: Sacred Heart
+sam-houston-state:
+  cfbd: Sam Houston
+  cfbd_id: 2534
+  division: FBS
+  sagarin: Sam Houston State
+samford:
+  cfbd: Samford
+  cfbd_id: 2535
+  division: FCS
+  sagarin: Samford
+san-diego:
+  cfbd: San Diego
+  cfbd_id: 301
+  division: FCS
+  sagarin: San Diego
+san-diego-state:
+  cfbd: San Diego State
+  cfbd_id: 21
+  division: FBS
+  sagarin: San Diego State
+san-jose-state:
+  cfbd: San José State
+  cfbd_id: 23
+  division: FBS
+  sagarin: San Jose State
+sc-state:
+  cfbd: South Carolina State
+  cfbd_id: 2569
+  division: FCS
+  sagarin: SC State
+se-louisiana:
+  cfbd: SE Louisiana
+  cfbd_id: 2545
+  division: FCS
+  sagarin: SE Louisiana
+se-missouri-state:
+  cfbd: Southeast Missouri State
+  cfbd_id: 2546
+  division: FCS
+  sagarin: SE Missouri State
+smu:
+  cfbd: SMU
+  cfbd_id: 2567
+  division: FBS
+  sagarin: SMU
+south-alabama:
+  cfbd: South Alabama
+  cfbd_id: 6
+  division: FBS
+  sagarin: South Alabama
+south-carolina:
+  cfbd: South Carolina
+  cfbd_id: 2579
+  division: FBS
+  sagarin: South Carolina
+south-dakota:
+  cfbd: South Dakota
+  cfbd_id: 233
+  division: FCS
+  sagarin: South Dakota
+south-dakota-state:
+  cfbd: South Dakota State
+  cfbd_id: 2571
+  division: FCS
+  sagarin: South Dakota State
+south-florida:
+  cfbd: South Florida
+  cfbd_id: 58
+  division: FBS
+  sagarin: South Florida
+southern-california:
+  cfbd: USC
+  cfbd_id: 30
+  division: FBS
+  sagarin: Southern California
+southern-illinois:
+  cfbd: Southern Illinois
+  cfbd_id: 79
+  division: FCS
+  sagarin: Southern Illinois
+southern-miss:
+  cfbd: Southern Miss
+  cfbd_id: 2572
+  division: FBS
+  sagarin: Southern Miss
+southern-u:
+  cfbd: Southern
+  cfbd_id: 2582
+  division: FCS
+  sagarin: Southern U.
+southern-utah:
+  cfbd: Southern Utah
+  cfbd_id: 253
+  division: FCS
+  sagarin: Southern Utah
+st-thomas-mn:
+  cfbd: St. Thomas (MN)
+  cfbd_id: 2900
+  division: FCS
+  sagarin: St. Thomas-Mn.
+stanford:
+  cfbd: Stanford
+  cfbd_id: 24
+  division: FBS
+  sagarin: Stanford
+stephen-f-austin:
+  cfbd: Stephen F. Austin
+  cfbd_id: 2617
+  division: FCS
+  sagarin: Stephen F. Austin
+stetson:
+  cfbd: Stetson
+  cfbd_id: 56
+  division: FCS
+  sagarin: Stetson
+stonehill-college:
+  cfbd: Stonehill
+  cfbd_id: 284
+  division: FCS
+  sagarin: Stonehill College
+stony-brook:
+  cfbd: Stony Brook
+  cfbd_id: 2619
+  division: FCS
+  sagarin: Stony Brook
+syracuse:
+  cfbd: Syracuse
+  cfbd_id: 183
+  division: FBS
+  sagarin: Syracuse
+tarleton-state:
+  cfbd: Tarleton State
+  cfbd_id: 2627
+  division: FCS
+  sagarin: Tarleton State
+tcu:
+  cfbd: TCU
+  cfbd_id: 2628
+  division: FBS
+  sagarin: TCU
+temple:
+  cfbd: Temple
+  cfbd_id: 218
+  division: FBS
+  sagarin: Temple
+tennessee:
+  cfbd: Tennessee
+  cfbd_id: 2633
+  division: FBS
+  sagarin: Tennessee
+tennessee-martin:
+  cfbd: UT Martin
+  cfbd_id: 2630
+  division: FCS
+  sagarin: Tennessee-Martin
+tennessee-state:
+  cfbd: Tennessee State
+  cfbd_id: 2634
+  division: FCS
+  sagarin: Tennessee State
+tennessee-tech:
+  cfbd: Tennessee Tech
+  cfbd_id: 2635
+  division: FCS
+  sagarin: Tennessee Tech
+texas:
+  cfbd: Texas
+  cfbd_id: 251
+  division: FBS
+  sagarin: Texas
+texas-a-m:
+  cfbd: Texas A&M
+  cfbd_id: 245
+  division: FBS
+  sagarin: Texas A&M
+texas-southern:
+  cfbd: Texas Southern
+  cfbd_id: 2640
+  division: FCS
+  sagarin: Texas Southern
+texas-state:
+  cfbd: Texas State
+  cfbd_id: 326
+  division: FBS
+  sagarin: Texas State
+texas-tech:
+  cfbd: Texas Tech
+  cfbd_id: 2641
+  division: FBS
+  sagarin: Texas Tech
+the-citadel:
+  cfbd: The Citadel
+  cfbd_id: 2643
+  division: FCS
+  sagarin: The Citadel
+toledo:
+  cfbd: Toledo
+  cfbd_id: 2649
+  division: FBS
+  sagarin: Toledo
+towson:
+  cfbd: Towson
+  cfbd_id: 119
+  division: FCS
+  sagarin: Towson
+troy:
+  cfbd: Troy
+  cfbd_id: 2653
+  division: FBS
+  sagarin: Troy
+tulane:
+  cfbd: Tulane
+  cfbd_id: 2655
+  division: FBS
+  sagarin: Tulane
+tulsa:
+  cfbd: Tulsa
+  cfbd_id: 202
+  division: FBS
+  sagarin: Tulsa
+uab:
+  cfbd: UAB
+  cfbd_id: 5
+  division: FBS
+  sagarin: UAB
+uc-davis:
+  cfbd: UC Davis
+  cfbd_id: 302
+  division: FCS
+  sagarin: UC Davis
+ucla:
+  cfbd: UCLA
+  cfbd_id: 26
+  division: FBS
+  sagarin: UCLA
+unlv:
+  cfbd: UNLV
+  cfbd_id: 2439
+  division: FBS
+  sagarin: UNLV
+utah:
+  cfbd: Utah
+  cfbd_id: 254
+  division: FBS
+  sagarin: Utah
+utah-state:
+  cfbd: Utah State
+  cfbd_id: 328
+  division: FBS
+  sagarin: Utah State
+utah-tech:
+  cfbd: Utah Tech
+  cfbd_id: 3101
+  division: FCS
+  sagarin: Utah Tech
+utep:
+  cfbd: UTEP
+  cfbd_id: 2638
+  division: FBS
+  sagarin: UTEP
+utrgv:
+  cfbd: UT Rio Grande Valley
+  cfbd_id: 292
+  division: FCS
+  sagarin: UTRGV
+utsa:
+  cfbd: UTSA
+  cfbd_id: 2636
+  division: FBS
+  sagarin: UTSA
+valparaiso:
+  cfbd: Valparaiso
+  cfbd_id: 2674
+  division: FCS
+  sagarin: Valparaiso
+vanderbilt:
+  cfbd: Vanderbilt
+  cfbd_id: 238
+  division: FBS
+  sagarin: Vanderbilt
+villanova:
+  cfbd: Villanova
+  cfbd_id: 222
+  division: FCS
+  sagarin: Villanova
+virginia:
+  cfbd: Virginia
+  cfbd_id: 258
+  division: FBS
+  sagarin: Virginia
+virginia-tech:
+  cfbd: Virginia Tech
+  cfbd_id: 259
+  division: FBS
+  sagarin: Virginia Tech
+vmi:
+  cfbd: VMI
+  cfbd_id: 2678
+  division: FCS
+  sagarin: VMI
+wagner:
+  cfbd: Wagner
+  cfbd_id: 2681
+  division: FCS
+  sagarin: Wagner
+wake-forest:
+  cfbd: Wake Forest
+  cfbd_id: 154
+  division: FBS
+  sagarin: Wake Forest
+washington:
+  cfbd: Washington
+  cfbd_id: 264
+  division: FBS
+  sagarin: Washington
+washington-state:
+  cfbd: Washington State
+  cfbd_id: 265
+  division: FBS
+  sagarin: Washington State
+weber-state:
+  cfbd: Weber State
+  cfbd_id: 2692
+  division: FCS
+  sagarin: Weber State
+west-florida:
+  cfbd: West Florida
+  cfbd_id: 110242
+  division: FCS
+  sagarin: West Florida
+west-georgia:
+  cfbd: West Georgia
+  cfbd_id: 2698
+  division: FCS
+  sagarin: West Georgia
+west-virginia:
+  cfbd: West Virginia
+  cfbd_id: 277
+  division: FBS
+  sagarin: West Virginia
+western-carolina:
+  cfbd: Western Carolina
+  cfbd_id: 2717
+  division: FCS
+  sagarin: Western Carolina
+western-illinois:
+  cfbd: Western Illinois
+  cfbd_id: 2710
+  division: FCS
+  sagarin: Western Illinois
+western-kentucky:
+  cfbd: Western Kentucky
+  cfbd_id: 98
+  division: FBS
+  sagarin: Western Kentucky
+western-michigan:
+  cfbd: Western Michigan
+  cfbd_id: 2711
+  division: FBS
+  sagarin: Western Michigan
+william-mary:
+  cfbd: William & Mary
+  cfbd_id: 2729
+  division: FCS
+  sagarin: William & Mary
+wisconsin:
+  cfbd: Wisconsin
+  cfbd_id: 275
+  division: FBS
+  sagarin: Wisconsin
+wofford:
+  cfbd: Wofford
+  cfbd_id: 2747
+  division: FCS
+  sagarin: Wofford
+wyoming:
+  cfbd: Wyoming
+  cfbd_id: 2751
+  division: FBS
+  sagarin: Wyoming
+yale:
+  cfbd: Yale
+  cfbd_id: 43
+  division: FCS
+  sagarin: Yale
+youngstown-state:
+  cfbd: Youngstown State
+  cfbd_id: 2754
+  division: FCS
+  sagarin: Youngstown State

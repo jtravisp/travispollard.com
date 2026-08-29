@@ -8,8 +8,8 @@ Start a work session on section $ARGUMENTS of the CFB forecast pipeline.
 
 ## Load first
 
-1. Read `cfb/docs/PHASE-0.md` and find section $ARGUMENTS.
-2. Read the matching section of `cfb/docs/SPEC-phase0.md`.
+1. Read `cfb/docs/PHASE-1.md` and find section $ARGUMENTS.
+2. Read the matching section of `cfb/docs/SPEC-phase1.md`.
 3. If the work touches Sagarin fetching, parsing, or team names, use the
    `sagarin-format` skill.
 4. Read `cfb/CLAUDE.md` if not already loaded.
@@ -21,13 +21,13 @@ It is context we mostly do not need.
 
 - Never modify a file under `cfb/tests/` during an implementation session.
   If a test looks wrong, stop and say so.
-- Never mark a PHASE-0 item done without a passing test or command output
+- Never mark a PHASE-1 item done without a passing test or command output
   shown in this session.
 - Validation failures raise. Never return None, log-and-continue, or coerce.
 - Raw snapshots are immutable. Never overwrite or delete anything under
   `raw/`.
 - Work only on section $ARGUMENTS. If you find something broken elsewhere,
-  note it in PHASE-0 rather than fixing it here.
+  note it in PHASE-1 rather than fixing it here.
 
 ## Before starting
 
@@ -39,8 +39,7 @@ is blocked, and what you intend to do first. Wait for confirmation.
 When the work is done or I say to wrap up:
 
 1. Run the tests and show output.
-2. Update `cfb/docs/PHASE-0.md` — mark verified items done, add sub-items
+2. Update `cfb/docs/PHASE-1.md` — mark verified items done, add sub-items
    for anything discovered, note new blockers.
 3. Summarize in three lines what changed and what the next session should
    pick up.
-   

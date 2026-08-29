@@ -3,11 +3,63 @@
 Every failure in this package raises. Nothing here is caught to log-and-continue:
 a validation failure demoted to a warning is the exact failure mode the project
 exists to prevent. Any ``CfbError`` reaching the CLI is exit 1 and a red workflow.
+
+Almost every error below is a *data* fault -- a page that changed shape, a name
+nothing maps, a result the model has no answer for. ``MissingDependencyError`` is
+the one environment fault, and it is here for the same reason the others are:
+SPEC 9 promises a message and no traceback, and it does not carve out the
+failures that are the operator's fault rather than the data's.
 """
+
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 
 class CfbError(Exception):
     """Base for every error this package raises."""
+
+
+class MissingDependencyError(CfbError):
+    """An optional dependency is not installed.
+
+    ``boto3`` is an extra (``uv sync --extra s3``) so the offline test suite --
+    which is every test that runs without ``CFB_INTEGRATION=1`` -- installs
+    neither it nor botocore. The cost of that choice is this failure, and a bare
+    ``uv sync`` prunes the extra and causes it.
+
+    **The traceback was the problem, not the error.** Unwrapped, a missing boto3
+    surfaced as a ``ModuleNotFoundError`` nine frames inside
+    ``S3SnapshotStore.__init__`` -- technically accurate, and it named neither the
+    extra nor the command that fixes it. Both call sites already said "uv sync
+    --extra s3" in a docstring, which is exactly the wrong place: the person who
+    needs it is at a terminal watching a stack trace, not reading the source.
+    """
+
+
+@contextmanager
+def optional_import(module: str, *, extra: str, needed_for: str) -> Iterator[None]:
+    """Turn an ``ImportError`` inside this block into a ``MissingDependencyError``.
+
+    The same shape as ``models.validating``, and for the same reason: an exception
+    from outside this package is not a ``CfbError``, so it misses the CLI's exit-1
+    clause entirely and arrives as a traceback -- the one form SPEC 9 says a
+    failure never takes.
+
+    ``needed_for`` is not decoration. The two sites that use this fail at
+    different moments -- one when a store is built, one on the first CFBD request
+    of a run -- and "boto3 is not installed" alone does not tell anyone which
+    command they were part-way through.
+    """
+    try:
+        yield
+    except ImportError as exc:
+        raise MissingDependencyError(
+            f"{module} is not installed, so {needed_for} cannot run.\n\n"
+            f"    uv sync --extra {extra}\n\n"
+            f"{module} is an optional extra, so the offline test suite installs neither it "
+            f"nor its dependencies. A bare `uv sync` prunes it, which is the usual cause of "
+            f"this. Original error: {exc}"
+        ) from exc
 
 
 class FetchError(CfbError):
@@ -45,6 +97,87 @@ class ValidationError(CfbError):
 
 class UnmappedTeamError(CfbError):
     """A source team name has no crosswalk entry."""
+
+
+class UnratedTeamError(CfbError):
+    """A game named a canonical team the ratings do not hold (SPEC-phase1 3.4).
+
+    Distinct from ``UnmappedTeamError``, which is about a *name*. This one is
+    about a name that resolved: the crosswalk knew it and the seed did not
+    produce a rating for it, which means the seed missed a team or the two ran
+    against different crosswalk versions. Defaulting the team to 1500 would rate
+    it as exactly average for the rest of the season with nothing saying so.
+    """
+
+
+class SeedStateError(CfbError):
+    """Seeding was asked to run against a snapshot that is not a preseason page.
+
+    SPEC-phase1 3.2 makes seeding a once-per-season operation. A mid-season
+    re-seed silently discards every result the ratings have learned from and
+    reverts the season to August -- and it looks like a successful run, because
+    266 teams come back rated. This refusal is the only thing between that and a
+    rerun of the wrong command, which is why it has a name of its own rather than
+    sharing ``ParseError`` with a page that failed to parse: nothing was wrong
+    with the page.
+    """
+
+
+class EloDomainError(CfbError):
+    """The update step was handed a game whose result it defines no behaviour for.
+
+    Three cases, all of them SPEC-phase1 3.4 reaching the edge of what it
+    specifies: a game with no result, a tie, and a rating gap past the
+    margin-of-victory floor. None of them is a parse failure -- the row is
+    well-formed and the model simply has no answer -- and each has a silent wrong
+    answer sitting next to it (a null read as zero, a tie scored as an away win, a
+    multiplier that inverts) which is the reason this raises instead.
+    """
+
+
+class ReplayError(CfbError):
+    """A season could not be rebuilt from ``raw/`` (SPEC-phase1 3.5).
+
+    Every instance is a statement about the snapshots rather than about the
+    model: no preseason page to seed from, a game with no kickoff to order by, or
+    no Sagarin snapshot preceding a game to take an HFA from.
+    """
+
+
+class StateMismatchError(CfbError):
+    """A replay from ``raw/`` did not reproduce the stored Elo state.
+
+    SPEC-phase1 3.5 makes this the difference between a cache and a second source
+    of truth, and SPEC-phase1 11 step 5 is the check. It is always a red run: the
+    stored object and the snapshots it claims to be derived from disagree, and
+    nothing downstream can tell which of them the published numbers came from.
+    """
+
+
+class UnscoredGameError(CfbError):
+    """A result and the prediction of it could not be joined (SPEC-phase1 5.2).
+
+    Three shapes, and the accuracy page cannot survive any of them being a filter
+    instead: a result with no prediction, a prediction whose game was played and
+    whose result never came back, and an id that matched while the teams did not.
+
+    The last is the one with no symptom. The join succeeds, the arithmetic runs,
+    and every number produced is attributed to a different game -- most invisibly
+    when the two teams are merely swapped, which inverts every sign and still
+    reads as an ordinary row. Everything the page publishes is a mean, and a mean
+    over a set that quietly lost or mis-filed a game is wrong in no way a reader
+    can see.
+    """
+
+
+class UnknownProviderError(CfbError):
+    """A ``/lines`` entry names a sportsbook this project has no mapping for.
+
+    Skipping it would drop a line silently, and a book that has never appeared
+    before is precisely when someone should look before its number reaches a
+    published prediction. The message names the provider and the table to add it
+    to, because the fix is one line and the reader should not have to find it.
+    """
 
 
 class WeekResolutionError(CfbError):

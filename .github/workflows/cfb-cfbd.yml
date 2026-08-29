@@ -2,26 +2,24 @@
 #
 # Sunday 12:00 UTC is 07:00 CT, hours after the last West Coast game goes final.
 #
-# **NOT RUNNABLE YET — two CLI gaps, both tracked in PHASE-0 §7.** The schedule
-# is deliberately the only thing commented out, so this file is the shape the
-# workflow takes and not a guess at it:
+# **Every step is a command a human runs locally**, same as `cfb-sagarin.yml`.
+# The two things that used to keep this file's cron commented out now live in the
+# CLI, where they are tested, rather than in YAML, where they would not be:
 #
-#   1. `cfb fetch cfbd --resource games` requires an explicit `--week`. Supplying
-#      it from here means the workflow computing "the week that just completed",
-#      which is calendar arithmetic that already exists in `calendar.py` and must
-#      not be reimplemented in YAML where nothing tests it.
-#   2. `fetch cfbd` has no `in_season` guard. `fetch sagarin` has one; this one
-#      was left out on the reading that SPEC §8 gives cfbd no `--force`. §11
-#      wants both collect workflows gated, so the guard belongs in the CLI.
+#   1. `--week` defaults to the week that just completed, from the committed
+#      calendar (`calendar.last_completed_week`). No date arithmetic here.
+#   2. `fetch cfbd` gates on `in_season` and exits 0 when false, matching
+#      `fetch sagarin`.
 #
-# Both are one-line-shaped changes to `cli.py` that need tests, and tests are not
-# written in an implementation session. Until they land, a scheduled run here
-# would fail on a usage error rather than collect anything, so it does not run.
+# **The season's first two Sundays collect nothing, and that is correct.** Week 1
+# runs 2026-08-29 to 2026-09-08, so no week has completed before September 13.
+# The CLI exits 0 with `reason=no_completed_week` and the run stays green --
+# turning those Sundays red would train a reader to ignore the one that matters.
 name: cfb-cfbd
 
 on:
-  # schedule:
-  #   - cron: "0 12 * * 0"   # Sunday 12:00 UTC -- restore once the CLI gaps close
+  schedule:
+    - cron: "0 12 * * 0" # Sunday 12:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -36,9 +34,9 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
 
@@ -48,14 +46,14 @@ jobs:
       - name: Install
         run: uv sync --extra s3
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1
 
-      # No --week. The completed week is the CLI's to work out from the committed
-      # calendar; a `--week ${{ ... }}` expression here would be the duplicated
-      # arithmetic this workflow exists to avoid.
+      # No --week: the CLI works it out from the committed calendar. A
+      # `--week ${{ ... }}` expression here would be the duplicated arithmetic
+      # this workflow exists to avoid.
       - name: Fetch games
         run: uv run cfb fetch cfbd --resource games
 

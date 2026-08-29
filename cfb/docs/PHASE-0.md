@@ -10,22 +10,30 @@
 
 ---
 
+> **Phase 1 is tracked in `PHASE-1.md`.** This file is Phase 0 only, and the status block below
+> has not been re-run since 2026-08-28: it reports 536 tests against an actual 695, and
+> "Uncommitted: nothing" predates three sessions of Phase 1 work. **The §1–§7 item marks are still
+> accurate** — the collector has not changed. Two Phase 0 items remain open and both are repeated
+> at the bottom of `PHASE-1.md`, because they gate the "one Saturday end to end" that Phase 1 is
+> done when.
+
 ## Where this stands (2026-08-28)
 
-Every module SPEC §1 plans except the crosswalk now exists, and **both sources have been fetched
-for real**. The Sagarin page returns bytes whose sha256 matches the golden fixture in §4.7 exactly.
-CFBD authenticated from SSM and served `/calendar` and `/teams/fbs`, which between them produced
-the committed `data/calendar/2026.json` and the CFBD half of the §6.5 roster fixture. **Nothing has
-touched S3**: every byte so far went to `file://./local-snapshots`, because the bucket in §6 has
-never been applied.
+Every module SPEC §1 plans except the crosswalk now exists, both sources have been fetched for
+real, and **the stack is applied**. `cfb/terraform` created the data bucket, the publisher role and
+the account's GitHub OIDC provider; both collectors then wrote to the real bucket from this machine,
+and the full `SnapshotStore` contract passed against S3 rather than skipping. The three §11
+workflows are merged and **all three have run**: CI green on the PR, and both collect workflows
+dispatched successfully with the publisher role assumed by GitHub Actions rather than by a human.
+`cfb-sagarin.yml` wrote a snapshot to the real bucket from CI.
 
 | | |
 |---|---|
-| Tests | 460 passing, 16 skipped, no collection errors; `ruff check .` clean |
-| Landed | `2fa6833..4cbde93` — everything through the CLI, the CFBD credential path, the real calendar and the roster fixture |
+| Tests | 536 passing, 18 skipped, no failures; `ruff check .` clean |
+| Landed | `2fa6833..4db2934`. PR #43 merged to `main`; the workflows have run |
 | Uncommitted | nothing. `cfb/docs/PRD.md` carries unrelated edits that predate this work and are deliberately left alone |
-| Next | §6, the crosswalk. Its CFBD half is now a committed fixture; the Sagarin half is one function call away, and nothing else blocks it |
-| Blocked on a human | an in-season Sagarin capture, ~25 crosswalk decisions, `terraform apply` — see the bottom of this file |
+| Next | the two unattended scheduled runs Phase 0 is "done when", plus `ssm_secret`'s botocore errors escaping SPEC §9's exit-1 clause as a traceback |
+| Blocked on a human | an in-season Sagarin capture — see the bottom of this file |
 
 Re-verified 2026-08-28 by running, in `cfb/`:
 
@@ -72,7 +80,8 @@ src/cfb/  __init__.py  calendar.py  cli.py  errors.py  logging.py  manifest.py  
 ```
 
 Absent: `crosswalk/` (both `__init__.py` and `bootstrap.py`), which is §6 and blocks step 5 of
-§4.3. `pyproject.toml` now registers the `cfb` console script; it was deliberately absent until
+§4.3. *(Both landed later — see `PHASE-1.md`, which also lists the `elo/` and `replay.py` modules
+Phase 1 has since added.)* `pyproject.toml` now registers the `cfb` console script; it was deliberately absent until
 `cli.py` existed, because an entry point naming a missing module breaks `uv sync` itself.
 
 The exception hierarchy is no longer the illustration it was. `errors.py` declares twelve and ten
@@ -82,7 +91,8 @@ are now raised somewhere: `ParseError` (26 sites), `WeekResolutionError` (8), `F
 `StaleSourceError` and `CallBudgetExceeded`.
 
 One is still declared and unused: `UnmappedTeamError` belongs to `crosswalk/`, which does not
-exist. Expected.
+exist. Expected. *(Closed: `crosswalk/` landed in `4fdb7a7` and the error is raised in six places.
+Phase 1 has since added five more errors — see SPEC-phase1 §9.1.)*
 
 `ValidationError` was the other, and it is now used. §9 specifies it as the one that "wraps
 pydantic" and nothing wrapped anything, so a model failure escaped as `pydantic_core.ValidationError`
@@ -176,14 +186,25 @@ Still open in this section:
       order (`utf-8`, `cp1252`, `latin-1`), first candidate that decodes **and** contains both
       markers wins, `EncodingError` when none qualifies. The golden capture resolves to `utf-8`
       because it happens to be pure ASCII, exactly as SPEC §4.7 predicts
-- [~] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
+- [x] Write raw bytes to `s3://<bucket>/raw/sagarin/<date>/` before parsing
   - The code is complete and the ordering is the tested part: `fetch_sagarin` writes bytes at step
     2 of SPEC §4.3, before anything parses them, and the §3.3 suite asserts the bytes survive a
     resolution failure rather than merely that the run went red
-  - Still `[~]` because the bucket in §6 has never been applied. `MemorySnapshotStore` and
-    `FileSnapshotStore` are exercised on every run; `S3SnapshotStore` is only reached with
-    `CFB_INTEGRATION=1` and `CFB_TEST_BUCKET` set, which is the 16 skips in every count on this
-    page. No object has ever been written to the real bucket, because there is no real bucket
+  - **Applied and written to for real, 2026-08-28.** `uv run cfb fetch sagarin` and
+    `uv run cfb fetch cfbd --resource calendar --season 2026` both defaulted to the `s3://` store
+    and landed objects:
+
+    ```
+    raw/cfbd/season=2026/week=season/calendar/2026-08-28T165019Z.json        3386
+    raw/cfbd/season=2026/week=season/calendar/2026-08-28T165019Z.meta.json    635
+    raw/sagarin/season=2026/week=preseason/2026-08-28T165010Z.txt          148793
+    raw/sagarin/season=2026/week=preseason/2026-08-28T165010Z.meta.json       751
+    ```
+
+    `week=preseason` rather than `week=unknown`, so the committed calendar is resolving. And
+    `uv run pytest tests/test_storage.py` reported **48 passed** — all 48, none skipped, in 30s —
+    which means the S3 parametrization ran against the real bucket rather than skipping. The
+    `SnapshotStore` contract now holds against S3 and not only against memory and disk
   - [x] `tests/test_storage.py` — the `SnapshotStore` contract, 16 assertions parametrized over
         three stores. Verified 2026-08-28 against a throwaway implementation written outside the
         repo and deleted immediately: **32 passed, 16 skipped** (memory and file run; the S3
@@ -305,11 +326,19 @@ independently — `team_count` 266, `fbs_count` 138, `predictions_count` 53, `sh
 `ba40d836…`, `page_state` `preseason`, `page_date_stamp` null — and the stored bytes compare equal
 to the fixture.
 
-**Still not wired, and the collector docstring says so at the top:**
+**Step 5 is wired as of 2026-08-28.** `fetch_sagarin` resolves every name through the crosswalk
+between the parse and the full manifest write, and `unmapped` is a real list. It was omitted from
+both writes until then rather than written as `[]`, because an empty list would have claimed every
+name resolved when nothing had been looked up — `[]` is now a positive assertion that all 266 rated
+names and all 106 prediction names were checked and found. It is always empty in a manifest that
+gets written, because a non-empty one raises before step 6.
 
-- Step 5 of SPEC §4.3, crosswalk resolution. `crosswalk/` does not exist. `unmapped` is therefore
-  omitted from **both** manifest writes rather than written as `[]`; an empty list would claim
-  every name resolved, which is a stronger statement than "nothing checked"
+Both blocks are resolved, not just the ratings table: on this capture the prediction names are a
+strict subset of the rated ones, so checking the ratings alone would look complete, and the two are
+parsed independently with nothing guaranteeing they agree.
+
+**Still not wired:**
+
 - `http_status` is written as `200` without a status line ever being read. Defensible — SPEC §4.1
   makes any non-2xx a `FetchError` inside the fetcher, so bytes reaching `fetch_sagarin` are by
   construction a 200 — but the field records an inference from control flow rather than an
@@ -397,16 +426,15 @@ exist.
     classify was written by us — and the status that actually means "over quota"
     is one the vendor has stopped documenting, so the first real one may not be a
     429 at all. That is exactly why the body of every non-2xx is logged
-- [~] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
+- [x] Raw JSON to `s3://<bucket>/raw/cfbd/<date>/`
   - `fetch_cfbd` stores the bytes verbatim under
     `raw/cfbd/season=YYYY/week=NN/<resource>/<timestamp>.json` with a `.meta.json`
     beside it, and writes nothing at all when the pull fails — asserted for both
     an exhausted retry and a budget refusal, because `raw/` is write-once and a
     truncated object at the right key is permanent
-  - `[~]` on the same terms as the Sagarin write: the bucket in §6 has never been
-    applied. The two real pulls went to `file://./local-snapshots`, so the write
-    path and the manifest are exercised end to end against real vendor bytes and
-    no object has ever reached S3
+  - **Reached S3 on 2026-08-28**, alongside the Sagarin write — see §3. `fetch cfbd --resource
+    calendar` with no `--store` defaulted to the bucket and landed the JSON and its manifest under
+    `week=season/calendar/`
   - One field is weaker than it looks. `week_resolution` reads `"calendar"` on a
     CFBD manifest, but the week came from the CLI rather than from resolving a
     date. SPEC 2.2 allows only `"calendar"` or `"unknown"` and `"calendar"` is the
@@ -431,17 +459,54 @@ exist.
 
 ## 5. Crosswalk
 
-- [ ] Generate the initial mapping from both sources
-- [ ] Store as a versioned data file, not code
-- [ ] Test: every FBS team in either source resolves
-- [ ] Test: an unknown name raises
+**The FCS question is settled and it changed the shape of this section.** SPEC §6.5's "every Sagarin
+name resolves" was unsatisfiable as written: Sagarin rates 266 teams, 128 of them FCS, and
+`/teams/fbs` returns none. Scoping the crosswalk to FBS-only does not rescue it — `/games` returns
+FCS opponents by CFBD name, so the first FBS-vs-FCS game of September needs the join or the game
+vanishes. The season pull is now `/teams?year=2026` and the crosswalk spans both divisions.
+
+- [x] Generate the initial mapping from both sources — `uv run cfb crosswalk bootstrap --season 2026`
+      writes 234 exact matches to `data/crosswalk/teams-2026.yaml` and ranks the other 32 in
+      `_candidates-2026.yaml`
+  - Both roster fixtures are 266 rows and their two 128s were counted independently by two vendors
+    who do not talk to each other — the best evidence available that neither side drops rows
+  - Similarity scoring orders the 32 and decides none of them (SPEC §6.3). `"Southern California" ~
+    USC` scores 0.09, so any threshold low enough to catch it would map half the FCS by accident
+- [x] Store as a versioned data file, not code — YAML, one file per season, canonical slug as the
+      key. `cfbd_id` rides along and a test checks it against the roster, so an id pasted from the
+      wrong row is caught rather than trusted
+- [x] Test: every FBS team in either source resolves — **and every FCS one.** All 266 Sagarin names
+      and all 266 CFBD names resolve; `test_crosswalk.py` is 31 passed, 1 skipped. The two coverage
+      tests that were the worklist are now the proof
+- [x] Test: an unknown name raises — plus five near-miss cases (`ohio state`, `Ohio  State`,
+      leading/trailing space, `OhioState`) that must raise rather than be normalized. Every one is a
+      plausible typo *and* a plausible vendor rename; absorbing them silently means the day CFBD
+      really renames a team, nobody learns the mapping is wrong
+- [x] Bootstrap quarantined from the runtime (SPEC §6.3) — asserted three ways: importing each
+      data-path module and checking `bootstrap` did not come with it, grepping those modules for an
+      import of it, and asserting the CLI's own import is function-local. The CLI is the one
+      sanctioned caller
+
+**The 32 decisions are done.** Merged 2026-08-28; `cfbd_id` and `division` filled by exact name
+lookup against the roster fixture, which is the same file `test_crosswalk.py` cross-checks them
+against, so no id was typed.
+
+Two of the 32 are worth remembering:
+
+- **`LIU Post` → `Long Island University`** (id 2341, FCS, NEC). It reads as absent from CFBD and is
+  not — `/teams` carries it with `alternateNames: ['LIU', 'Long Island']`. The bootstrap never
+  offered it, because `'LIU Post'` against `'Long Island University'` scores below the top-four
+  cutoff. That is a sharper illustration of SPEC §6.3 than the `'Southern California' ~ USC (0.09)`
+  example the spec ships with: there the score was unhelpful, here it actively hid the right answer.
+- **`San Jose State` → `San José State`.** CFBD writes the acute accent, Sagarin does not. Stored
+  UTF-8 and verified byte-level. Precisely the case a normalization pass would have silently
+  "fixed", and why SPEC §6.2 forbids one.
 
 ## 6. Infrastructure
 
-- [~] `cfb/terraform/` root with its own backend and state — **initialised against the real backend
-      and planned, 2026-08-28. Still not applied.** `terraform init` configures the S3 backend at
-      `travispollard.com-tf-state` (us-west-2, key `cfb/terraform.tfstate`) and `plan` reports
-      **8 to add, 0 to change, 0 to destroy**
+- [x] `cfb/terraform/` root with its own backend and state — **applied 2026-08-28.** State in
+      `travispollard.com-tf-state` (us-west-2, key `cfb/terraform.tfstate`); the plan it matched was
+      8 to add, 0 to change, 0 to destroy, and is kept below for the record
   - **Provider drift closed, and it was not what the earlier note said.** This file previously
     recorded "resolves 5.100.0", and the diagnosis offered this session was a *missing* cfb
     lockfile. Both wrong: `cfb/terraform/.terraform.lock.hcl` was tracked all along, pinned to
@@ -452,14 +517,16 @@ exist.
     now `5.82.2` with both platforms, byte-identical to the root on `version` and `constraints`.
     Neither `required_providers` block changed: both said `~> 5.0` already, so the constraint was
     never the problem
-- [~] Data bucket, private, versioned — written in `main.tf` (versioning, public access block,
-      `raw/` lifecycle to STANDARD_IA at 90 days, no `s3:DeleteObject` on `raw/`). Never applied
+- [x] Data bucket, private, versioned — applied. Versioning, public access block, `raw/` lifecycle
+      to STANDARD_IA at 90 days, no `s3:DeleteObject` on `raw/`. Holds four real objects and passed
+      the full `SnapshotStore` contract against S3 (§3)
 - [x] Reads distribution ARN from SSM — **resolved for real during the plan**:
       `data.aws_ssm_parameter.cdn_distribution_arn: Read complete [id=/travispollard/cdn/distribution_arn]`.
       The parameter exists in `679878703800`, so the root stack's `cfb-wiring.tf` has been applied
       at some point — this file said it never had, which was wrong. The apply-order constraint
       (root, then cfb) is therefore already satisfied and no longer blocks the cfb apply
-- [~] GitHub OIDC publisher role — written and planned, never applied. `github_repo` default
+- [x] GitHub OIDC publisher role — applied, with the OIDC provider it depends on.
+      **Not yet assumed by anything but a human**: that happens on the first workflow run (§7). `github_repo` default
       corrected to `jtravisp/travispollard.com`; the previous value was an org that does not exist,
       so the trust condition would never have matched and every scheduled run would have failed to
       assume the role
@@ -480,9 +547,8 @@ exist.
       root apply, ahead of the behavior that uses it. `modules/cloudfront` gained a
       `cloudfront_distribution_arn` output, which the parameters need
 
-**The plan, 2026-08-28** — `terraform -chdir=terraform plan`, account `679878703800`, profile
-`tp-site`. Nothing applied; shown here because the next session's first act is an apply and this is
-what it should match:
+**The plan that was applied, 2026-08-28** — account `679878703800`, profile `tp-site`. Kept because
+it is the only record of what the first apply created:
 
 ```
 data.aws_caller_identity.current: Read complete [id=679878703800]
@@ -502,9 +568,48 @@ Plan: 8 to add, 0 to change, 0 to destroy.
 
 ## 7. Schedule and alerting
 
-- [ ] GitHub Actions workflow, cron, Sunday and Tuesday — `.github/workflows/` does not exist yet
-- [ ] Failure notification that reaches you
-- [ ] Stale-data alert wired to the freshness check
+- [x] GitHub Actions workflow, cron, Sunday and Tuesday — all three written, merged to `main`
+      (PR #43) and **dispatched successfully 2026-08-28**
+  - Every step is a command a human runs locally (SPEC §8), so a red run is reproducible with one
+    copy-paste. No inline Python, no workflow-only branch, no date arithmetic in YAML
+  - `cfb-ci.yml` passed on PR #43: `460 passed, 16 skipped in 2.44s` on the runner. Offline **by
+    construction** — no `configure-aws-credentials` step, no `id-token` permission, no profile — so
+    the 16 S3 tests skip for want of credentials the job was never given
+  - `cfb-cfbd.yml` ([run 33194110693](https://github.com/jtravisp/travispollard.com/actions/runs/33194110693)),
+    the run that closed the two CLI gaps:
+
+    ```
+    Assuming role with OIDC
+    Authenticated as assumedRoleId AROAZ4S7NXK4FEO6NNV7Q:GitHubActions
+    event=snapshot_written source=cfbd resource=games result=skip reason=no_completed_week
+    event=snapshot_written source=cfbd resource=lines result=skip reason=no_completed_week
+    ```
+
+    Green with nothing collected, which is the correct answer on 2026-08-28: week 1 does not close
+    until 2026-09-08, so the first Sunday with anything to pull is 2026-09-13
+  - `cfb-sagarin.yml` ([run 33194175377](https://github.com/jtravisp/travispollard.com/actions/runs/33194175377))
+    **wrote to the real bucket from CI** — `raw/sagarin/season=2026/week=preseason/2026-08-28T172006Z.txt`,
+    148,793 bytes:
+
+    ```
+    Authenticated as assumedRoleId AROAZ4S7NXK4FEO6NNV7Q:GitHubActions
+    event=snapshot_written source=sagarin result=ok page_state=preseason teams=266 predictions=53
+    event=freshness source=sagarin result=skip reason=no_prior_manifest
+    ```
+
+  - **The publisher role has now been assumed by something other than a human**, which was the last
+    unproven link in the chain. Both collect workflows use only the session credentials the OIDC
+    exchange hands them; neither names `AWS_PROFILE` or `tp-site`
+  - Actions bumped to `checkout@v5`, `setup-uv@v6`, `configure-aws-credentials@v5`. GitHub still
+    warns that two of them target Node 20 and are being forced onto Node 24 — upstream's to fix
+- [~] Failure notification that reaches you — the mechanism is the run failure itself (SPEC §11):
+      any `CfbError` is exit 1, which reddens the run and GitHub emails it. **Still unverified: no
+      run has gone red.** Every dispatch so far has been green, so the alert path is the one part of
+      this section nothing has exercised
+- [~] Stale-data alert wired to the freshness check — `cfb check-freshness sagarin` is the second
+      step of `cfb-sagarin.yml` and ran, reporting `reason=no_prior_manifest`: every snapshot in the
+      bucket is from today, so nothing has a prior *date* to compare against. The skip path is
+      confirmed in CI; the raise path waits on two runs a day apart
 
 ---
 

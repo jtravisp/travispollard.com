@@ -5,7 +5,7 @@ Python data pipeline that ingests college football data, computes Elo ratings, a
 ## Commands
 
 ```bash
-uv sync                          # install
+uv sync --extra s3               # install -- NOT a bare `uv sync`, see below
 uv run pytest                    # all tests
 uv run pytest tests/test_sagarin_parser.py   # parser only
 uv run ruff check --fix .        # lint
@@ -38,6 +38,13 @@ terraform -chdir=terraform plan  # infra
 
 ## Gotchas
 
+- **A bare `uv sync` prunes boto3 and breaks every S3-backed command.** boto3 is an optional extra
+  (`[project.optional-dependencies] s3`) so the offline suite installs neither it nor botocore --
+  which is why `uv sync --extra s3` is the sync command for this project. Without it,
+  `--store s3://...` and the SSM credential read both fail. They now fail as a
+  `MissingDependencyError` naming the fix rather than as a `ModuleNotFoundError` nine frames deep;
+  if you ever see the raw traceback again, an optional import somewhere lost its
+  `errors.optional_import` wrapper.
 - CFBD free tier is 1,000 calls/month. Sync incrementally, back off on 429, and never call it from a test.
 - Sagarin's page 302s HTTPS to HTTP. Pin the scheme or the fetch loops forever.
 - Tests use fixtures in `tests/fixtures/`. No network calls in tests, ever.

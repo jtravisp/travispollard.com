@@ -42,7 +42,15 @@ from pathlib import Path
 import httpx
 
 from cfb.calendar import WeekRef, in_season, load_calendar, resolve
-from cfb.errors import EncodingError, FetchError, StaleSourceError, WeekResolutionError
+from cfb.crosswalk import Crosswalk, crosswalk_path
+from cfb.crosswalk import load as load_crosswalk
+from cfb.errors import (
+    EncodingError,
+    FetchError,
+    StaleSourceError,
+    UnmappedTeamError,
+    WeekResolutionError,
+)
 from cfb.logging import (
     EVENT_FRESHNESS,
     REASON_NO_PAGE_DATE_STAMP,
@@ -84,12 +92,14 @@ CANDIDATES = ("utf-8", "cp1252", "latin-1")
 #: complaint, so decoding successfully is not evidence of decoding correctly.
 MARKERS = ("CONFERENCE AVERAGES", "Hawai")
 
-#: Present only on the post-parse write (SPEC 2.2). ``unmapped`` stays out of
-#: both writes until the crosswalk of step 5 exists -- an empty list would claim
-#: every name resolved, which is a stronger statement than "nothing checked".
+#: Present only on the post-parse write (SPEC 2.2). ``unmapped`` is one of them
+#: now that step 5 exists: it used to be omitted from both writes because an empty
+#: list would have claimed every name resolved when nothing had been looked up.
+#: It is always ``[]`` in a manifest that gets written, because a non-empty one
+#: raises before step 6 -- the value carries its meaning by being reachable.
 _POST_PARSE = ("parse_ok", "page_date_stamp", "page_state", "team_count", "fbs_count", "hfa",
-               "predictions_count")
-_NEVER_YET = ("unmapped",)
+               "predictions_count", "unmapped")
+_NEVER_YET = ()
 
 
 def decode_page(data: bytes) -> tuple[str, str]:
@@ -201,6 +211,8 @@ def fetch_sagarin(
     now: datetime,
     fetch: Callable[[], bytes] = fetch_page,
     data_dir: Path | None = None,
+    crosswalk: Crosswalk | None = None,
+    crosswalk_dir: Path | None = None,
 ) -> SagarinSnapshot:
     """Run one Sagarin collection. See the module docstring for the ordering."""
     week_ref = _resolve_week(now, data_dir=data_dir)
@@ -252,6 +264,14 @@ def fetch_sagarin(
             predictions=parse_predictions(text),
         )
 
+    # Step 5. Loaded here rather than at the top of the function on purpose: a
+    # missing or unreadable crosswalk is a real problem and must not be one that
+    # costs the week's capture. By this line the bytes are already safe.
+    unmapped = _resolve_all(snapshot, crosswalk=crosswalk, season=week_ref.season,
+                            crosswalk_dir=crosswalk_dir)
+    if unmapped:
+        raise UnmappedTeamError(_fix_message(unmapped, key, week_ref.season, crosswalk_dir))
+
     with validating(f"post-parse manifest for {key}"):
         full = manifest.model_copy(
             update={
@@ -262,6 +282,8 @@ def fetch_sagarin(
                 "team_count": len(snapshot.teams),
                 "fbs_count": sum(1 for team in snapshot.teams if team.division == "A"),
                 "predictions_count": len(snapshot.predictions),
+                # Every name on the page was looked up and every one was found.
+                "unmapped": [],
             }
         )
     store.put_json(meta_key, _dump(full, fetch_only=False))
@@ -361,6 +383,80 @@ def check_freshness(
         f"{current.page_date_stamp.isoformat()} ({current.snapshot_key}), {days} days "
         f"elapsed. The fetch is working and the source is not updating."
     )
+
+
+def _resolve_all(
+    snapshot: SagarinSnapshot,
+    *,
+    crosswalk: Crosswalk | None,
+    season: int,
+    crosswalk_dir: Path | None,
+) -> list[str]:
+    """Every Sagarin name on the page, in page order, that the crosswalk cannot resolve.
+
+    Both blocks. On a typical page the prediction names are a subset of the rated
+    ones, so checking the ratings table alone would look complete -- but the two
+    are parsed independently and nothing guarantees they agree, and a prediction
+    naming a team the ratings table does not is precisely the shape of page this
+    would otherwise wave through.
+
+    Returns all of them rather than raising on the first. Realignment renames
+    several teams at once, and failing one at a time turns a single fix into a
+    week of red runs.
+    """
+    crosswalk = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
+
+    seen: set[str] = set()
+    unmapped: list[str] = []
+    for name in _every_name(snapshot):
+        if name in seen:
+            continue
+        seen.add(name)
+        try:
+            crosswalk.from_sagarin(name)
+        except UnmappedTeamError:
+            unmapped.append(name)
+    return unmapped
+
+
+def _every_name(snapshot: SagarinSnapshot):
+    for team in snapshot.teams:
+        yield team.name
+    for prediction in snapshot.predictions:
+        yield prediction.home
+        yield prediction.away
+
+
+def _fix_message(unmapped: list[str], key: str, season: int, crosswalk_dir: Path | None) -> str:
+    """SPEC 6.4: the message is the fix, ready to paste.
+
+    A message that says "add it to the crosswalk" makes the reader work out the
+    shape. This hands it over, names the snapshot the names came from so a replay
+    is one command away, and ends with what to run to confirm.
+    """
+    path = crosswalk_path(season, data_dir=crosswalk_dir)
+    plural = "name" if len(unmapped) == 1 else "names"
+    blocks = "\n\n".join(
+        f"  {_slug(name)}:\n"
+        f"    cfbd: # the CFBD spelling\n"
+        f"    cfbd_id:\n"
+        f"    sagarin: {name!r}\n"
+        f"    division: # FBS or FCS"
+        for name in unmapped
+    )
+    return (
+        f"{len(unmapped)} unmapped Sagarin {plural} in\n{key}\n\n"
+        f"Add to {path}:\n\n{blocks}\n\n"
+        f"Then: uv run pytest cfb/tests/test_crosswalk.py"
+    )
+
+
+def _slug(name: str) -> str:
+    """A starting-point canonical id. The author's to change before committing."""
+    slug = "".join(character.lower() if character.isalnum() else "-" for character in name)
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    return slug.strip("-")
 
 
 def _resolve_week(now: datetime, *, data_dir: Path | None) -> WeekRef:
