@@ -139,7 +139,13 @@ def build_parser() -> argparse.ArgumentParser:
         "replay",
         help="rebuild a season's ratings from raw/ and check the stored state",
     )
-    elo_replay.add_argument("--season", type=int, required=True)
+    # Optional, unlike `elo seed` and `elo advance`. Those are run by hand for a
+    # season someone has in mind; this one runs every Sunday from `cfb-score.yml`
+    # as SPEC-phase1 11 step 5, and a `--season $(date -u +%Y)` in that file
+    # would be both the week arithmetic these workflows exist to keep out of YAML
+    # and wrong every January -- a January date belongs to the season that
+    # started the previous August, which `_season_of` already knows.
+    elo_replay.add_argument("--season", type=int)
     elo_replay.add_argument(
         "--through-week",
         metavar="N",
@@ -908,7 +914,7 @@ def _elo(args, *, moment: datetime) -> int:
         return _elo_seed(args, moment=moment)
     if args.action == "advance":
         return _elo_advance(args, moment=moment)
-    return _elo_replay(args)
+    return _elo_replay(args, moment=moment)
 
 
 def _elo_seed(args, *, moment: datetime) -> int:
@@ -988,7 +994,7 @@ def _elo_advance(args, *, moment: datetime) -> int:
     return 0
 
 
-def _elo_replay(args) -> int:
+def _elo_replay(args, *, moment: datetime) -> int:
     """SPEC-phase1 11 step 5: rebuild the season from ``raw/`` and check the cache.
 
     Two things happen and the log says which. The rebuild always runs and always
@@ -1007,7 +1013,8 @@ def _elo_replay(args) -> int:
     from cfb.replay import load_state, newest_state_key, replay, verify
 
     store = _store(args.store)
-    rebuilt = replay(store=store, season=args.season, through_week=_through_week(args))
+    season = args.season or _season_of(moment)
+    rebuilt = replay(store=store, season=season, through_week=_through_week(args))
 
     log(
         EVENT_ELO_REPLAY,

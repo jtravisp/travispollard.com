@@ -9,14 +9,44 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29) — live
+## Where this stands (2026-08-29) — Phase 1 complete
 
-**Phase 1 is serving.** `https://travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` are
-deployed and reading real documents the pipeline wrote. §3–§7 are complete; §8's workflows are the
-only section not started.
+**Every section of SPEC-phase1 is implemented and the pipeline is live and
+scheduled.** `travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` serve real
+documents, and five workflows run the week without a person in it.
 
 | | |
 |---|---|
+| Tests | **931 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Landed | §3–§8 through PRs #44, #45 and #46. This session's §8 workflows, tests and README are uncommitted |
+| Next | Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
+| Blocked | nothing |
+| Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
+
+Verified this session:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `931 passed, 23 skipped in 21.76s` |
+| `uv run ruff check .` | `All checks passed!` |
+| all six cfb workflows parsed | crons match §8's table exactly |
+
+### What is left, honestly
+
+Phase 1's deliverable was "one Saturday end to end with no manual intervention".
+Every part of that now exists, but **it has not yet happened** — the pipeline came
+online mid-week-1 and the first fully unattended cycle is the week of September 8.
+Until then:
+
+- **`cfb score` has never run against real results.** Every scoring test is
+  constructed, which §5.2's failure modes require anyway — no vendor publishes a
+  game whose id matches a prediction and whose teams do not.
+- **The production backtest is waiting on week 1 to close** (2026-09-07). §5.2
+  cannot distinguish a failed join from a game in progress.
+- **No weekly note exists**, so §7's MDX plumbing and `/cfb/notes/[slug]` are
+  unbuilt. There is nothing to render until a week has been scored.
+
+---|---|
 | Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3–§7 through PR #44 and #45. This session's slate and backtest work is uncommitted |
 | Next | **§8's three workflows.** Everything runs today because a person types the commands; the crons are what make it a pipeline |
@@ -658,10 +688,51 @@ figure labelled "backtest" and nothing more would read as the model's own.
       has no scored week, so there is no scaffold and no note. Needs `@next/mdx` wired into
       `next.config.ts`, a note index page, and the first real note
 
-## 8. Workflows — not started
+## 8. Workflows
 
-- [ ] `cfb-score.yml` (Sun 12:30), `cfb-predict.yml` (Thu 12:00), `cfb-publish.yml` (Fri 12:00)
-- [ ] The Friday publish is the SLO and its deadline is first kickoff Saturday
+- [x] `cfb-score.yml` (Sun 12:30), `cfb-predict.yml` (Thu 12:00), `cfb-publish.yml` (Fri 12:00).
+      All five cfb workflows parse and their crons match §8's table
+- [x] The Friday publish is the SLO. No retry loop — a prediction published after kickoff is not a
+      prediction — and the job **confirms the site is serving what it just published** rather than
+      trusting the upload. `cfb publish` can succeed against the bucket while the CDN serves a stale
+      or missing object, and the whole point of Friday is that the site is right before kickoff
+- [x] **The Sunday 30-minute gap is the only ordering constraint between any two workflows.**
+      `cfb score` reads the `/games` capture `cfb-cfbd.yml` writes, and §5.2 decides "unplayed, or a
+      join that failed" against when that capture was taken. Actions cron drifts 5-15 minutes under
+      load, so thirty is the margin rather than the interval
+- [x] `cfb-score.yml` also runs **§11 step 5 every week** rather than by hand: it replays the season
+      from `raw/` and exits 1 if the stored state disagrees. A stored state nobody can regenerate is
+      a second source of truth wearing a cache's clothes, and nothing else would ever notice
+- [x] `--week` is a `workflow_dispatch` input only. The scheduled path passes nothing and the CLI
+      reads the committed calendar, so no workflow contains week arithmetic
+  - [x] `cfb elo replay --season` became optional for this. A `--season $(date -u +%Y)` in YAML
+        would have been both the arithmetic these files exist to avoid and wrong every January — a
+        January date belongs to the season that started the previous August, which `_season_of`
+        already knows
+
+## Tests
+
+The gap three sessions had to leave open. **931 passing, up from 865.**
+
+- [x] `tests/test_divisions.py` (18) — `RawGame.is_modelled` and the `week_slate` filter, including
+      the exact shape that stopped the first production run: a partially-scored D-II row that must
+      not redden a Friday, and an in-scope one that must still raise
+- [x] `tests/test_publish.py` (31) — the clamp is publish-side only, away games are re-signed and
+      the two probabilities sum to one, `market_line` is *not* re-signed, a bye yields `game: null`
+      with `as_of` intact, a team on the slate twice raises, the rank is FBS-only, an empty season is
+      publishable with every mean `null`, and the seed disclosure does not un-retire
+- [x] `tests/test_commands.py` (17) — `score`, `publish`, `note` and `backtest` driven through
+      `cli.main`, so argument parsing, week defaults and the exit-code contract are exercised rather
+      than assumed
+  - [x] The four discriminating cases: `score` grades the pre-kickoff generation while `publish`
+        takes the newest; a week whose every generation postdates its slate writes **nothing**, not
+        even the Elo state; a missing `/games` capture leaves `elo/` untouched; `backtest` writes
+        only under `backtest/`
+  - [x] `fails()` asserts exit 1 and a message on stderr rather than using `pytest.raises`. SPEC-phase0
+        §9 makes `main` *return* on a `CfbError`, so a test expecting an exception would have been
+        asserting the opposite of the contract — which is how three of them were written first
+- [x] A week 1 backtest correlates with Sagarin at exactly **1.0**, pinning the seed identity that
+      `measures_the_seed` reports
 
 ## 9. CLI
 

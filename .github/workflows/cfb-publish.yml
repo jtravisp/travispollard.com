@@ -1,0 +1,86 @@
+# SPEC-phase1 §8. Friday: build `/cfb/data/*`, upload, invalidate.
+#
+# **This is the SLO, and its deadline is first kickoff Saturday.** It is the one
+# thing in this pipeline that can genuinely be missed, which is what makes the
+# alerting mean anything -- every other job has a whole week of slack. There is
+# deliberately **no retry-until-it-works loop**: a prediction published after
+# kickoff is not a prediction, so a failed Friday is a red run and an email, and
+# a person decides whether it is still worth publishing.
+#
+# 12:00 UTC on Friday gives roughly a day and a half before a Saturday noon ET
+# kickoff, which absorbs Actions cron drift and leaves room to re-run by hand.
+#
+# **It publishes what `cfb-predict.yml` wrote the day before**, and it takes the
+# newest generation of that week -- unlike `cfb score`, which takes the newest
+# one written *before* kickoff. The two want opposite things and both are right:
+# a regenerate exists because someone wanted the newer number on the site, while
+# grading it would claim a forecast made with the results in hand.
+#
+# The CloudFront invalidation is part of the command, not a step here. It is
+# logged separately from the upload because the upload is what makes the numbers
+# exist and the invalidation only makes them visible sooner -- a failure of the
+# second is a slow page, not a wrong one, and a Friday run has to be readable on
+# that distinction at a glance.
+name: cfb-publish
+
+on:
+  schedule:
+    - cron: "0 12 * * 5" # Friday 12:00 UTC
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to publish (1-15). Blank uses the coming week."
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      # --extra s3 covers all three AWS boundaries this job crosses: the store,
+      # the SSM read for the distribution id, and the CloudFront invalidation.
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # Same week default as `cfb predict`, and that is not a coincidence:
+      # Thursday's forecast and Friday's page are two halves of one week, so a
+      # publish that resolved the week differently would put a slate on the site
+      # that nobody generated.
+      - name: Build and upload /cfb/data/*
+        run: |
+          uv run cfb publish ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
+
+      # The SLO check, from the outside. The command above can succeed against
+      # the bucket while the CDN still serves a stale or missing object -- a
+      # behaviour misconfigured, an invalidation that silently did nothing -- and
+      # the whole point of Friday is that the site is right before kickoff. So
+      # this asks the way a reader would.
+      - name: Confirm the site is serving what was just published
+        run: |
+          for doc in next-game slate accuracy; do
+            url="https://travispollard.com/cfb/data/$doc.json"
+            code=$(curl -sS -o /tmp/$doc.json -w '%{http_code}' "$url")
+            echo "$url -> $code"
+            [ "$code" = "200" ] || { echo "::error::$url returned $code"; exit 1; }
+            python -c "import json,sys; json.load(open('/tmp/$doc.json'))" \
+              || { echo "::error::$url is not valid JSON"; exit 1; }
+          done
