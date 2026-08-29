@@ -9,15 +9,48 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-28)
+## Where this stands (2026-08-29)
 
-§3, §4 and §5 are complete. The Sunday run exists: `cfb score` folds the week's results into the
-Elo state, grades the predictions that anticipated them, and writes `scored/` write-once — and
-`cfb elo replay` reproduces the state that run wrote, so §11 step 5 is green against the real
-command rather than against a debugging verb.
+§3, §4 and §5 are complete, and §6's generator is in. `cfb publish` builds `next-game.json` and
+`accuracy.json` out of what earlier runs wrote and puts them under `cfb/data/`. What is left of §6 is
+delivery, not generation: the CloudFront behaviour that would serve them, and the three routes that
+would read them.
 
 | | |
 |---|---|
+| Tests | **865 passing, 23 skipped**, `ruff check .` clean, `terraform validate` clean |
+| Landed | `fa40c16` (§3), `c9ec3c9`+`03a054a` (§4), `084c6d9`+`931c35a` (§5), `50a4a09` (crosswalk id inheritance), all merged in PR #44. This session's §6 generator is uncommitted |
+| Next | §6's delivery half — the root-stack CloudFront work (Phase 0 §10.2) and `frontend/app/cfb/`, which does not exist yet |
+| Blocked | nothing technical |
+| Blocked on a decision | **§6.1 and §7 contradict each other about notes** — see §6 below |
+| Blocked on a human | nothing in Phase 1. Phase 0's in-season Sagarin capture still stands |
+
+Verified this session, in `cfb/`, against three `file://` stores: the seeded 2026 of last session,
+a variants store whose weeks 02-05 each exercise one publish rule, and a copy carrying two extra
+scored weeks:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `865 passed, 23 skipped in 26.18s` |
+| `uv run ruff check .` | `All checks passed!` |
+| `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
+| `uv run cfb publish --season 2026 --week 1` | exit 0, both keys, `team=Texas opponent="Ohio State" national_rank=5 scored_through=01` |
+| the same run, republished | **2 objects before, 2 after** — these are the mutable end of the pipeline |
+| Texas home vs the worst-rated team (2147 Elo gap) | page reads `win_probability 0.999`, `predictions/` still holds `0.9999970913013003` — **§3.7's clamp, publish-side only** |
+| Texas *away* at Ohio State | stored `+6.98 / p(home) 0.7549`, published `-6.98 / p(Texas) 0.2451`; the two probabilities sum to `1.0000` |
+| a slate with no Texas game | exit 0, `game: null`, `as_of` still populated, `opponent=bye` on the log line |
+| a slate with Texas on it twice | exit 1, `ReplayError` naming games 405 and 406 |
+| a week with no predictions stored | exit 1, `ReplayError` — the §8 SLO failing loudly |
+| a season with nothing scored yet | exit 0, `through_week: null`, every mean `null`, `by_week: []` |
+| a season where week 02's `sagarin_r` is 0.85 and week 03's is 0.95 | `active: false, retired_week: "02", current_r: 0.95` — **retirement is one-way** |
+
+`national_rank: 5` of 138 FBS teams is the rank SPEC §1.2's table records off the Sagarin page, so
+the seed identity that §4 found in `predicted_margin` shows up in the ranking too.
+
+**Earlier sessions' verifications, still standing:** the `cfb elo seed` / `predict` / `score` /
+`elo replay` runs and the four `cfb score` sabotage cases, all listed in the git history of this file.
+
+---|---|
 | Tests | **865 passing, 23 skipped**, `ruff check .` clean, `terraform validate` clean |
 | Landed | `fa40c16` (§3), `c9ec3c9`+`03a054a` (§4), `084c6d9` (§5's library), `50a4a09` (crosswalk id inheritance). This session's `cfb score` work is uncommitted |
 | Next | §6, the JSON contract and the three routes. §3.6's contamination series is now unblocked — `sagarin_r` is in the scored document |
@@ -286,14 +319,77 @@ So it needs a decision session of its own rather than being smuggled into §5. R
 postponed game ever forces a backward regeneration; until then the cost is a documented rule and
 one test that enforces it.
 
-## 6. The JSON contract — not started
+## 6. The JSON contract — the generator, not yet the delivery
 
-- [ ] `next-game.json`, `accuracy.json`, `notes/index.json`, `notes/<slug>.json`
-- [ ] The §6.2 envelope, and routes that render a "data is newer than this page" state rather than
-      throwing on an unknown `schema_version`
-- [ ] §3.7's presentational clamp, and `<1%` / `>99%` at the endpoints
-- [ ] `Cache-Control`, and the CloudFront invalidation for `/cfb/data/*` — which also needs the
-      root-stack work deferred from Phase 0 §10.2
+- [x] `next-game.json` and `accuracy.json`, built by `src/cfb/publish/` and written by `cfb publish`
+- [ ] `notes/index.json`, `notes/<slug>.json` — **deferred deliberately, see the contradiction below**
+- [x] The §6.2 envelope on both documents. Both carry the publish run's `season` and `week`, so the
+      two pages are visibly one run; `accuracy.json` adds `through_week` because a Friday publish is
+      for a week nobody has played
+- [ ] Routes that render a "data is newer than this page" state rather than throwing on an unknown
+      `schema_version` — the routes do not exist; `frontend/app/cfb/` is not there at all
+- [x] **§3.7's presentational clamp.** Applied on the way out and nowhere else. Verified against a
+      2147-Elo mismatch: the page reads `0.999` and `predictions/` still holds
+      `0.9999970913013003`, which is the whole point of the rule
+- [ ] `<1%` / `>99%` at the endpoints — the rendering half of §3.7, and the route's job
+- [ ] `Cache-Control`, and the CloudFront invalidation for `/cfb/data/*`. **Not started, and the
+      reason is upstream:** `modules/cloudfront/main.tf` in the root stack has no second origin and no
+      `ordered_cache_behavior` at all, so there is no behaviour to invalidate yet. `cfb publish`
+      deliberately issues no invalidation rather than a no-op call that would read like a working
+      cache story. cfb's own Terraform is already ready — it grants `cloudfront:CreateInvalidation`
+      and `PutObject` on `cfb/data/*`, and reads the distribution ARN from SSM
+
+### The generator recomputes nothing, and that is the design
+
+Every number in these two documents was written to the bucket by an earlier run and is read back:
+`predictions/` for the forecast, `scored/` for the record, `elo/` for the ratings the forecast used.
+A publish step that recomputed anything would be a second implementation of the model living on the
+**read** path, where no replay check looks — and the first sign of it would be a page disagreeing
+with the prediction log it was built from. `scoring.accuracy_of` and `scoring.calibration_of` were
+promoted from private for this: season-to-date is that same computation over the union of the rows.
+
+**Season-to-date is recomputed from the rows, never averaged over the weekly means.** The weeks have
+different denominators — a three-game Tuesday against a sixty-game Saturday — so a mean of means
+would weight them equally and publish a number the rows do not support.
+
+Two things happen here and nowhere else, both presentational: §3.7's clamp, and rendered names.
+`Crosswalk.display_name` is new and returns the CFBD spelling, because `southern-california` would
+otherwise render as "Southern California" for a team every page in the country calls USC.
+
+### What building the documents decided
+
+- **`next-game.json` publishes the *newest* generation; `cfb score` grades the newest *pre-kickoff*
+  one.** The two commands want opposite things and both are right. A regenerate exists because
+  someone wanted the newer number on the site, so the page should show it; grading it would claim a
+  forecast made with the results in hand.
+- **A bye is a nullable `game`, not an absent document.** `as_of` is still populated — the ratings
+  are true whether or not there is a fixture, and a blanked page would say less than a stated bye.
+- **Everything is re-signed to the subject team except `market_line`.** The line is the book's own
+  quote and is printed beside `line_source`; converting it would publish a number no book posted
+  under a name saying one did.
+- **`national_rank` is among the FBS**, with `fbs_teams` beside it. Texas comes out rank 5 of 138 on
+  the preseason seed, which is the rank SPEC §1.2's table records from the Sagarin page — the seed
+  identity showing up one more place.
+- **A team appearing twice on a slate raises.** One team plays once a week, so it is a duplicated
+  game or two names collapsing to one canonical id, and `/cfb` would otherwise render whichever came
+  first.
+- **An empty season publishes.** Zero games, every mean `null`, `through_week` `null`. The Friday
+  before the season's first Sunday is exactly that, and refusing would fail §8's SLO over results
+  nobody could have had.
+- **SPEC §6.4's `ats` string became an object.** §5.3 requires the sample size to travel with the
+  record and §6.4's sketch dropped it; §5.3 governs. Recorded in the spec.
+
+### Blocked on a decision: §6.1 and §7 disagree about notes
+
+§6.1 publishes `notes/index.json` and `notes/<slug>.json` for the routes to fetch. §7 says the
+finished note is MDX committed under `frontend/app/cfb/notes/`, "because it is prose that ships with
+the site rather than data the pipeline owns". **Both cannot be the source for `/cfb/notes/[slug]`.**
+
+Deferred this session rather than guessed, because the answer decides whether the pipeline writes two
+more documents or only §7's `scaffold.md`. The §7 session should settle it with the scaffold in front
+of it. The three readings are: MDX wins and §6.1 loses two of its four documents; the JSON carries the
+week's figures so they cannot drift from `scored/` while the MDX carries prose; or the JSON is the
+whole note and §7's "ships with the site" reasoning is what gets dropped.
 
 ## 7. The weekly note — not started
 
@@ -309,7 +405,9 @@ one test that enforces it.
 - [x] `cfb elo advance --season --week` *(not in §9's list; see the note in §3)*
 - [x] `cfb predict --season --week [--force]`
 - [x] `cfb score --season --week [--force]`, defaulting to `calendar.last_completed_week`
-- [ ] `cfb publish`, `cfb note`
+- [x] `cfb publish --season --week [--force]`, defaulting to `calendar.coming_week` — the same
+      default `predict` uses, because Thursday's forecast and Friday's page are one week
+- [ ] `cfb note`
 - [x] §9.1 records the five errors this phase adds to Phase 0 §9's hierarchy
 
 ## Repo layout, against §2
@@ -325,6 +423,9 @@ silently added:
   same reason `replay.py` does: a top-level verb, not a piece of the model.
 
 `src/cfb/elo/state.py` is the third, recorded last session.
+
+§2 gives `publish/__init__.py` an entry and this session filled it. `publish/notes.py` is still
+unwritten and stays that way until the notes contradiction above is settled.
 
 §2 does give `elo/scoring.py` an entry, and `cfb score` did not need a fourth module: `scored_key`
 and `write_scored` sit beside `score_week` for the same reason `write_predictions` sits beside
@@ -388,6 +489,25 @@ selector, and it belongs where every other "read this out of `raw/`" does.
   not applied.
 
 ## Found this session
+
+- **`Crosswalk` had no way to render a name.** Publishing needs one — §6.3 puts rendered names in the
+  documents — and the only thing available was `entries[id]["cfbd"]` read by hand at the call site.
+  `display_name` is now a method, so the "the crosswalk's job ends at this boundary" claim has one
+  place to be true in.
+- **`scoring._accuracy` and `_calibration` had to become public.** Season-to-date is the same
+  computation over the union of every scored week, and the alternative was a second implementation of
+  MAE, Brier and the ATS record on the publish path. No test referenced either private name.
+- **The root stack has no `/cfb/data/*` behaviour at all.** `modules/cloudfront/main.tf` has one
+  origin and no `ordered_cache_behavior`, so Phase 0 §10.2 is not "mostly done" — nothing of it
+  exists. cfb's own Terraform is ready and waiting on it: the publisher role already holds
+  `cloudfront:CreateInvalidation` and the bucket policy already lets the CDN read `cfb/data/*`.
+- **`frontend/app/cfb/` does not exist.** All three routes are unbuilt, so §6's "routes render a
+  data-is-newer state rather than throwing" has nothing to hang on yet.
+- **The publish generator has no unit tests either**, for the same reason `cfb score` has none: the
+  session rules forbid writing under `cfb/tests/`. It is verified by the eleven command runs above,
+  four of which are failure cases. **The next session should write them**, and the four worth the
+  most are: the clamp is publish-side only, an away game is re-signed and the two probabilities sum
+  to one, a bye yields `game: null` with `as_of` intact, and the seed disclosure does not un-retire.
 
 - **The crosswalk's canonical ids were re-derived every season, and now are not.** Found in the
   working tree at the start of this session, reviewed and committed as `50a4a09`. `bootstrap` minted

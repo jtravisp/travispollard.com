@@ -629,6 +629,21 @@ crosswalk's job ends at the boundary of the pipeline.
 `"consensus"` in an earlier draft, which was a guess — CFBD publishes per-book prices and no consensus,
 so the page would have been attributing a DraftKings number to something that does not exist.
 
+**Four things the sketch above leaves out, all of them found by generating the document.**
+
+- **`game` is nullable, and a bye is why.** Texas has bye weeks; a page blanked entirely for one would
+  be a worse statement than a missing fixture. `as_of` is populated either way, because the ratings are
+  true whether or not there is a game that week.
+- **`team` is on the document.** Every other field is *about* a team the sketch never names, and a
+  document whose subject is implicit is one the page has to hardcode.
+- **`predicted_margin` and `win_probability` are signed for the subject team, not the home team.**
+  Everything in `predictions/` is home-perspective (§4.2) and this document is read by a page about one
+  team. An away game left in the storage convention renders perfectly and says the opposite thing.
+  `market_line` is **not** re-signed: it is the book's own quote, printed beside `line_source`.
+- **`as_of` carries `fbs_teams`, and `national_rank` is among the FBS.** The Elo state rates all 266
+  teams Sagarin covers, 128 of them FCS, so a rank over the whole table is a different number wearing
+  the same word. The denominator travels with it for the reason §5.3 makes every sample size travel.
+
 ### 6.4 `accuracy.json`
 
 Carries both records side by side, the calibration curve, the by-week series, and the seed disclosure:
@@ -653,6 +668,26 @@ Carries both records side by side, the calibration curve, the by-week series, an
 `seed_disclosure` is what §3.6 renders. When `current_r` first falls below `threshold`, `active` goes false
 and `retired_week` records the week — and the page keeps showing the fact that it retired, because a
 disclosure that vanishes without trace is worse than one that never appeared.
+
+**Retirement is one-way.** A later week climbing back above the threshold does not un-retire it. The
+claim being retired is "these ratings are still a restatement of Sagarin's page", and once that has
+been false for a week it is not something the page can assert again. `current_r` keeps showing the
+newest measurement so both facts are on the page. A `null` correlation — a week Sagarin's page covered
+fewer than two games of — is not a low one and retires nothing.
+
+**Three corrections to the sketch above.**
+
+- **`ats` is an object, not the bare string.** §5.3 says the sample size always travels with the
+  record, and `"2-2"` cannot distinguish four priced games from forty where thirty-six had no line.
+  It carries `record` plus §5.3's five counters. Where §6.4 and §5.3 disagree, §5.3 governs.
+- **`line_mae` carries `line_games`**, its own denominator, which is smaller than `games`. Same for
+  `sagarin_mae` and `sagarin_games`. Averaging a benchmark over games it never priced flatters it.
+- **`through_week` is a separate field from the envelope's `week`.** The envelope's week is the run's
+  — a Friday publish is *for* a week nobody has played — and `through_week` is the newest week the
+  document actually has results for. `null` before the season's first Sunday, which is also when every
+  mean in the document is `null` and both records read zero games. That is a legal, publishable
+  document: refusing to publish it would fail §8's SLO over the absence of results nobody could have
+  had.
 
 ### 6.5 Caching and invalidation
 

@@ -58,14 +58,31 @@ class Crosswalk:
         """The canonical id for a CFBD name, or ``UnmappedTeamError``."""
         return self._lookup(self._by_cfbd, "cfbd", name)
 
+    def display_name(self, canonical_id: str) -> str:
+        """The name a page should render for a canonical id.
+
+        **The CFBD spelling, deliberately.** Canonical ids are slugs minted once
+        from whatever Sagarin called the team that year, so `southern-california`
+        would render as "Southern California" for a team every page in the country
+        calls USC. CFBD's column is the one a reader recognises.
+
+        This is where the crosswalk's job ends. SPEC-phase1 6.3: rendered names
+        appear in the published documents rather than canonical ids, because those
+        documents are consumed by a page and the ids are the pipeline's business.
+        """
+        return self._entry(canonical_id)["cfbd"]
+
     def division(self, canonical_id: str) -> Literal["FBS", "FCS"]:
+        return self._entry(canonical_id)["division"]
+
+    def _entry(self, canonical_id: str) -> dict:
         entry = self.entries.get(canonical_id)
         if entry is None:
             raise UnmappedTeamError(
                 f"no crosswalk entry with canonical id {canonical_id!r} for season "
                 f"{self.season} in {self._path.name}"
             )
-        return entry["division"]
+        return entry
 
     def _lookup(self, index: dict[str, str], source: str, name: str) -> str:
         try:

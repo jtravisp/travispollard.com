@@ -32,6 +32,7 @@ __all__ = [
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
     "EVENT_PREDICTIONS_WRITTEN",
+    "EVENT_PUBLISHED",
     "EVENT_SNAPSHOT_WRITTEN",
     "EVENT_WEEK_SCORED",
     "REASON_NOT_IN_SEASON",
@@ -73,6 +74,11 @@ EVENT_PREDICTIONS_WRITTEN = "predictions_written"
 #: reason the document carries them: "nothing was dropped" is only checkable if
 #: the run says how many it left out.
 EVENT_WEEK_SCORED = "week_scored"
+#: One per publish run (SPEC-phase1 6), with both keys and the numbers a
+#: reader would check the page against. **This is the SLO line.** §8 makes the
+#: Friday publish the only deadline in the pipeline that can genuinely be
+#: missed, so the run that meets it has to say so in a form an alert can read.
+EVENT_PUBLISHED = "published"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
