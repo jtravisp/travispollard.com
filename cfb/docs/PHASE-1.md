@@ -847,6 +847,99 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
 
+## What broke: a test harness that passed locally and hung in CI
+
+**The class of failure a local run cannot catch**, and the reason the deploy of
+PR #50 never landed. CodeBuild build `5ce40816` ran 969 seconds in POST_BUILD and
+was stopped by hand.
+
+```
+21:28:09  npx playwright install          20s, no --with-deps
+21:29:00  npm run build                   30s, SUCCEEDED -- the export is fine
+21:29:00  npx playwright test
+          7 failed, 17 passed (31.3s)     ← the tests finished here
+          Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
+                                          ← ~938s of nothing
+```
+
+**The tests took 31 seconds. The other ~938 was the HTML reporter.** Playwright's
+`html` reporter starts a web server and blocks when a run has failures; it
+suppresses that when `process.env.CI` is set, and **CodeBuild does not set `CI`**,
+so the container behaved exactly like a laptop and waited for a Ctrl+C nobody
+could send.
+
+Neither of the two suspects was the hang:
+
+- **`visitor-counter.spec.ts` is exonerated.** It ran in all three projects and
+  passed. It uses `request` rather than `page`, so it needs no browser and
+  reached the live API fine.
+- **`npx playwright install` without `--with-deps` is real, and caused the
+  failures rather than the hang.** Only webkit could not launch — missing
+  `libicudata.so.66`, `libwoff2dec.so.1.0.2`, `libx264.so` and eleven more.
+  Chromium and firefox ran clean. All 7 failures are webkit. The image also warns
+  its OS is unsupported and falls back to an ubuntu20.04 build, which is why the
+  gap surfaces on webkit first.
+
+So the chain is: missing system libraries → 7 webkit failures → failures trigger
+the report server → unbounded block.
+
+### Three fixes, in order of what actually mattered
+
+- [x] **`globalTimeout: 5 * 60 * 1000`** — the guard that was missing. **A per-test
+      timeout could not have caught this, because no test was running.** Five
+      minutes is roughly ten times the suite's honest runtime, so it bounds a hang
+      without failing a slow day. It exists because the next unbounded thing will
+      not be a reporter
+- [x] **`reporter: [['html', { open: 'never' }], ['line']]`** — the specific
+      cause. Writes the report without serving it, whether or not `CI` is set
+- [x] **`npx playwright install --with-deps`** in `buildspec.yml`, and `CI=true`
+      on the test command as belt to the config's braces — Playwright reads `CI`
+      to suppress the server, retry flaky specs, and forbid `test.only`, and
+      CodeBuild sets none of it
+
+### Verified by reproducing the failure, not by reading the docs
+
+A local run with a deliberately failing spec:
+
+| | before | after |
+|---|---|---|
+| Reporter line | `Serving HTML report … Press Ctrl+C to quit.` | `To open last HTML report run:` |
+| Wall time | 969s, stopped by hand | **10s** |
+| Exit code on failure | — | **1** |
+| Exit code when green | — | **0** |
+
+That last pair matters as much as the timing: a fix that stopped the hang by
+swallowing the failure would have left CI green on a broken build.
+
+## OUTSTANDING: the v2 documents have not been published
+
+**Deliberate, not forgotten.** PR #50 renamed `national_rank` to `model_rank` and
+moved the published contract to version 2. The release order for a breaking
+rename is **routes first, then publish**, so that a page never meets a document it
+cannot read. The routes were merged at `2026-08-29T21:27Z` and the deploy was
+still running when this session ended.
+
+Until the publish runs, `/cfb/data/*` still carries **version 1** documents with
+`national_rank`. That is fine and is what the dual-version support is for: the
+deployed page accepts `{1, 2}` and reads either spelling, so the site is correct
+either way. What is missing is only the *new* content — `history`, `last_result`,
+`opponent_model_rank` — which the page renders as absent.
+
+To finish it, once the pipeline shows `Succeeded`:
+
+```bash
+export AWS_PROFILE=tp-site
+aws codepipeline list-pipeline-executions --pipeline-name travispollardcom-deploy --max-items 1
+cd cfb && uv run cfb publish --season 2026 --week 1
+```
+
+Then confirm the live document carries `model_rank` and the page shows "Elo rank".
+The Friday `cfb-publish` cron would also do it unattended on 09-04; running it by
+hand only makes the new sections appear sooner.
+
+**Version 1 support in the page can be dropped after that publish**, and should
+be — it exists only to make this one release seamless.
+
 ## Follow-up: every rank is labelled as this model's own
 
 A bare "#5" on a college football page reads as **AP** by default, and this model

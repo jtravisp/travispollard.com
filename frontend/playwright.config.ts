@@ -13,6 +13,22 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+
+  /* The whole run, not one test.
+   *
+   * A CodeBuild run hung for 969 seconds on 2026-08-29 and had to be stopped by
+   * hand. The tests themselves finished in 31 seconds; everything after that was
+   * the HTML reporter serving a report and waiting for a Ctrl+C that never comes
+   * in CI. Per-test timeouts could not have caught it, because no test was
+   * running.
+   *
+   * Five minutes is roughly ten times the suite's honest runtime, so it bounds a
+   * hang without failing a merely slow day. The specific cause is fixed below;
+   * this exists because the next unbounded thing will not be a reporter. */
+  globalTimeout: 5 * 60 * 1000,
+
+  /* Per test, so one wedged assertion cannot consume the whole budget. */
+  timeout: 30 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -21,8 +37,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  /* `open: 'never'` is the fix for the hang described above.
+   *
+   * Playwright's html reporter starts a web server and blocks when a run has
+   * failures. It suppresses that when `process.env.CI` is set -- and CodeBuild
+   * does not set `CI`, so the container behaved exactly like a laptop and waited
+   * for someone to press Ctrl+C. Writing the report without serving it keeps the
+   * artifact and removes the block, whether or not `CI` is set. */
+  reporter: [['html', { open: 'never' }], ['line']],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
