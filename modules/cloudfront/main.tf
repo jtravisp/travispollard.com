@@ -4,18 +4,46 @@ resource "aws_cloudfront_distribution" "this" {
   default_root_object = var.default_root_object
 
   origin {
-    connection_attempts      = 3
-    connection_timeout       = 10
-    domain_name = var.origin_domain_name
-    origin_id   = var.origin_id
+    connection_attempts = 3
+    connection_timeout  = 10
+    domain_name         = var.origin_domain_name
+    origin_id           = var.origin_id
     custom_origin_config {
-        http_port                = 80
-        https_port               = 443
-        origin_keepalive_timeout = 5
-        origin_protocol_policy   = "http-only" 
-        origin_read_timeout      = 30
-        origin_ssl_protocols     = ["TLSv1.2"]
-        }
+      http_port                = 80
+      https_port               = 443
+      origin_keepalive_timeout = 5
+      origin_protocol_policy   = "http-only"
+      origin_read_timeout      = 30
+      origin_ssl_protocols     = ["TLSv1.2"]
+    }
+  }
+
+  # An S3 REST origin signed by an OAC. It carries no custom_origin_config,
+  # which is the difference from the origin above: that one is the site bucket's
+  # *website* endpoint, which only speaks HTTP and cannot be signed.
+  dynamic "origin" {
+    for_each = var.extra_origins
+    content {
+      domain_name              = origin.value.domain_name
+      origin_id                = origin.value.origin_id
+      origin_access_control_id = origin.value.oac_id
+    }
+  }
+
+  # Evaluated before default_cache_behavior, in list order. Anything not matched
+  # by a path_pattern here still falls through to the site bucket, so adding one
+  # cannot take a route away from the existing site.
+  dynamic "ordered_cache_behavior" {
+    for_each = var.extra_behaviors
+    content {
+      path_pattern           = ordered_cache_behavior.value.path_pattern
+      target_origin_id       = ordered_cache_behavior.value.target_origin_id
+      allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+      cached_methods         = ["GET", "HEAD"]
+      viewer_protocol_policy = "redirect-to-https"
+      compress               = true
+      cache_policy_id        = ordered_cache_behavior.value.cache_policy_id
+    }
   }
 
   default_cache_behavior {
@@ -38,11 +66,11 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    acm_certificate_arn            = var.acm_certificate_arn
-    ssl_support_method             = "sni-only"
-    minimum_protocol_version       = "TLSv1.2_2021"
+    acm_certificate_arn      = var.acm_certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
-    aliases         = ["travispollard.com", "www.travispollard.com"]
-    price_class     = "PriceClass_100"
+  aliases     = ["travispollard.com", "www.travispollard.com"]
+  price_class = "PriceClass_100"
 }

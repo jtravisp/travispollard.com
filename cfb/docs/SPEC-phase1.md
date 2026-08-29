@@ -699,6 +699,46 @@ work to Phase 1). Documents are small and change weekly:
   invalidation is manual today (root `CLAUDE.md`); this one is not, because a stale prediction is the
   failure mode the Friday SLO exists to prevent.
 
+**Where the header is set, and why it is not in Terraform.** The behavior runs on the managed
+CachingOptimized policy, which honours the origin's `Cache-Control` rather than imposing a TTL. So the
+directive is written at upload time (`cfb.publish.CACHE_CONTROL`, passed through
+`storage.put_json`) and the distribution has no opinion about it. One place decides how long a
+document is good for and it is the place that knows what the document is — a TTL in `cfb-wiring.tf`
+would be a second answer, in a file that never sees the JSON, that silently wins.
+
+**The invalidation is a separate step from the upload, and a separate log line.** The upload is what
+makes the new numbers exist; the invalidation only makes them visible sooner. A failure of the second
+is a slow page and a failure of the first is a wrong one, and a Friday run has to be readable on that
+distinction. `cfb publish` therefore writes both documents, logs `published`, and only then
+invalidates and logs `invalidated`. When the store is not `s3://` it logs a skip naming the reason
+rather than claiming an invalidation it never made.
+
+**The bucket is reached through an Origin Access Control, not a website endpoint.** The site bucket is
+public-read behind a custom origin (root `CLAUDE.md`); the data bucket blocks all public access and is
+read by CloudFront as a signed principal, with `cfb/terraform` allowing `s3:GetObject` on `cfb/data/*`
+only and conditioned on this distribution's ARN. `raw/` is therefore unreachable from the internet
+because of a policy rather than because no behavior happens to point at it.
+
+**Where the header is set, and why it is not in Terraform.** The behavior runs on the managed
+CachingOptimized policy, which honours the origin's `Cache-Control` rather than imposing a TTL. So the
+directive is written at upload time (`cfb.publish.CACHE_CONTROL`, passed through
+`storage.put_json`) and the distribution has no opinion about it. One place decides how long a
+document is good for and it is the place that knows what the document is — a TTL in `cfb-wiring.tf`
+would be a second answer, in a file that never sees the JSON, that silently wins.
+
+**The invalidation is a separate step from the upload, and a separate log line.** The upload is what
+makes the new numbers exist; the invalidation only makes them visible sooner. A failure of the second
+is a slow page and a failure of the first is a wrong one, and a Friday run has to be readable on that
+distinction. `cfb publish` therefore writes both documents, logs `published`, and only then
+invalidates and logs `invalidated`. When the store is not `s3://` it logs a skip naming the reason
+rather than claiming an invalidation it never made.
+
+**The bucket is reached through an Origin Access Control, not a website endpoint.** The site bucket is
+public-read behind a custom origin (root `CLAUDE.md`); the data bucket blocks all public access and is
+read by CloudFront as a signed principal, with `cfb/terraform` allowing `s3:GetObject` on `cfb/data/*`
+only and conditioned on this distribution's ARN. `raw/` is therefore unreachable from the internet
+because of a policy rather than because no behavior happens to point at it.
+
 ---
 
 ## 7. The weekly note

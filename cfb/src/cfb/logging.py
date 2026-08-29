@@ -31,10 +31,12 @@ __all__ = [
     "EVENT_ELO_VERIFY",
     "EVENT_FRESHNESS",
     "EVENT_HTTP_ERROR",
+    "EVENT_INVALIDATED",
     "EVENT_PREDICTIONS_WRITTEN",
     "EVENT_PUBLISHED",
     "EVENT_SNAPSHOT_WRITTEN",
     "EVENT_WEEK_SCORED",
+    "REASON_NOT_A_CDN_ORIGIN",
     "REASON_NOT_IN_SEASON",
     "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
@@ -79,6 +81,11 @@ EVENT_WEEK_SCORED = "week_scored"
 #: Friday publish the only deadline in the pipeline that can genuinely be
 #: missed, so the run that meets it has to say so in a form an alert can read.
 EVENT_PUBLISHED = "published"
+#: One per CloudFront invalidation (SPEC-phase1 6.5). Separate from
+#: `published` because the upload is what makes the documents exist and this
+#: only makes them visible sooner: a failure here is a slow page, not a wrong
+#: one, and a Friday run has to be readable at a glance on that distinction.
+EVENT_INVALIDATED = "invalidated"
 
 # --- outcomes -----------------------------------------------------------------
 RESULT_OK = "ok"
@@ -108,6 +115,12 @@ REASON_NO_STORED_STATE = "no_stored_state"
 #: kickoff onward, and a skip rather than an error for the same reason
 #: `no_completed_week` is: every December Thursday would otherwise be red.
 REASON_NO_COMING_WEEK = "no_coming_week"
+
+# --- why a publish did not invalidate (SPEC-phase1 6.5) -----------------------
+#: The store is not the bucket the CDN reads. A `file://` publish has no edge
+#: cache in front of it, and a run that reported an invalidation it never made
+#: would be the one line on a Friday nobody could trust.
+REASON_NOT_A_CDN_ORIGIN = "not_a_cdn_origin"
 
 
 def log(event: str, **fields: Any) -> None:

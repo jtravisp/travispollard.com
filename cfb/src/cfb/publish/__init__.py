@@ -52,6 +52,7 @@ from cfb.storage import SnapshotStore
 
 __all__ = [
     "ACCURACY_KEY",
+    "CACHE_CONTROL",
     "NEXT_GAME_KEY",
     "PROBABILITY_CEILING",
     "PROBABILITY_FLOOR",
@@ -80,6 +81,13 @@ ACCURACY_KEY = "cfb/data/accuracy.json"
 #: time it is wrong the page had no way to have been right.
 PROBABILITY_FLOOR = 0.001
 PROBABILITY_CEILING = 0.999
+
+#: §6.5. Set at upload because the `/cfb/data/*` behaviour runs on
+#: CachingOptimized, which takes its freshness from the origin's header rather
+#: than from a TTL in Terraform. Five minutes at the browser, an hour at the
+#: edge -- and the edge hour is what the publish invalidation exists to cut short
+#: on the one day a week the number changes.
+CACHE_CONTROL = "public, max-age=300, s-maxage=3600"
 
 #: §3.6. The correlation against Sagarin PREDICTOR below which the seed
 #: disclosure retires, because the ratings have stopped being a restatement of
@@ -382,8 +390,10 @@ def publish(
     )
     accuracy = build_accuracy(store=store, season=season, week=week, now=now)
 
-    store.put_json(NEXT_GAME_KEY, next_game.model_dump(mode="json"))
-    store.put_json(ACCURACY_KEY, accuracy.model_dump(mode="json"))
+    store.put_json(
+        NEXT_GAME_KEY, next_game.model_dump(mode="json"), cache_control=CACHE_CONTROL
+    )
+    store.put_json(ACCURACY_KEY, accuracy.model_dump(mode="json"), cache_control=CACHE_CONTROL)
     return {NEXT_GAME_KEY: "next-game", ACCURACY_KEY: "accuracy"}
 
 

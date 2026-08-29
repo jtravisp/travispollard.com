@@ -42,6 +42,7 @@ from cfb.logging import (
     EVENT_ELO_REPLAY,
     EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
+    EVENT_INVALIDATED,
     EVENT_PREDICTIONS_WRITTEN,
     EVENT_PUBLISHED,
     EVENT_SNAPSHOT_WRITTEN,
@@ -49,6 +50,7 @@ from cfb.logging import (
     REASON_NO_COMING_WEEK,
     REASON_NO_COMPLETED_WEEK,
     REASON_NO_STORED_STATE,
+    REASON_NOT_A_CDN_ORIGIN,
     REASON_NOT_IN_SEASON,
     RESULT_OK,
     RESULT_SKIP,
@@ -616,11 +618,16 @@ def _publish(args, *, moment: datetime) -> int:
     Friday puts it on the page. A publish that resolved the week differently from
     the predict that fed it would be publishing a slate nobody generated.
 
-    **No CloudFront invalidation yet.** §6.5 pairs the upload with one, and the
-    distribution behaviour for `/cfb/data/*` does not exist in the root stack yet
-    (Phase 0 §10.2). Adding the call before there is a behaviour to invalidate
-    would be a no-op that reads like a working cache story, so it waits for that
-    work and PHASE-1 records it as the gap it is.
+    **The invalidation is a separate step and a separate log line**, after both
+    documents are written. §6.5 pairs it with the upload, but the upload is what
+    makes the new numbers exist and the invalidation only makes them visible
+    sooner -- a failure here is a slow page, not a wrong one. A Friday run has to
+    be readable on that distinction at a glance.
+
+    It is skipped, loudly, when the store is not the bucket the CDN reads. A
+    `file://` publish has no edge cache in front of it, and a run reporting an
+    invalidation it never made would be the one line on a Friday nobody could
+    trust.
     """
     from cfb.publish import ACCURACY_KEY, NEXT_GAME_KEY, publish
 
@@ -679,7 +686,40 @@ def _publish(args, *, moment: datetime) -> int:
         seed_disclosure=accuracy.seed_disclosure.active,
         sagarin_r=accuracy.seed_disclosure.current_r,
     )
+
+    _invalidate(args, season=season, week=week, moment=moment)
     return 0
+
+
+def _invalidate(args, *, season: int, week: str, moment: datetime) -> None:
+    """§6.5's `/cfb/data/*` invalidation, or a logged skip saying why not."""
+    if urlparse(args.store).scheme != "s3":
+        log(
+            EVENT_INVALIDATED,
+            season=season,
+            week=week,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_A_CDN_ORIGIN,
+            store=args.store,
+        )
+        return
+
+    from cfb.cdn import DATA_PATHS, distribution_id, invalidate
+
+    distribution = distribution_id()
+    # The run's own moment as the caller reference, so a retried publish asks
+    # CloudFront for the same invalidation rather than a second one -- see
+    # `cdn.invalidate` for why this is the caller's to supply.
+    reference = f"cfb-publish-{season}-{week}-{moment.strftime('%Y-%m-%dT%H%M%SZ')}"
+    log(
+        EVENT_INVALIDATED,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        distribution=distribution,
+        paths=" ".join(DATA_PATHS),
+        invalidation=invalidate(distribution=distribution, caller_reference=reference),
+    )
 
 
 def _elo(args, *, moment: datetime) -> int:

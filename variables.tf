@@ -19,7 +19,7 @@ variable "soa_records" {
 }
 
 variable "subject_alternative_names" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "region" {

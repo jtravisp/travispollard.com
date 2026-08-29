@@ -11,13 +11,42 @@ exist, and the "verified by" column says what was actually run.
 
 ## Where this stands (2026-08-29)
 
-§3, §4 and §5 are complete, and §6's generator is in. `cfb publish` builds `next-game.json` and
-`accuracy.json` out of what earlier runs wrote and puts them under `cfb/data/`. What is left of §6 is
-delivery, not generation: the CloudFront behaviour that would serve them, and the three routes that
-would read them.
+§3, §4, §5 and §6's generator are complete, and §6's delivery half is built but **not applied**.
+`/cfb` and `/cfb/accuracy` exist and build; the CloudFront behaviour that would serve the JSON to
+them is written and planned and waiting on one `terraform apply`.
 
 | | |
 |---|---|
+| Tests | **865 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Landed | §3-§5 and §6's generator, merged through PR #44 plus `12afc15`. This session's delivery work is uncommitted |
+| Next | Run the root apply, then look at the live pages. After that: the unit tests three sessions have now had to skip, and §7/§8 |
+| Blocked | **the root `terraform apply`** — refused by the harness permission classifier, not by AWS. Plan is clean. See §6 |
+| Blocked on a decision | §6.1 and §7 still contradict each other about notes |
+| Blocked on a human | nothing in Phase 1. Phase 0's in-season Sagarin capture still stands |
+
+Verified this session:
+
+| Command | Result |
+|---|---|
+| `uv run pytest` | `865 passed, 23 skipped in 17.85s` |
+| `uv run ruff check .` | `All checks passed!` |
+| `terraform -chdir=terraform validate` (cfb) | `Success! The configuration is valid.` |
+| `terraform validate` (root) | `Success! The configuration is valid.` |
+| `terraform plan` (root) | `1 to add, 1 to change, 0 to destroy` — OAC created, distribution updated **in place** |
+| `./download-tfvars.sh` | `Download complete! 538 bytes.` — after the two fixes below; it could not read the parameter at all from Git Bash before |
+| `npm run build` | clean; `/cfb` 1.34 kB and `/cfb/accuracy` 2.17 kB, both prerendered static |
+| the built site served locally | `/cfb/` 200, `/cfb/accuracy/` 200, `/cfb/data/next-game.json` 200 |
+| the §3.7 endpoints, exercised directly | `0.001 -> <1%`, `0.999 -> >99%`, `0.9899 -> 99%`, `0.4138 -> 41%` |
+| a `null` mean vs a real zero | `null -> "—"`, `0.0 -> "0.00"` — §5.3's rule surviving to the last step |
+
+**Not verified: what the pages actually look like.** No browser was available this session, so the
+routes are confirmed to build, to serve, to carry the right strings in the shipped bundle, and to
+format correctly — but nobody has looked at them. That is the first thing to do after the apply.
+
+**Earlier sessions' verifications, still standing:** the `cfb elo seed` / `predict` / `score` /
+`publish` runs and the eleven publish and four scoring command checks, in this file's git history.
+
+---|---|
 | Tests | **865 passing, 23 skipped**, `ruff check .` clean, `terraform validate` clean |
 | Landed | `fa40c16` (§3), `c9ec3c9`+`03a054a` (§4), `084c6d9`+`931c35a` (§5), `50a4a09` (crosswalk id inheritance), all merged in PR #44. This session's §6 generator is uncommitted |
 | Next | §6's delivery half — the root-stack CloudFront work (Phase 0 §10.2) and `frontend/app/cfb/`, which does not exist yet |
@@ -326,18 +355,33 @@ one test that enforces it.
 - [x] The §6.2 envelope on both documents. Both carry the publish run's `season` and `week`, so the
       two pages are visibly one run; `accuracy.json` adds `through_week` because a Friday publish is
       for a week nobody has played
-- [ ] Routes that render a "data is newer than this page" state rather than throwing on an unknown
-      `schema_version` — the routes do not exist; `frontend/app/cfb/` is not there at all
+- [x] Routes that render a "data is newer than this page" state rather than throwing on an unknown
+      `schema_version`. `frontend/app/cfb/` and `frontend/app/cfb/accuracy/` exist and both build
+      into the static export. `components/cfb/useCfbDocument.ts` is the one place the version is
+      checked, and it distinguishes newer from older rather than treating any mismatch as an error
 - [x] **§3.7's presentational clamp.** Applied on the way out and nowhere else. Verified against a
       2147-Elo mismatch: the page reads `0.999` and `predictions/` still holds
       `0.9999970913013003`, which is the whole point of the rule
-- [ ] `<1%` / `>99%` at the endpoints — the rendering half of §3.7, and the route's job
-- [ ] `Cache-Control`, and the CloudFront invalidation for `/cfb/data/*`. **Not started, and the
-      reason is upstream:** `modules/cloudfront/main.tf` in the root stack has no second origin and no
-      `ordered_cache_behavior` at all, so there is no behaviour to invalidate yet. `cfb publish`
-      deliberately issues no invalidation rather than a no-op call that would read like a working
-      cache story. cfb's own Terraform is already ready — it grants `cloudfront:CreateInvalidation`
-      and `PutObject` on `cfb/data/*`, and reads the distribution ARN from SSM
+- [x] `<1%` / `>99%` at the endpoints. **The clamp and this are one rule in two halves and
+      neither works alone:** clamping without this still prints "100%", because `0.999` rounds
+      there. Verified across the clamp's own endpoints — `0.001 -> <1%`, `0.999 -> >99%`,
+      `0.9899 -> 99%`
+- [x] `Cache-Control`, set at upload. `storage.put_json` takes it and only the S3 store honours it
+      — the other two are behind no CDN and have no response to put a header on. The value lives in
+      `publish.CACHE_CONTROL` because the `/cfb/data/*` behaviour runs on CachingOptimized, which
+      takes freshness from the origin rather than from a TTL in Terraform: **one place decides how
+      long a document is good for, and it is the place that knows what the document is**
+- [x] The CloudFront invalidation, in `src/cfb/cdn.py`. A separate step and a separate log line from
+      the upload, because the upload is what makes the numbers exist and this only makes them
+      visible sooner — a failure here is a slow page, not a wrong one. Skipped loudly
+      (`reason=not_a_cdn_origin`) when the store is not `s3://`, since a `file://` publish has no
+      edge cache and a run reporting an invalidation it never made is the one Friday line nobody
+      could trust
+- [~] The root-stack CloudFront work (Phase 0 §10.2). **Written, validated, planned — not applied.**
+      `modules/cloudfront` now takes `extra_origins` and `extra_behaviors`, both defaulting to empty
+      so a caller passing neither gets the distribution it already had; `cfb-wiring.tf`'s Phase 0
+      sketch is now live code. The plan is **1 to add, 1 to change, 0 to destroy** — the OAC created
+      and the distribution updated in place. See the blocker below
 
 ### The generator recomputes nothing, and that is the design
 
@@ -378,6 +422,55 @@ otherwise render as "Southern California" for a team every page in the country c
   nobody could have had.
 - **SPEC §6.4's `ats` string became an object.** §5.3 requires the sample size to travel with the
   record and §6.4's sketch dropped it; §5.3 governs. Recorded in the spec.
+
+### Blocked: the root apply did not run
+
+The Terraform is written, validated and planned, and the plan is clean:
+
+```
+# aws_cloudfront_origin_access_control.cfb_data will be created
+# module.cloudfront.aws_cloudfront_distribution.this will be updated in-place
+Plan: 1 to add, 1 to change, 0 to destroy.
+```
+
+`terraform apply` was **refused by the harness permission classifier**, not by AWS and not by a
+problem with the configuration. Nothing was applied, so `/cfb/data/*` is not yet reachable over
+the CDN and the two routes have nothing to fetch in production. Re-running the apply is the whole
+of what is left:
+
+```bash
+export AWS_PROFILE=tp-site
+./download-tfvars.sh && terraform init && terraform plan   # expect the three lines above
+terraform apply
+```
+
+**What the plan settled on the way past.** `terraform-state-ownership` recorded an open question
+from 2026-05-14: the Spacelift stack injects an HTTP backend while `provider.tf` declares an S3 one,
+and it was unknown which held the live state — the hazard being that a plan against an empty S3
+backend would try to *create* the Route 53 zone, the ACM cert and the distribution. It does not.
+The plan is an in-place update to an existing distribution with every other resource unchanged, so
+**S3 is the live state and is current**. The Spacelift stack presumably still fails at init; that is
+a separate problem and not one this phase needs solved.
+
+### Two prerequisites that were broken before this session could plan
+
+Both are repo-root scripts rather than `cfb/`, and both were in the way rather than beside it.
+
+- **`download-tfvars.sh` could not read the parameter from Git Bash.** It passes
+  `/projects/cloudresume/terraform/tfvars` as an argument, and MSYS rewrites anything shaped like an
+  absolute path into a Windows one before `aws.exe` sees it — so the call asked for
+  `C:/Program Files/Git/projects/...` and came back `ParameterNotFound` for a parameter that plainly
+  exists. That sends you to IAM, or to the wrong-account trap in `cfb/CLAUDE.md`, and it is neither.
+  Fixed with `MSYS_NO_PATHCONV=1`.
+- **It also truncated `terraform.tfvars` on failure and reported success.** `> terraform.tfvars`
+  is opened by the shell *before* the command runs, so a failed read left an empty file behind and
+  the script still printed "Download complete!". The next `terraform plan` then prompts for every
+  variable, two commands away from the cause. It now writes through a temp file, refuses an empty
+  read, and prints the byte count.
+- **`upload-tfvars.sh` had the same path-mangling bug, and worse consequences.** With `--overwrite`,
+  a mangled `--name` does not fail — it creates a *second* parameter named after a directory on `C:`
+  while the real one goes stale, and the run reports success. Same fix, plus a refusal to upload an
+  empty file.
 
 ### Blocked on a decision: §6.1 and §7 disagree about notes
 
@@ -503,6 +596,14 @@ selector, and it belongs where every other "read this out of `raw/`" does.
   `cloudfront:CreateInvalidation` and the bucket policy already lets the CDN read `cfb/data/*`.
 - **`frontend/app/cfb/` does not exist.** All three routes are unbuilt, so §6's "routes render a
   data-is-newer state rather than throwing" has nothing to hang on yet.
+- **`npm run lint` is not configured.** It drops into next's interactive "How would you like to
+  configure ESLint?" prompt, so there is no lint gate on the frontend at all. `next build`
+  type-checks, which caught nothing this session but is the only static check the routes get.
+  Left alone: configuring ESLint is a repo-wide decision, not a §6 one.
+- **The frontend routes have no Playwright specs.** The existing suite hits production
+  (`tests/visitor-counter.spec.ts` fetches the live API), so a spec for `/cfb` would fail until the
+  routes deploy — for the right reason, but noisily. Worth adding in the session that follows the
+  first real deploy.
 - **The publish generator has no unit tests either**, for the same reason `cfb score` has none: the
   session rules forbid writing under `cfb/tests/`. It is verified by the eleven command runs above,
   four of which are failure cases. **The next session should write them**, and the four worth the
