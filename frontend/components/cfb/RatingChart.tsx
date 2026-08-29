@@ -48,7 +48,7 @@ export default function RatingChart({ history }: { history: RatingPoint[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-auto"
         role="img"
-        aria-label={`Elo rating by week, ${history
+        aria-label={`Elo rating by week, this model’s own, ${history
           .map((p) => `${formatWeek(p.week)} ${Math.round(p.elo)}`)
           .join(', ')}`}
       >

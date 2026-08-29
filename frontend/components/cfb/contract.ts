@@ -14,8 +14,20 @@
  * fetch, so anything that looks like a calculation belongs in the generator.
  */
 
-/** The version of the contract these pages were written against (§6.2). */
-export const SUPPORTED_SCHEMA_VERSION = 1;
+/**
+ * The contract versions these pages can read (§6.2).
+ *
+ * **Two, and that is what makes a rename shippable without an outage.** Version
+ * 2 renamed `national_rank` to `model_rank` — a breaking change by §6.2's rule,
+ * because a page reading the old name off a new document gets `undefined`.
+ *
+ * Routes deploy before the pipeline republishes, so for that window this page
+ * reads a version 1 document; after it, version 2. Accepting both means neither
+ * side ever shows "data is newer than this page". Version 1 can be dropped once
+ * nothing publishes it, which is immediately after the next publish — it is kept
+ * only to make this release seamless.
+ */
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2];
 
 /** Where the documents are served from. Same distribution as the site. */
 export const CFB_DATA_BASE = '/cfb/data';
@@ -43,23 +55,30 @@ export interface PublishedGame {
   market_line: number | null;
   line_source: string | null;
   /**
-   * The opponent's standing, from the same state `as_of` came from.
-   * `null` for an FCS opponent — the FBS table has no place for one, and a rank
-   * on a different denominator would be a different number wearing the same word.
+   * The opponent's standing **by this model**, from the same state `as_of` came
+   * from. `null` for an FCS opponent — the FBS table has no place for one, and a
+   * rank on a different denominator would be a different number wearing the same
+   * word.
+   *
+   * `opponent_rank` is the version 1 spelling and is read only for a document
+   * published before the rename. Never render either without saying whose rank
+   * it is: a reader on a college football page assumes AP.
    *
    * Optional in TypeScript as well as in the document, because a page deployed
    * before the pipeline republishes reads a document without it. See
    * `tests/cfb-old-document.spec.ts`.
    */
+  opponent_model_rank?: number | null;
+  /** @deprecated version 1 only. Use `opponent_model_rank`. */
   opponent_rank?: number | null;
   opponent_elo?: number | null;
 }
 
-/** One week of the subject team's standing. */
+/** One week of the subject team's standing, by this model. */
 export interface RatingPoint {
   week: string;
   elo: number;
-  rank: number;
+  model_rank: number;
   fbs_teams: number;
 }
 
@@ -86,7 +105,14 @@ export interface LastResult {
 export interface AsOf {
   week: string;
   elo: number;
-  national_rank: number;
+  /**
+   * **This model's rank, never a poll's**, and the page must say so. Ours will
+   * disagree with AP visibly and often, and a bare "#5" on a college football
+   * page reads as AP by default.
+   */
+  model_rank?: number;
+  /** @deprecated version 1 only. Use `model_rank`. */
+  national_rank?: number;
   fbs_teams: number;
 }
 
@@ -212,4 +238,17 @@ export interface SlateDocument extends Envelope {
   /** Set when the run covered less than the whole week; null otherwise. */
   forecast_from: string | null;
   games: SlateGame[];
+}
+
+/**
+ * The model's rank for the subject team, from whichever spelling the document
+ * carries. One place, so the transition cannot be half-applied.
+ */
+export function modelRank(asOf: AsOf): number | undefined {
+  return asOf.model_rank ?? asOf.national_rank;
+}
+
+/** The opponent's model rank, from whichever spelling the document carries. */
+export function opponentModelRank(game: PublishedGame): number | null | undefined {
+  return game.opponent_model_rank ?? game.opponent_rank;
 }

@@ -177,7 +177,7 @@ class TestTheHistory:
             store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
         )
         assert [point.week for point in page.history] == ["preseason"]
-        assert page.history[0].rank == 5
+        assert page.history[0].model_rank == 5
         assert page.history[0].fbs_teams == 138
 
     def test_it_grows_as_weeks_are_advanced(self, crosswalk):
@@ -257,7 +257,7 @@ class TestOpponentContext:
             store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
         )
         assert page.game.opponent == "Ohio State"
-        assert page.game.opponent_rank == 1
+        assert page.game.opponent_model_rank == 1
         assert page.game.opponent_elo is not None
 
     def test_an_fcs_opponent_has_no_fbs_rank(self, crosswalk):
@@ -278,7 +278,7 @@ class TestOpponentContext:
             store=store, season=SEASON, week="01", now=GENERATED_AT, crosswalk=crosswalk
         )
         assert crosswalk.division("gardner-webb") == "FCS"
-        assert page.game.opponent_rank is None
+        assert page.game.opponent_model_rank is None
         # The rating is still real and still worth showing.
         assert page.game.opponent_elo is not None
 
@@ -300,23 +300,30 @@ class TestOpponentContext:
         )
         preseason = next(p for p in page.history if p.week == page.as_of.week)
         assert page.as_of.elo == preseason.elo
-        assert page.game.opponent_rank < page.as_of.national_rank
+        assert page.game.opponent_model_rank < page.as_of.model_rank
 
 
 # --- the guaranteed case ------------------------------------------------------
 
 
 class TestReadingADocumentWrittenBefore:
-    """A `next-game.json` published before these fields existed.
+    """A `next-game.json` missing the fields added after it was written.
 
     **Guaranteed, not hypothetical.** Routes deploy before the pipeline
-    republishes, so a new page reading an old document is the first thing that
-    happens in production every time this ships.
+    republishes, so a page reading a document without its newest fields is the
+    first thing that happens in production every time this ships.
+
+    **The schema_version 1 shape is deliberately not tested here.** Renaming
+    `national_rank` to `model_rank` made v1 unreadable by these models, and that
+    is correct: the pipeline *writes* published documents and never reads them
+    back, so nothing in Python has to open one. The page is the only reader that
+    must handle both, and `frontend/tests/cfb-old-document.spec.ts` is where that
+    is checked -- against a real browser, which is where the failure would happen.
     """
 
     def test_it_loads_with_no_history_and_no_opponent_rank(self):
         stored = {
-            "schema_version": 1,
+            "schema_version": 2,
             "generated_at": "2026-08-29T19:41:00Z",
             "season": 2026, "week": "01", "team": "Texas",
             "game": {
@@ -327,16 +334,16 @@ class TestReadingADocumentWrittenBefore:
             },
             "as_of": {
                 "week": "preseason", "elo": 2113.0,
-                "national_rank": 5, "fbs_teams": 138,
+                "model_rank": 5, "fbs_teams": 138,
             },
         }
         page = NextGameDocument.model_validate_json(json.dumps(stored))
         assert page.history == []
-        assert page.game.opponent_rank is None
+        assert page.game.opponent_model_rank is None
         assert page.game.opponent_elo is None
         # And the fields that were always there still read.
         assert page.game.opponent == "Texas State"
-        assert page.as_of.national_rank == 5
+        assert page.as_of.model_rank == 5
 
 
 # --- (b) on the page ----------------------------------------------------------

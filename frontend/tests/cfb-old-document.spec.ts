@@ -38,6 +38,13 @@ const OLD_DOCUMENT = {
   as_of: { week: 'preseason', elo: 2113.0, national_rank: 5, fbs_teams: 138 },
 };
 
+/** The same document as the pipeline publishes it now: version 2, `model_rank`. */
+const NEW_DOCUMENT = {
+  ...OLD_DOCUMENT,
+  schema_version: 2,
+  as_of: { week: 'preseason', elo: 2113.0, model_rank: 5, fbs_teams: 138 },
+};
+
 test.describe('/cfb against a document written before the new fields', () => {
   test.beforeEach(async ({ page }) => {
     // One route, and no catch-all beside it: Playwright matches the most
@@ -70,8 +77,10 @@ test.describe('/cfb against a document written before the new fields', () => {
     await expect(
       page.getByText(/rating history appears here once the season has been scored/i),
     ).toBeVisible();
-    // The opponent rank line must be absent rather than rendering "#undefined".
-    await expect(page.getByText(/#undefined|NaN|of 138 FBS teams\./)).toHaveCount(0);
+    // The rank must render from the version 1 spelling rather than "#undefined".
+    await expect(page.getByText('#5')).toBeVisible();
+    await expect(page.getByText(/Elo rank/)).toBeVisible();
+    await expect(page.getByText(/#undefined|NaN/)).toHaveCount(0);
   });
 
   test('does not show a last result it was never given', async ({ page }) => {
@@ -85,11 +94,15 @@ test.describe('/cfb against a document carrying the new fields', () => {
     await page.route('**/cfb/data/next-game.json*', (route) =>
       route.fulfill({
         json: {
-          ...OLD_DOCUMENT,
-          game: { ...OLD_DOCUMENT.game, opponent_rank: 81, opponent_elo: 1375.0 },
+          ...NEW_DOCUMENT,
+          game: {
+            ...NEW_DOCUMENT.game,
+            opponent_model_rank: 81,
+            opponent_elo: 1375.0,
+          },
           history: [
-            { week: 'preseason', elo: 2113.0, rank: 5, fbs_teams: 138 },
-            { week: '01', elo: 2131.0, rank: 4, fbs_teams: 138 },
+            { week: 'preseason', elo: 2113.0, model_rank: 5, fbs_teams: 138 },
+            { week: '01', elo: 2131.0, model_rank: 4, fbs_teams: 138 },
           ],
           last_result: {
             week: '01',
@@ -110,9 +123,43 @@ test.describe('/cfb against a document carrying the new fields', () => {
 
     await page.goto('/cfb/');
 
-    await expect(page.getByText('Texas State is #81 of 138.')).toBeVisible();
+    await expect(page.getByText(/Texas State is 81st of 138 by this model/)).toBeVisible();
     await expect(page.getByRole('img', { name: /Elo rating by week/ })).toBeVisible();
     await expect(page.getByText('Texas 45, Texas State 14')).toBeVisible();
     await expect(page.getByText(/It beat the closing number/)).toBeVisible();
+  });
+});
+
+test.describe('the version 2 rename', () => {
+  test('a version 1 document still renders its rank', async ({ page }) => {
+    /**
+     * The reason both versions are accepted. Routes deploy before the pipeline
+     * republishes, so this page reads a v1 document first — and v1 spells the
+     * field `national_rank`. Refusing it would show "data is newer than this
+     * page" to every visitor for a change that renamed one key.
+     */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: OLD_DOCUMENT }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText('#5')).toBeVisible();
+  });
+
+  test('a version 2 document renders the same rank from the new name', async ({ page }) => {
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: NEW_DOCUMENT }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText('#5')).toBeVisible();
+    await expect(page.getByText(/of 138 FBS teams, by this model/)).toBeVisible();
+  });
+
+  test('an unknown version still shows the stale state', async ({ page }) => {
+    /** The mechanism must not have been widened into uselessness. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: { ...NEW_DOCUMENT, schema_version: 99 } }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
   });
 });

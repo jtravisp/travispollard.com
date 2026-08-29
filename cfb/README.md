@@ -13,6 +13,13 @@ what a vendor served, and nothing in the pipeline has a verb that deletes one.
 - **`/cfb/slate`** — every game the model forecast this week
 - **`/cfb/accuracy`** — how it has actually done
 
+**Every ranking on the site is this model's own, and is labelled that way.** It is
+not the AP poll, the coaches' poll, or the playoff committee's, and it will
+disagree with all of them — often and visibly, because it is arithmetic on
+margins with no human input at all. A bare "#5" on a college football page reads
+as AP by default, so the pages say "Elo rank" and the published documents name
+the field `model_rank`.
+
 ---
 
 ## The one idea
@@ -29,7 +36,7 @@ losing a row is impossible or loud:
 | Raw source bytes are written before anything parses them, and never overwritten | `storage.put_bytes`, conditional `IfNoneMatch` PUT |
 | Validation failures **raise**. Never return `None`, log-and-continue, or coerce | everywhere; `models.validating` is the boundary |
 | An unmapped team name is an error, never a fuzzy match | `crosswalk/` |
-| Three join failures are errors, not filters | `elo/scoring.py`, SPEC §5.2 |
+| Three join failures are errors, not filters | `elo/scoring.py` |
 | A mean with nothing to average is `null`, never `0.0` | `elo/scoring.py`, and preserved to the page |
 | Every mean carries its own denominator | `Accuracy`, `AtsRecord`, and the JSON contract |
 
@@ -101,8 +108,8 @@ than the first — worth knowing before reading the policy as the whole guarante
 | `cli.py` | A thin shell. Every command is one a human runs locally |
 
 `sources.py` exists because three consumers — `replay`, `advance`, `predict` —
-must agree on all three of those selections, and §11's replay check is only
-meaningful if they do. Two copies of "the newest Sagarin snapshot before kickoff"
+must agree on all three of those selections, and the rebuild check below is
+only meaningful if they do. Two copies of "the newest Sagarin snapshot before kickoff"
 is how that check starts failing for reasons unrelated to the model.
 
 ---
@@ -111,19 +118,27 @@ is how that check starts failing for reasons unrelated to the model.
 
 ### Seeding
 
-Elo starts from Sagarin's **preseason RATING** column, mapped
-`1500 + (rating − mean) × ELO_PER_POINT`, centred on the FBS mean. This reverses the PRD,
-and the reason is that the alternative is worse on the page that matters: a
-uniform 1500 start predicts Texas–Kennesaw State as a coin flip through
-September.
+Elo starts from Jeff Sagarin's published preseason ratings, mapped onto the Elo
+scale as `1500 + (rating − mean) × 20` and centred on the average FBS team.
 
-The cost is measured rather than waved away. A week-1 prediction is
-*arithmetically identical* to Sagarin's PREDICTOR — the preseason page's four
-rating columns are the same number, so an Elo gap over ELO_PER_POINT is a Sagarin rating gap
-and adding the same HFA reproduces it to the floating-point bit. The correlation
-opens at exactly **1.0**, and the site shows a **seed disclosure** saying so until
-it falls below 0.90. Once retired, it stays retired: a disclosure that vanishes
-without trace is worse than one that never appeared.
+The textbook alternative is to start every team at 1500 and let results sort them
+out. That is worse here for a specific reason: a college season is twelve games,
+so a rating that begins at parity is still badly wrong in October — and it would
+spend September predicting Texas against a small-conference opponent as close to
+a coin flip, which is visibly nonsense to anyone who follows the sport.
+
+**The cost of borrowing a head start is that the first week is not really this
+model's forecast, and the site says so.** The seed is a linear transform of
+Sagarin's numbers, so a week-1 prediction reproduces his own published prediction
+for that game exactly — not approximately, to the last decimal place. The
+correlation between the two starts at **1.0**.
+
+The accuracy page therefore carries a **seed disclosure**: a plain statement that
+early-season results reflect the borrowed ratings rather than anything this model
+worked out. It retires automatically once the correlation drops below 0.90,
+meaning the ratings have moved far enough from their starting point to be the
+model's own. Once retired it stays retired, even if a later week drifts back —
+a disclosure that quietly disappears is worse than one that was never shown.
 
 ### Predicting
 
@@ -132,18 +147,73 @@ predicted_margin = (elo_home − elo_away) / 20 + hfa
 win_probability  = 1 / (1 + 10^(−(margin × 20) / 400))
 ```
 
-- **`ELO_PER_POINT = 20`, `K = 20`.** Conventional, not fitted. The calibration
-  curve is the evidence for whether they are wrong. 20 rather than the NFL's
-  conventional 25 because college margins scatter more widely, and wider scatter
-  means *less* certainty per point — the constant was 28 on reasoning that had
-  that backwards. Only the ratio to the 400 divisor is meaningful.
-- **Home-field advantage is read from the snapshot, never hardcoded** — from the
-  newest Sagarin capture taken *strictly before* kickoff. That is a rule about
-  the data rather than about when the job ran, so it replays identically forever.
-- Probability is derived *from* the margin rather than computed alongside it, so
-  the two cannot disagree.
-- Storage keeps the unclamped probability; the `[0.001, 0.999]` clamp is applied
-  at publish. Grading a model on what the page displayed would be circular.
+**20 Elo per point of margin.** That constant converts between the two units and
+is the model's whole claim about how predictable football is. A *higher* value
+makes the model more confident at a given margin, so the question is how widely
+real results scatter around a good prediction — and in college football that is a
+standard deviation of roughly 14 to 16 points, wider than the NFL's 13.5.
+
+The constant was 28 for a while, on the reasoning that college margins are wider
+so the number should be bigger. That has the direction backwards: more scatter
+means *less* certainty per point, not more. At 28 the model behaved as though
+margins scattered by about 10.5 points, and said a 7-point favourite wins 76% of
+the time when the real figure is nearer 67%. At 20 it tracks the observed spread
+closely across the range.
+
+Only the *ratio* of that constant to the logistic's 400 divisor means anything —
+`(20, 400)` and `(10, 200)` are the same model — so changing either alone changes
+the other's meaning.
+
+**Home-field advantage is read from the ratings page, never hardcoded**, taking
+the most recent snapshot captured *before* kickoff. That makes it a fact about
+the data rather than about when a job happened to run, so a rebuild years later
+produces the same number.
+
+**No home-field advantage at a neutral site.** Bowl games and neutral-site
+openers have a nominal home team, but the designation is a bookkeeping artefact —
+and the two data sources do not always agree on which team it is. Awarding an
+edge on that label is not a small bias in one direction; it is roughly 2.4 points
+of noise pointing whichever way a vendor happened to list the teams.
+
+**The published win probability is capped at 1% and 99%.** The stored value is
+not. Those are two different numbers on purpose: the model's accuracy is scored
+against what it actually said, and scoring it against the capped figure would be
+grading a censored value — flattering it at exactly the moments it was most
+likely to be wrong. The cap exists because a model that prints 100% has no way to
+have been right.
+
+The probability is derived *from* the predicted margin rather than computed
+beside it, so the two can never disagree about the same game.
+
+### The margin-of-victory floor
+
+Elo moves a rating by how surprising a result was, scaled by the margin. Without
+damping, a strong team could farm rating by running up scores on weak opponents,
+so the margin term is divided by a denominator that grows with how lopsided the
+matchup already was.
+
+**That denominator is signed, and past a certain gap it goes negative.** When it
+does, the multiplier inverts and *a bigger win lowers the winner's rating* — the
+model silently running backwards on the most informative result of the season. It
+produces ratings that conserve correctly, cover every team, and sit in an
+entirely believable range. Nothing downstream would catch it.
+
+So there is a floor under the denominator. Two things about how it is enforced
+are worth knowing:
+
+- **It raises rather than clamping quietly.** A clamp alone would let the model
+  keep running with a number chosen by the guard instead of by the data, and
+  nobody would learn that it happened. Crossing the floor is a failed run naming
+  the matchup that got there.
+- **The raise is what made it testable.** The clamp turned out to be unreachable
+  through the normal update path, because the raise stands in front of it — a
+  test that went only through `update()` passed with the clamp deleted. That was
+  found by deliberately breaking the code to see which tests noticed, and the
+  fix was to expose the calculation directly so it can be exercised on its own.
+
+On the current scale no preseason matchup reaches the floor; on the previous one,
+39 did. It stays because the floor is about the *shape* of the arithmetic rather
+than the current constant, and the constant is expected to move again.
 
 ### The divisions problem
 
@@ -159,8 +229,10 @@ because Sagarin rates 266 teams and no more.
 - neither classified → **in**, so the crosswalk stays the authority and an
   unmapped name still raises rather than becoming a silent drop
 
-**It loses no FBS game** — week 1, 99 of 99; week 2, 86 of 86. This is a scope
-decision, not a gap.
+**It loses no FBS game** — week 1, 99 of 99; week 2, 86 of 86. The excluded
+games are either two non-Division-I teams playing each other, or a Division I-AA
+team playing a school no rating system covers. This is a scope decision, not a
+gap.
 
 ---
 
@@ -250,7 +322,7 @@ run time.
 
 ```bash
 uv sync --extra s3          # NOT a bare `uv sync` -- it prunes boto3
-uv run pytest               # 931 tests, no network
+uv run pytest               # 985 tests, no network
 uv run ruff check --fix .
 export AWS_PROFILE=tp-site  # every shell; it does not persist
 ```
@@ -263,7 +335,7 @@ uv run cfb predict --season 2026 --week 4       # defaults to the coming week
 uv run cfb score   --season 2026 --week 3       # defaults to the completed week
 uv run cfb publish --season 2026
 uv run cfb note    --season 2026 --week 3       # the scaffold you write over
-uv run cfb elo replay --season 2026             # SPEC §11 step 5
+uv run cfb elo replay --season 2026             # rebuild and check the cache
 ```
 
 Every command takes `--store`, defaulting to `s3://travispollard-cfb-data`. Point
@@ -304,7 +376,7 @@ worst case is recoverable, but the discipline is the product.
 ## Future enhancements
 
 **Model**
-- **Historical backfill (Phase 2).** The single highest-value change. It is what
+- **Historical backfill.** The single highest-value change. It is what
   turns `K`, `ELO_PER_POINT` and the invented `MOV_DENOMINATOR_FLOOR = 0.25` from
   conventional numbers into fitted ones, and it retires the seed entirely.
 - **A replacement-level opponent.** An FCS team's games against D-II and NAIA
@@ -330,7 +402,7 @@ worst case is recoverable, but the discipline is the product.
 - **An in-season Sagarin capture** is still an open Phase 0 carry-over: two date
   formats and one page-state branch are unexercised until the page drops
   `STARTING`.
-- **`/games` in-progress detection.** §5.2 cannot distinguish a failed join from
+- **`/games` in-progress detection.** Scoring cannot distinguish a failed join from
   a game being played right now, which is why a mid-week backtest fails. An
   explicit completion signal would settle it.
 - **Playwright coverage for `/cfb`.** The existing suite hits production, so

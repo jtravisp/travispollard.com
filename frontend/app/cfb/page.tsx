@@ -21,7 +21,12 @@ import Link from 'next/link';
 import CfbNav from '@/components/cfb/CfbNav';
 import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import { LastResult, NextGameDocument } from '@/components/cfb/contract';
+import {
+  LastResult,
+  NextGameDocument,
+  modelRank,
+  opponentModelRank,
+} from '@/components/cfb/contract';
 import {
   describeFavorite,
   favorite,
@@ -112,11 +117,15 @@ function NextGame({ document }: { document: NextGameDocument }) {
               : `${home} is at home.`}
             {/* A margin is not legible without the opponent's standing: "Texas by
                 39.3" reads differently against the 5th team and the 81st. */}
-            {game.opponent_rank != null && (
-              <> {game.opponent} is #{game.opponent_rank} of {asOf.fbs_teams}.</>
+            {opponentModelRank(game) != null && (
+              <>
+                {' '}
+                {game.opponent} is {ordinal(opponentModelRank(game)!)} of {asOf.fbs_teams} by
+                this model.
+              </>
             )}
-            {game.opponent_rank == null && game.opponent_elo != null && (
-              <> {game.opponent} is outside the FBS, so it has no national rank.</>
+            {opponentModelRank(game) == null && game.opponent_elo != null && (
+              <> {game.opponent} is outside the FBS, so this model does not rank it.</>
             )}
           </p>
 
@@ -201,6 +210,13 @@ function LastGame({ result, team }: { result: LastResult; team: string }) {
   );
 }
 
+/** 81 -> "81st". Reads better than "#81" inside a sentence. */
+function ordinal(value: number): string {
+  const rest = value % 100;
+  if (rest >= 11 && rest <= 13) return `${value}th`;
+  return `${value}${['th', 'st', 'nd', 'rd'][value % 10] ?? 'th'}`;
+}
+
 function Figure({
   label,
   value,
@@ -236,6 +252,7 @@ function Ratings({
   history?: NextGameDocument['history'];
 }) {
   const points = history ?? [];
+  const rank = modelRank(asOf);
 
   return (
     <div className="card bg-base-200">
@@ -252,11 +269,17 @@ function Ratings({
             </div>
           </div>
           <div>
+            {/* Never a bare "#5". A reader on a college football page assumes AP
+                unless told otherwise, and this model disagrees with AP visibly. */}
             <div className="text-xs uppercase tracking-wide text-base-content/60">
-              National rank
+              Elo rank
             </div>
-            <div className="text-2xl font-semibold">#{asOf.national_rank}</div>
-            <div className="text-xs text-base-content/60">of {asOf.fbs_teams} FBS teams</div>
+            <div className="text-2xl font-semibold">
+              {rank == null ? '—' : `#${rank}`}
+            </div>
+            <div className="text-xs text-base-content/60">
+              of {asOf.fbs_teams} FBS teams, by this model
+            </div>
           </div>
         </div>
 

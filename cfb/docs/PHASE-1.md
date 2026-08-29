@@ -9,14 +9,44 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
-## Where this stands (2026-08-29) — Phase 1 closed, season pending
+## Where this stands (2026-08-29) — Phase 1 closed, follow-ups landing
 
-**Every section of SPEC-phase1 is implemented, live, and scheduled.**
-`travispollard.com/cfb`, `/cfb/slate` and `/cfb/accuracy` serve real documents,
-and five workflows run the week without a person in it.
+Every section of SPEC-phase1 is implemented, live and scheduled. What has landed
+since is follow-up work: a wrong constant, a blocked command, and a page that
+showed one static number.
 
 | | |
 |---|---|
+| Tests | **985 passing, 23 skipped** in Python, **7 Playwright** specs, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Live | `/cfb`, `/cfb/slate`, `/cfb/accuracy` |
+| Next | Nothing until the season exercises it. Then the historical backfill, which is what turns the model's constants from conventional numbers into fitted ones |
+| Blocked | nothing |
+| Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
+
+### The schedule from here
+
+| | | |
+|---|---|---|
+| Sun **Aug 30** 12:00 / 12:30 | `cfb-cfbd`, `cfb-score` | First firing of `cfb-score`. Expect a green **skip** — week 1 does not end until 09-08 — and a green `cfb elo replay`, which was the blocker fixed below |
+| Tue **Sep 1** | `cfb-sagarin` | The first in-season capture, which is also Phase 0's outstanding carry-over |
+| Thu **Sep 3** 12:00 | `cfb-predict` | `coming_week` returns **"02"**, because CFBD's week 1 opened on 08-29 |
+| Fri **Sep 4** 12:00 | `cfb-publish` | First firing of the SLO. `/cfb` must still show **Texas State on 09-05**, a week 1 game, which is what the look-ahead exists for |
+| Sun **Sep 13** | `cfb-score` | **The one to watch.** First real scoring run, against week 1's partial log, and the first time `forecast_from` does anything outside a test. Also the first `elo/week=NN` state, so the rating chart gets its second point |
+
+### What is left, honestly
+
+Phase 1's deliverable was "one Saturday end to end with no manual intervention".
+Every part exists; **it has not yet happened.** Until it does:
+
+- **`cfb score` has never run against real results.** Every scoring test is
+  constructed, which §5.2's failure modes require anyway — no vendor publishes a
+  game whose id matches a prediction and whose teams do not.
+- **The production backtest waits on week 1 closing** (2026-09-07). §5.2 cannot
+  distinguish a failed join from a game in progress.
+- **No weekly note exists**, so §7's MDX plumbing and `/cfb/notes/[slug]` are
+  unbuilt. There is nothing to render until a week has been scored.
+
+---|---|
 | Tests | **968 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3–§8 through PRs #44–#48 |
 | Next | Nothing until the season exercises it. Then Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
@@ -297,9 +327,15 @@ a second key and keeping the first.
       blocked:** `sagarin_r` is computed and written on every scored week, and week 1 of the
       verification store reads exactly `1.0`, which is the identity §4 predicted. What is left is
       §6's half — reading the series across weeks and publishing the disclosure with it
-- [ ] **§3.7 the probability clamp.** `[0.001, 0.999]` applied at publish time, unclamped in
-      storage so the Brier scores are computed on what the model said. Needs §6.
-      `test_probabilities_are_not_clamped_here` already pins the storage half
+- [x] **§3.7 the probability clamp.** `[0.001, 0.999]` applied at publish time, unclamped in
+      storage so the Brier scores are computed on what the model said.
+      `test_probabilities_are_not_clamped_here` pins the storage half and
+      `test_publish.py::TestTheClamp` the other, verified against a 2147-Elo mismatch where the
+      page reads `0.999` and the stored value is `0.9999970913013003`
+  - [x] The justification was stated as "grading on the displayed probability would be circular",
+        which is wrong. It is not circular, it is **grading a censored value** — the clamp
+        flatters the model at exactly the moments it was most likely to be wrong. The reason is
+        simply that a Brier score should measure what the model said, not what the page rendered
 
 ### What the state work decided that the spec does not say
 
@@ -810,6 +846,63 @@ already owns the key format they parse. `sources.results_capture` is the one gen
 selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
+
+## Follow-up: every rank is labelled as this model's own
+
+A bare "#5" on a college football page reads as **AP** by default, and this model
+will disagree with AP visibly and often — it is arithmetic on margins with no
+human input.
+
+- [x] **`as_of.national_rank` renamed to `model_rank`**, `opponent_rank` to
+      `opponent_model_rank`, `RatingPoint.rank` to `model_rank`. The pages say
+      "Elo rank" and "…of 138 FBS teams, by this model", and the opponent reads
+      "Texas State is 81st of 138 by this model"
+- [x] **A rename is breaking, so §6.2's own rule applies and the version moved.**
+      This is the first use of the mechanism as written: a page reading the old
+      name off a new document gets `undefined` and renders "#undefined"
+  - [x] **The published contract now versions separately from stored documents.**
+        `PUBLISHED_SCHEMA_VERSION = 2` in `publish/`, distinct from
+        `elo.SCHEMA_VERSION`. They version different things — one is read by a
+        deployed page, the other by later runs of this pipeline — and bumping one
+        number for both would make every archived prediction log look changed by
+        a site edit
+  - [x] **The page accepts `{1, 2}`, so the rename ships without an outage.**
+        Routes deploy before the pipeline republishes, so the page reads a v1
+        document first and a v2 one after; accepting both means neither side ever
+        sees "data is newer than this page". Version 1 support is transitional and
+        can be dropped after the next publish
+  - [x] Verified that widening to a set did not blunt the mechanism: an unknown
+        version **still** shows the stale state
+- [x] **The Python models can no longer read a v1 document, and that is correct.**
+      The pipeline writes published documents and never reads them back, so
+      nothing in Python must open one. The page is the only reader that has to
+      handle both, and it is checked in a browser rather than by assumption
+
+## Follow-up: §3.1's numbers, before and after
+
+Run against the calibration table:
+
+| Margin | at 28 | at 20 | normal, σ=15 | was off by | now off by |
+|---|---|---|---|---|---|
+| 1 | 54.0% | 52.9% | 52.7% | +1.4% | +0.2% |
+| 3 | 61.9% | 58.5% | 57.9% | +3.9% | +0.6% |
+| 7 | 75.6% | 69.1% | 68.0% | **+7.6%** | +1.2% |
+| 10 | 83.4% | 76.0% | 74.8% | **+8.6%** | +1.2% |
+| 14 | 90.5% | 83.4% | 82.5% | +8.1% | +0.9% |
+| 21 | 96.7% | 91.8% | 91.9% | +4.8% | −0.1% |
+
+Mean absolute gap to the reference: **5.7% → 0.7%, 88% closer.**
+
+And what each scale claims about how far college margins scatter:
+
+| Margin | σ implied at 28 | σ implied at 20 |
+|---|---|---|
+| 7 | 10.1 | 14.0 |
+| 14 | 10.7 | 14.5 |
+| 21 | 11.4 | 15.1 |
+
+The evidence puts it at **14–16**. The old scale was not slightly off; it was
+describing a different sport.
 
 ## Follow-up: the page stops being static
 

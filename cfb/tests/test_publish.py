@@ -220,7 +220,7 @@ class TestABye:
         )
         assert page.game is None
         assert page.team == "Texas"
-        assert page.as_of.national_rank >= 1
+        assert page.as_of.model_rank >= 1
         assert page.as_of.elo > 0
 
     def test_a_team_playing_twice_raises(self, crosswalk):
@@ -260,7 +260,7 @@ class TestTheRank:
             store=store, season=SEASON, week="01", now=PUBLISHED_AT, crosswalk=crosswalk
         )
         assert page.as_of.fbs_teams == 138
-        assert 1 <= page.as_of.national_rank <= 138
+        assert 1 <= page.as_of.model_rank <= 138
 
     def test_texas_opens_at_the_rank_the_sagarin_page_gives_it(self, crosswalk):
         """SPEC-phase1 §1.2's table records Texas at rank 5 on the preseason
@@ -278,7 +278,7 @@ class TestTheRank:
         page = build_next_game(
             store=store, season=SEASON, week="01", now=PUBLISHED_AT, crosswalk=crosswalk
         )
-        assert page.as_of.national_rank == 5
+        assert page.as_of.model_rank == 5
 
 
 # --- the slate ----------------------------------------------------------------
@@ -650,7 +650,7 @@ class TestLookingAhead:
             crosswalk=crosswalk,
         )
         assert page.game is None
-        assert page.as_of.national_rank == 5
+        assert page.as_of.model_rank == 5
 
 
 class TestPredictingOnlyWhatIsAhead:

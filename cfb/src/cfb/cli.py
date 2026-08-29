@@ -711,7 +711,7 @@ def _publish(args, *, moment: datetime) -> int:
         # should be visible in the run that put it there.
         opponent=next_game.game.opponent if next_game.game else "bye",
         win_probability=next_game.game.win_probability if next_game.game else None,
-        national_rank=next_game.as_of.national_rank,
+        model_rank=next_game.as_of.model_rank,
         elo_state_week=next_game.as_of.week,
         slate_games=len(slate.games),
         # A week where this collapses is a /lines pull that did not happen, and

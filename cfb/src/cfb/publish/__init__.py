@@ -34,7 +34,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo import SCHEMA_VERSION, EloState
+from cfb.elo import EloState
 from cfb.elo.scoring import (
     TEXAS,
     CalibrationBucket,
@@ -63,6 +63,7 @@ __all__ = [
     "NEXT_GAME_KEY",
     "SLATE_KEY",
     "PROBABILITY_CEILING",
+    "PUBLISHED_SCHEMA_VERSION",
     "PROBABILITY_FLOOR",
     "SEED_DISCLOSURE_THRESHOLD",
     "AccuracyDocument",
@@ -84,6 +85,23 @@ __all__ = [
     "clamp",
     "publish",
 ]
+
+#: §6.2's envelope version for the **published** documents, which moves
+#: independently of ``elo.SCHEMA_VERSION``.
+#:
+#: The two version different things. ``elo.SCHEMA_VERSION`` stamps what the
+#: pipeline stores -- prediction logs, scored weeks, Elo states -- and its readers
+#: are other runs of this pipeline. This one stamps what the site fetches, and
+#: its reader is a deployed page. Renaming a field on `/cfb/data/*` has nothing
+#: to do with whether a stored prediction log still parses, and bumping one
+#: number for both would make every archived document look changed by a site
+#: edit.
+#:
+#: **2, because `national_rank` became `model_rank`.** §6.2 moves this for a
+#: renamed field, a removed field, or a changed meaning -- and a rename is the
+#: case it exists for: a page reading the old name off a new document gets
+#: ``undefined`` and renders "#undefined".
+PUBLISHED_SCHEMA_VERSION = 2
 
 #: §6.1. The keys match the URL path exactly -- ``cfb/data/next-game.json`` is
 #: served at ``/cfb/data/next-game.json`` with no origin_path stripping, which is
@@ -116,8 +134,15 @@ def clamp(win_probability: float) -> float:
     """§3.7's presentational clamp.
 
     **Applied here and never in storage.** The stored probability is what the
-    model said and §5.3's Brier scores are computed on it; clamping on the way in
-    would grade the model on what the page displayed instead.
+    model said and §5.3's Brier scores are computed on it.
+
+    Clamping on the way in would not be *circular* -- it would be **grading a
+    censored value.** The clamp pulls the most extreme forecasts toward the
+    middle, which is exactly where a confident model is most exposed, so scoring
+    against the clamped number would quietly improve the Brier score at the
+    moments the model was most likely to be badly wrong. The rule is simply that
+    the score should measure what the model said, not what the page rendered.
+
     ``test_predict.py::test_probabilities_are_not_clamped_here`` pins the storage
     half of that rule, and this is the other half.
     """
@@ -160,13 +185,16 @@ class PublishedGame(BaseModel):
     #: ``line_source``, which is what makes the convention readable.
     market_line: float | None
     line_source: str | None
-    #: The opponent's standing, from the same state ``as_of`` is read from.
+    #: The opponent's standing **by this model**, from the same state ``as_of``
+    #: is read from -- so the two rankings on the page cannot be from different
+    #: weeks, and neither is a poll's.
+    #:
     #: **A margin is not legible without it.** "Texas by 39.3" says nothing about
     #: whether that is a rout or a formality until the reader knows the opponent
-    #: is 103rd of 138. ``None`` for an FCS opponent: the FBS table has no place
+    #: is 81st of 138. ``None`` for an FCS opponent: the FBS table has no place
     #: for one, and a rank on a different denominator would be a different number
     #: wearing the same word.
-    opponent_rank: int | None = None
+    opponent_model_rank: int | None = None
     opponent_elo: float | None = None
 
 
@@ -182,11 +210,15 @@ class AsOf(BaseModel):
 
     week: str = Field(min_length=1)
     elo: float
+    #: **This model's own rank, not a poll's.** Named ``model_rank`` rather than
+    #: ``national_rank`` because a reader on a college football page assumes AP
+    #: unless told otherwise, and this one will disagree with AP visibly and
+    #: often. The page label carries the same burden: never a bare "#5".
+    #:
     #: Among FBS teams. The Elo state rates all 266 teams Sagarin covers,
-    #: including 128 FCS ones, and "national rank" on a college football page
-    #: means the FBS table -- a rank counting FCS teams in its denominator is a
-    #: different number wearing the same word.
-    national_rank: int = Field(ge=1)
+    #: including 128 FCS ones, and a rank counting them in its denominator would
+    #: be a different number wearing the same word.
+    model_rank: int = Field(ge=1)
     #: The denominator, for the same reason §5.3 makes every sample size travel
     #: with its mean.
     fbs_teams: int = Field(ge=1)
@@ -233,7 +265,8 @@ class RatingPoint(BaseModel):
 
     week: str = Field(min_length=1)
     elo: float
-    rank: int = Field(ge=1)
+    #: This model's rank among the FBS, not a poll's. See ``AsOf.model_rank``.
+    model_rank: int = Field(ge=1)
     fbs_teams: int = Field(ge=1)
 
 
@@ -554,7 +587,7 @@ def build_slate(
     ]
 
     return SlateDocument(
-        schema_version=SCHEMA_VERSION,
+        schema_version=PUBLISHED_SCHEMA_VERSION,
         generated_at=now,
         season=season,
         week=log.week,
@@ -589,7 +622,7 @@ def build_accuracy(
     games = [game for scored in weeks for game in scored.games]
 
     return AccuracyDocument(
-        schema_version=SCHEMA_VERSION,
+        schema_version=PUBLISHED_SCHEMA_VERSION,
         generated_at=now,
         season=season,
         week=week,
@@ -799,7 +832,9 @@ def _history(
             )
         rank, fbs_teams = _fbs_rank(state, resolver, team=team)
         points.append(
-            RatingPoint(week=week, elo=state.ratings[team], rank=rank, fbs_teams=fbs_teams)
+            RatingPoint(
+                week=week, elo=state.ratings[team], model_rank=rank, fbs_teams=fbs_teams
+            )
         )
     return points
 
@@ -828,7 +863,7 @@ def _next_game_document(
 
     with validating(f"next-game document for season {log.season} week {log.week}"):
         return NextGameDocument(
-            schema_version=SCHEMA_VERSION,
+            schema_version=PUBLISHED_SCHEMA_VERSION,
             generated_at=now,
             season=log.season,
             week=log.week,
@@ -841,7 +876,7 @@ def _next_game_document(
             as_of=AsOf(
                 week=state.week,
                 elo=state.ratings[team],
-                national_rank=rank,
+                model_rank=rank,
                 fbs_teams=fbs_teams,
             ),
             history=history,
@@ -864,7 +899,7 @@ def _published_game(
     # cannot come from different weeks. `None` for an FCS opponent: the FBS table
     # has no place for one, and a rank on a different denominator would be a
     # different number wearing the same word (§6.3).
-    opponent_rank = (
+    opponent_model_rank = (
         _fbs_rank(state, resolver, team=opponent)[0]
         if resolver.division(opponent) == "FBS"
         else None
@@ -886,7 +921,7 @@ def _published_game(
         # number no book ever posted under a name that says one did.
         market_line=prediction.market_line,
         line_source=prediction.market_line_source,
-        opponent_rank=opponent_rank,
+        opponent_model_rank=opponent_model_rank,
         opponent_elo=state.ratings.get(opponent),
     )
 
@@ -912,7 +947,7 @@ def _fbs_rank(state: EloState, resolver: Crosswalk, *, team: str) -> tuple[int, 
     if team not in fbs:
         raise ReplayError(
             f"{team!r} is {resolver.division(team)} in the season {resolver.season} "
-            f"crosswalk, and `national_rank` is a rank among the FBS"
+            f"crosswalk, and `model_rank` is a rank among the FBS"
         )
     ahead = sum(1 for rating in fbs.values() if rating > fbs[team])
     return ahead + 1, len(fbs)
