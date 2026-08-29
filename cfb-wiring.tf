@@ -20,24 +20,23 @@ variable "cfb_data_bucket_name" {
 data "aws_region" "current" {}
 
 # ---------------------------------------------------------------------------
-# Deferred to Phase 1
+# Serving the published JSON
 # ---------------------------------------------------------------------------
-# SPEC-phase0 section 10.2: Phase 0 adds ONLY the two aws_ssm_parameter
-# resources at the bottom of this file. Phase 0 has no reason to touch the
-# live distribution -- there is no JSON to serve yet.
+# Landed in Phase 1, as SPEC-phase0 section 10.2 said it would: Phase 0 applied
+# only the two aws_ssm_parameter resources at the bottom of this file, because
+# there was no JSON to serve and no reason to touch the live distribution.
+# There is now -- `cfb publish` writes cfb/data/next-game.json and
+# cfb/data/accuracy.json -- so the OAC and the behavior below are live.
 #
-# The OAC below is a real resource: left uncommented it gets CREATED on the
-# next root apply, ahead of the behavior that would use it. It is commented
-# out rather than deleted so the design survives to Phase 1, alongside the
-# distribution changes sketched further down. The cache policy lookup goes
-# with it -- nothing references it until those changes land, and a live data
-# source is an AWS call on every plan.
-#
-# Uncomment both when the /cfb/data/* behavior is wired up.
+# CachingOptimized rather than a TTL set here, and that is a deliberate split:
+# it honours the origin's Cache-Control, so freshness is a property of the
+# upload (`cfb.publish.CACHE_CONTROL`, SPEC-phase1 6.5) rather than of this
+# file. One place decides how long a document is good for, and it is the place
+# that knows what the document is.
 
-# data "aws_cloudfront_cache_policy" "optimized" {
-#   name = "Managed-CachingOptimized"
-# }
+data "aws_cloudfront_cache_policy" "optimized" {
+  name = "Managed-CachingOptimized"
+}
 
 locals {
   cfb_data_origin_id = "cfb-data-s3"
@@ -48,78 +47,54 @@ locals {
   cfb_data_origin_domain = "${var.cfb_data_bucket_name}.s3.${data.aws_region.current.name}.amazonaws.com"
 }
 
-# resource "aws_cloudfront_origin_access_control" "cfb_data" {
-#   name                              = "cfb-data-oac"
-#   description                       = "OAC for the college football data bucket"
-#   origin_access_control_origin_type = "s3"
-#   signing_behavior                  = "always"
-#   signing_protocol                  = "sigv4"
-# }
+# The data bucket blocks all public access, so the CDN reaches it as a signed
+# principal rather than over a website endpoint. cfb/terraform already holds the
+# other half: a bucket policy allowing cloudfront.amazonaws.com to GetObject
+# under cfb/data/* and nowhere else, conditioned on this distribution's ARN. So
+# raw/ is unreachable from the internet even by accident, and it is unreachable
+# because of a policy rather than because no behavior points at it.
+resource "aws_cloudfront_origin_access_control" "cfb_data" {
+  name                              = "cfb-data-oac"
+  description                       = "OAC for the college football data bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
 
 # ---------------------------------------------------------------------------
 # Distribution changes
 # ---------------------------------------------------------------------------
-# Since modules/cloudfront is shared, take these as variables rather than
-# hardcoding "cfb" into the module. Something like:
+# modules/cloudfront is shared, so these go in as data and the module never
+# learns the word "football". Both of its new variables default to empty, which
+# is what makes this safe against a live distribution: passing nothing produces
+# byte-identical config to what was there before.
 #
-#   variable "extra_origins" {
-#     type = list(object({
-#       origin_id   = string
-#       domain_name = string
-#       oac_id      = string
-#     }))
-#     default = []
-#   }
+# One deviation from the Phase 0 sketch, which proposed a single
+# `extra_cache_policy_id` variable: the policy is carried per behavior instead.
+# A shared module has no business assuming the next subpage wants the same
+# caching as this one, and the two-line saving was not worth the assumption.
 #
-#   variable "extra_behaviors" {
-#     type = list(object({
-#       path_pattern     = string
-#       target_origin_id = string
-#     }))
-#     default = []
-#   }
-#
-# Then the module knows nothing about football and is reusable for the next
-# subpage. Inside the module, alongside the existing origin and
-# default_cache_behavior:
-#
-#   dynamic "origin" {
-#     for_each = var.extra_origins
-#     content {
-#       domain_name              = origin.value.domain_name
-#       origin_id                = origin.value.origin_id
-#       origin_access_control_id = origin.value.oac_id
-#     }
-#   }
-#
-#   dynamic "ordered_cache_behavior" {
-#     for_each = var.extra_behaviors
-#     content {
-#       path_pattern           = ordered_cache_behavior.value.path_pattern
-#       target_origin_id       = ordered_cache_behavior.value.target_origin_id
-#       allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-#       cached_methods         = ["GET", "HEAD"]
-#       viewer_protocol_policy = "redirect-to-https"
-#       compress               = true
-#       cache_policy_id        = var.extra_cache_policy_id
-#     }
-#   }
-#
-# And at the root, passing in:
-#
-#   extra_origins = [{
-#     origin_id   = local.cfb_data_origin_id
-#     domain_name = local.cfb_data_origin_domain
-#     oac_id      = aws_cloudfront_origin_access_control.cfb_data.id
-#   }]
-#
-#   extra_behaviors = [{
-#     path_pattern     = "/cfb/data/*"
-#     target_origin_id = local.cfb_data_origin_id
-#   }]
-#
-# CachingOptimized honours origin Cache-Control headers, so freshness is set
-# at upload time by publish-data.sh rather than here.
+# Consumed by the `module "cloudfront"` block in main.tf. These live here rather
+# than there so that everything football-shaped is in this one file, which is
+# what makes it removable.
+
+locals {
+  cfb_extra_origins = [{
+    origin_id   = local.cfb_data_origin_id
+    domain_name = local.cfb_data_origin_domain
+    oac_id      = aws_cloudfront_origin_access_control.cfb_data.id
+  }]
+
+  # /cfb/data/* only. The pages themselves are Next.js routes in the site
+  # bucket and are served by the default behavior like every other route --
+  # which is why this pattern is not /cfb/*, and why no CloudFront Function is
+  # needed to rewrite directory indexes.
+  cfb_extra_behaviors = [{
+    path_pattern     = "/cfb/data/*"
+    target_origin_id = local.cfb_data_origin_id
+    cache_policy_id  = data.aws_cloudfront_cache_policy.optimized.id
+  }]
+}
 
 # ---------------------------------------------------------------------------
 # The seam

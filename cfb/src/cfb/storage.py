@@ -59,8 +59,18 @@ class SnapshotStore(Protocol):
         """Write verbatim bytes. Raise ``SnapshotExistsError`` if ``key`` exists."""
         ...
 
-    def put_json(self, key: str, obj: dict) -> None:
-        """Write a manifest. Overwrites, by design -- see the module docstring."""
+    def put_json(self, key: str, obj: dict, *, cache_control: str | None = None) -> None:
+        """Write a derived document. Overwrites, by design -- see the module docstring.
+
+        ``cache_control`` is the HTTP header the object is served with, and it is
+        **honoured only by the S3 store.** The other two are not behind a CDN and
+        have no response to put a header on, so they drop it. That is not the
+        usual silent-coercion smell this project refuses: a cache directive is a
+        property of a transport, and `file://` has none. SPEC-phase1 6.5 needs it
+        because the `/cfb/data/*` behaviour runs on CachingOptimized, which takes
+        its freshness from the origin's header rather than from a TTL in
+        Terraform -- so the only place this value can be set is the upload.
+        """
         ...
 
     def get_bytes(self, key: str) -> bytes:
@@ -121,7 +131,7 @@ class MemorySnapshotStore:
             raise _exists(key)
         self._objects[key] = data
 
-    def put_json(self, key: str, obj: dict) -> None:
+    def put_json(self, key: str, obj: dict, *, cache_control: str | None = None) -> None:
         self._objects[key] = _encode(obj)
 
     def get_bytes(self, key: str) -> bytes:
@@ -165,7 +175,7 @@ class FileSnapshotStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
 
-    def put_json(self, key: str, obj: dict) -> None:
+    def put_json(self, key: str, obj: dict, *, cache_control: str | None = None) -> None:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(_encode(obj))
@@ -238,12 +248,18 @@ class S3SnapshotStore:
                 raise _exists(key) from exc
             raise
 
-    def put_json(self, key: str, obj: dict) -> None:
+    def put_json(self, key: str, obj: dict, *, cache_control: str | None = None) -> None:
+        # Omitted rather than sent empty when there is none: S3 stores
+        # `CacheControl: ""` as a real header, and CloudFront reads an empty
+        # directive as "no directive" only by luck of parsing. Manifests, which
+        # are the other caller, are never served.
+        header = {"CacheControl": cache_control} if cache_control is not None else {}
         self._client.put_object(
             Bucket=self._bucket,
             Key=key,
             Body=_encode(obj),
             ContentType="application/json",
+            **header,
         )
 
     def get_bytes(self, key: str) -> bytes:

@@ -1,12 +1,12 @@
 module "route53" {
   source = "./modules/route53"
 
-  zone_name              = var.zone_name
-  mx_records             = var.mx_records
-  ns_records             = var.ns_records
-  soa_records            = var.soa_records
+  zone_name   = var.zone_name
+  mx_records  = var.mx_records
+  ns_records  = var.ns_records
+  soa_records = var.soa_records
 
- acm_validation_records = {
+  acm_validation_records = {
     for dvo in module.acm.validation_options : dvo.domain_name => {
       name  = dvo.resource_record_name
       value = dvo.resource_record_value
@@ -19,18 +19,18 @@ module "route53" {
 
 
 module "s3" {
-  source                  = "./modules/s3"
-  bucket_name             = var.zone_name
-  region                  = var.region
+  source                     = "./modules/s3"
+  bucket_name                = var.zone_name
+  region                     = var.region
   cloudfront_distribution_id = module.cloudfront.cloudfront_distribution_id
 }
 
 module "acm" {
   source = "./modules/acm"
 
-  domain_name = var.zone_name
+  domain_name               = var.zone_name
   subject_alternative_names = var.subject_alternative_names
-  zone_id     = module.route53.zone_id
+  zone_id                   = module.route53.zone_id
 }
 
 module "cloudfront" {
@@ -39,5 +39,11 @@ module "cloudfront" {
   default_root_object = "index.html"
   origin_domain_name  = "${module.s3.bucket_name}.s3-website-us-east-1.amazonaws.com"
   origin_id           = "${module.s3.bucket_name}.s3-website-us-east-1.amazonaws.com"
-  acm_certificate_arn     = module.acm.certificate_arn
+  acm_certificate_arn = module.acm.certificate_arn
+
+  # Defined in cfb-wiring.tf, so everything football-shaped stays in one
+  # removable file. Empty lists here would produce the distribution exactly as
+  # it was before these variables existed.
+  extra_origins   = local.cfb_extra_origins
+  extra_behaviors = local.cfb_extra_behaviors
 }

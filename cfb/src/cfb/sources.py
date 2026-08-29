@@ -39,6 +39,7 @@ from cfb.storage import SnapshotStore
 
 __all__ = [
     "HFA_COLUMN",
+    "MODELLED_DIVISIONS",
     "PROVIDERS",
     "PROVIDER_PREFERENCE",
     "RawGame",
@@ -64,6 +65,16 @@ __all__ = [
 #: says to benchmark forecasts against. Read from the snapshot, never a constant.
 HFA_COLUMN = "predictor"
 
+#: The divisions the model rates. Sagarin covers 266 teams -- 138 FBS and 128 FCS
+#: -- and the Elo state has a rating for exactly those and nothing else.
+#:
+#: **`/games` returns every division, which nothing in this project knew until the
+#: first real capture.** Week 1 of 2026 came back with 455 games: 110 D-III, 109
+#: D-II, 28 FCS-vs-D-II and 37 against unclassified NAIA schools, leaving 171 the
+#: crosswalk can resolve. Without this filter `predict` fails on the first D-II
+#: team name, which is a correct error about a game that was never ours.
+MODELLED_DIVISIONS = frozenset({"fbs", "fcs"})
+
 
 class RawGame(BaseModel):
     """One row of a stored CFBD ``/games`` response.
@@ -87,6 +98,12 @@ class RawGame(BaseModel):
     away_team: str = Field(min_length=1, alias="awayTeam")
     home_points: int | None = Field(default=None, alias="homePoints")
     away_points: int | None = Field(default=None, alias="awayPoints")
+    #: ``"fbs"``, ``"fcs"``, ``"ii"``, ``"iii"``, or absent. Optional because the
+    #: vendor genuinely omits it -- an NAIA school is in no NCAA division -- and
+    #: because a required field here would reject every capture taken before this
+    #: was parsed at all. See ``is_modelled``.
+    home_classification: str | None = Field(default=None, alias="homeClassification")
+    away_classification: str | None = Field(default=None, alias="awayClassification")
 
     @property
     def is_postseason(self) -> bool:
@@ -105,6 +122,30 @@ class RawGame(BaseModel):
         across the two. This makes the season type the leading term.
         """
         return (1 if self.is_postseason else 0, self.week)
+
+    @property
+    def is_modelled(self) -> bool:
+        """Whether both teams are in the universe the model rates.
+
+        **Absent on both sides means yes**, and that asymmetry is the whole rule.
+        A capture where the vendor classified nobody is one this project has no
+        division evidence about, so the crosswalk stays the authority and an
+        unmapped name still raises -- which is the hard rule in `cfb/CLAUDE.md`
+        and must not be quietly turned into a filter.
+
+        **Classified on one side and not the other means no.** The opponent of an
+        NCAA team that the NCAA does not classify is an NAIA school, and there
+        are nine of them on week 1's slate. They have no rating and never will.
+
+        The two rules together select exactly the 171 games of that slate whose
+        names the crosswalk resolves -- the vendor's classification and this
+        project's crosswalk agreeing, independently, on the same set.
+        """
+        home = (self.home_classification or "").lower()
+        away = (self.away_classification or "").lower()
+        if not home and not away:
+            return True
+        return home in MODELLED_DIVISIONS and away in MODELLED_DIVISIONS
 
     @property
     def is_complete(self) -> bool:
@@ -291,6 +332,11 @@ def week_slate(
     for weather appears under both the week it was scheduled in and the week it
     was played in (SPEC-phase1 5.1).
 
+    **Games outside the model's divisions are excluded before anything else looks
+    at them** (``RawGame.is_modelled``). That is a selection, not a filter over
+    failures: those teams have no rating, no crosswalk entry and no prediction to
+    make, and CFBD's own classification is the evidence rather than a guess.
+
     Returned in capture order rather than sorted. Callers that care about ordering
     say so -- ``replay`` and ``advance`` sort by kickoff because Elo is
     path-dependent; ``predict`` sorts for readability.
@@ -311,6 +357,13 @@ def week_slate(
                     f"{key} is filed under season {season} and holds game {raw_game.id} "
                     f"from season {raw_game.season}"
                 )
+            if not raw_game.is_modelled:
+                # Ahead of the malformed-row check below on purpose. The one
+                # partially-scored row in week 1's capture is a D-II game, and
+                # policing the shape of a row the model will never read would
+                # redden a run over a vendor's bookkeeping in a division that is
+                # not ours.
+                continue
             if raw_game.is_partially_scored:
                 raise ReplayError(
                     f"game {raw_game.id} ({raw_game.away_team} at {raw_game.home_team}) in "

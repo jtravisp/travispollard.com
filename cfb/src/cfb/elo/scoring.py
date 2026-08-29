@@ -27,7 +27,7 @@ entered as a push would be invisible in a win-loss count.
 """
 
 import statistics
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -36,6 +36,7 @@ from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION
 from cfb.errors import UnscoredGameError
+from cfb.models import validating
 from cfb.predict import PredictedGame, PredictionLog
 from cfb.sources import RawGame, market_home_margin, week_position
 from cfb.storage import SnapshotStore
@@ -47,8 +48,12 @@ __all__ = [
     "CalibrationBucket",
     "ScoredGame",
     "ScoredWeek",
+    "accuracy_of",
+    "calibration_of",
+    "read_scored",
     "score_week",
     "scored_key",
+    "scored_weeks",
     "write_scored",
 ]
 
@@ -288,11 +293,11 @@ def score_week(
         results_fetched_at=results_fetched_at,
         games=scored,
         unplayed=unplayed,
-        texas=_accuracy(
+        texas=accuracy_of(
             [game for game in scored if TEXAS in (game.home, game.away)]
         ),
-        full_slate=_accuracy(scored),
-        calibration=_calibration(scored),
+        full_slate=accuracy_of(scored),
+        calibration=calibration_of(scored),
         sagarin_r=_sagarin_correlation(scored),
     )
 
@@ -319,6 +324,66 @@ def write_scored(store: SnapshotStore, week: ScoredWeek) -> str:
     key = scored_key(season=week.season, week=week.week, generated_at=week.generated_at)
     store.put_bytes(key, week.model_dump_json(indent=2).encode("utf-8"), "application/json")
     return key
+
+
+def read_scored(store: SnapshotStore, key: str) -> ScoredWeek:
+    """One stored scored week, validated at the boundary.
+
+    Written by an earlier run rather than by the code reading it, so nothing
+    guarantees it still matches this reader's schema -- the same reason
+    ``elo.state.load_state`` and ``predict.read_predictions`` validate.
+    """
+    with validating(f"scored week at {key}"):
+        return ScoredWeek.model_validate_json(store.get_bytes(key))
+
+
+def scored_weeks(store: SnapshotStore, *, season: int) -> list[ScoredWeek]:
+    """Every scored week of a season, in season order, newest generation of each.
+
+    **Newest generation, not every generation.** A rescore writes a second key and
+    keeps the first (§5.3), so a season-to-date figure built over all of them
+    would count a rescored week twice -- which is invisible in a mean and obvious
+    only in a denominator nobody checks.
+
+    An empty list is the ordinary answer on the Friday before the season's first
+    Sunday, and publishing has to survive it: the accuracy page opening with no
+    results is a true statement, and refusing to publish would fail the one
+    deadline §8 calls the SLO.
+    """
+    newest: dict[str, str] = {}
+    for key in store.list_keys(f"scored/season={season}/"):
+        parsed = _parse_scored_key(key)
+        if parsed is None:
+            continue
+        parsed_season, week, _ = parsed
+        if parsed_season != season:
+            continue
+        # Lexicographic ascending from `list_keys`, fixed-width UTC stamps, so the
+        # last sighting of a week is its newest generation.
+        newest[week] = key
+    return [
+        read_scored(store, newest[week])
+        for week in sorted(newest, key=lambda value: week_position(value))
+    ]
+
+
+def _parse_scored_key(key: str) -> tuple[int, str, datetime] | None:
+    """``(season, week, generated_at)`` from a scored key, or ``None``.
+
+    ``None`` rather than a raise, matching ``predict._parse_prediction_key``: this
+    walks a prefix, and a listing is not the place to fail over a stray object
+    someone put there by hand.
+    """
+    if not key.startswith("scored/season=") or not key.endswith(".json"):
+        return None
+    try:
+        _, season_part, week_part, stamp = key.split("/")
+        season = int(season_part.removeprefix("season="))
+        week = week_part.removeprefix("week=")
+        generated_at = datetime.strptime(stamp.removesuffix(".json"), _STAMP_FORMAT)
+    except ValueError:
+        return None
+    return season, week, generated_at.replace(tzinfo=UTC)
 
 
 def _refuse_unpredicted_results(
@@ -457,7 +522,16 @@ def _mean(values: list[float]) -> float | None:
     return statistics.fmean(values) if values else None
 
 
-def _accuracy(games: list[ScoredGame]) -> Accuracy:
+def accuracy_of(games: list[ScoredGame]) -> Accuracy:
+    """§5.3's figures over any set of scored games.
+
+    Public because §6.4's season-to-date record is the same computation over the
+    union of every scored week, and **it cannot be an average of the weekly
+    means**: the weeks have different denominators, and averaging averages would
+    weight a three-game Tuesday equally with a sixty-game Saturday. Publishing
+    recomputes from the rows for that reason, through this function rather than
+    through a second copy of it.
+    """
     priced = [game for game in games if game.market_abs_error is not None]
     benchmarked = [game for game in games if game.sagarin_abs_error is not None]
 
@@ -483,7 +557,7 @@ def _accuracy(games: list[ScoredGame]) -> Accuracy:
     )
 
 
-def _calibration(games: list[ScoredGame]) -> list[CalibrationBucket]:
+def calibration_of(games: list[ScoredGame]) -> list[CalibrationBucket]:
     """Predicted probability against observed win rate, in ten-point bands (§5.3).
 
     Empty bands are omitted rather than published as zero: a bucket nothing landed

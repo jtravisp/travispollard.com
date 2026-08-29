@@ -20,10 +20,10 @@ happened", and a traceback means "this tool is broken" -- two different things
 that a wider catch would merge.
 
 SPEC 8 also lists ``crosswalk verify``; SPEC-phase1 9 lists ``elo seed``,
-``predict``, ``score``, ``publish`` and ``note``. The first three are registered
-and ``publish`` and ``note`` are not, for the reason the missing ones always
-were: a command whose module does not exist gives a workflow something that exits
-non-zero for a reason unrelated to the data. ``elo replay`` is here because
+``predict``, ``score``, ``publish`` and ``note``. All of them are registered as
+of Phase 1. SPEC 8's ``crosswalk verify`` is not, and will not be: the SPEC 6.5
+assertions it would run are `uv run pytest cfb/tests/test_crosswalk.py`, which
+SPEC 6.4's fix loop already tells you to type. ``elo replay`` is here because
 SPEC-phase1 11 step 5 is a command a human runs, and it is the check that keeps
 the stored Elo state a cache rather than a second source of truth.
 """
@@ -37,17 +37,21 @@ from urllib.parse import urlparse
 from cfb.calendar import coming_week, in_season, last_completed_week, load_calendar
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
-from cfb.errors import CfbError, SeedStateError, WeekResolutionError
+from cfb.errors import CfbError, ReplayError, SeedStateError, WeekResolutionError
 from cfb.logging import (
     EVENT_ELO_REPLAY,
     EVENT_ELO_STATE,
     EVENT_ELO_VERIFY,
+    EVENT_INVALIDATED,
+    EVENT_NOTE_WRITTEN,
     EVENT_PREDICTIONS_WRITTEN,
+    EVENT_PUBLISHED,
     EVENT_SNAPSHOT_WRITTEN,
     EVENT_WEEK_SCORED,
     REASON_NO_COMING_WEEK,
     REASON_NO_COMPLETED_WEEK,
     REASON_NO_STORED_STATE,
+    REASON_NOT_A_CDN_ORIGIN,
     REASON_NOT_IN_SEASON,
     RESULT_OK,
     RESULT_SKIP,
@@ -198,6 +202,33 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_store(score)
 
+    publish = commands.add_parser(
+        "publish", help="build and upload /cfb/data/* (SPEC-phase1 6)"
+    )
+    publish.add_argument("--season", type=int)
+    publish.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week about to be played",
+    )
+    publish.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
+    _add_store(publish)
+
+    note = commands.add_parser(
+        "note", help="write a week's note scaffold (SPEC-phase1 7)"
+    )
+    note.add_argument("--season", type=int)
+    note.add_argument(
+        "--week",
+        metavar="N",
+        help="1-15; defaults to the week that just completed",
+    )
+    _add_store(note)
+
     # SPEC 8 also lists `crosswalk verify`; the SPEC 6.5 assertions it would run
     # are `uv run pytest cfb/tests/test_crosswalk.py`, which is what SPEC 6.4's
     # fix loop already tells you to type. A second way to run the same checks is
@@ -243,6 +274,10 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _crosswalk_bootstrap(args)
     if args.command == "elo":
         return _elo(args, moment=moment)
+    if args.command == "note":
+        return _note(args, moment=moment)
+    if args.command == "publish":
+        return _publish(args, moment=moment)
     if args.command == "score":
         return _score(args, moment=moment)
     if args.command == "predict":
@@ -579,6 +614,183 @@ def _score(args, *, moment: datetime) -> int:
         brier=scored.full_slate.brier,
         texas_games=scored.texas.games,
         elo_state=state,
+    )
+    return 0
+
+
+def _publish(args, *, moment: datetime) -> int:
+    """SPEC-phase1 8's Friday run: build `/cfb/data/*` and upload it.
+
+    **This is the SLO**, and its deadline is first kickoff Saturday. §8 is
+    explicit that it can genuinely be missed and that there is no
+    retry-until-it-works loop, because a prediction published after kickoff is not
+    a prediction -- so everything here either succeeds loudly or fails loudly, and
+    the `published` line is what an alert reads.
+
+    The week default is `coming_week`, the same one `cfb predict` uses, because
+    the two commands are two halves of one week: Thursday writes the forecast and
+    Friday puts it on the page. A publish that resolved the week differently from
+    the predict that fed it would be publishing a slate nobody generated.
+
+    **The invalidation is a separate step and a separate log line**, after both
+    documents are written. §6.5 pairs it with the upload, but the upload is what
+    makes the new numbers exist and the invalidation only makes them visible
+    sooner -- a failure here is a slow page, not a wrong one. A Friday run has to
+    be readable on that distinction at a glance.
+
+    It is skipped, loudly, when the store is not the bucket the CDN reads. A
+    `file://` publish has no edge cache in front of it, and a run reporting an
+    invalidation it never made would be the one line on a Friday nobody could
+    trust.
+    """
+    from cfb.publish import ACCURACY_KEY, NEXT_GAME_KEY, publish
+
+    season = args.season or _season_of(moment)
+    calendar = load_calendar(season, data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        log(
+            EVENT_PUBLISHED,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else coming_week(moment, calendar=calendar)
+    )
+    if week is None:
+        log(
+            EVENT_PUBLISHED,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMING_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+    written = publish(store=store, season=season, week=week, now=moment)
+
+    # Re-read rather than re-derive: the numbers on this line are the ones a
+    # person would check the live page against, so they should come from the
+    # document that was actually written.
+    from cfb.publish import AccuracyDocument, NextGameDocument
+
+    next_game = NextGameDocument.model_validate_json(store.get_bytes(NEXT_GAME_KEY))
+    accuracy = AccuracyDocument.model_validate_json(store.get_bytes(ACCURACY_KEY))
+
+    log(
+        EVENT_PUBLISHED,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        keys=" ".join(sorted(written)),
+        team=next_game.team,
+        # `bye` rather than a missing field: a Friday where `/cfb` shows no game
+        # should be visible in the run that put it there.
+        opponent=next_game.game.opponent if next_game.game else "bye",
+        win_probability=next_game.game.win_probability if next_game.game else None,
+        national_rank=next_game.as_of.national_rank,
+        elo_state_week=next_game.as_of.week,
+        scored_through=accuracy.through_week,
+        scored_games=accuracy.full_slate.games,
+        seed_disclosure=accuracy.seed_disclosure.active,
+        sagarin_r=accuracy.seed_disclosure.current_r,
+    )
+
+    _invalidate(args, season=season, week=week, moment=moment)
+    return 0
+
+
+def _invalidate(args, *, season: int, week: str, moment: datetime) -> None:
+    """§6.5's `/cfb/data/*` invalidation, or a logged skip saying why not."""
+    if urlparse(args.store).scheme != "s3":
+        log(
+            EVENT_INVALIDATED,
+            season=season,
+            week=week,
+            result=RESULT_SKIP,
+            reason=REASON_NOT_A_CDN_ORIGIN,
+            store=args.store,
+        )
+        return
+
+    from cfb.cdn import DATA_PATHS, distribution_id, invalidate
+
+    distribution = distribution_id()
+    # The run's own moment as the caller reference, so a retried publish asks
+    # CloudFront for the same invalidation rather than a second one -- see
+    # `cdn.invalidate` for why this is the caller's to supply.
+    reference = f"cfb-publish-{season}-{week}-{moment.strftime('%Y-%m-%dT%H%M%SZ')}"
+    log(
+        EVENT_INVALIDATED,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        distribution=distribution,
+        paths=" ".join(DATA_PATHS),
+        invalidation=invalidate(distribution=distribution, caller_reference=reference),
+    )
+
+
+def _note(args, *, moment: datetime) -> int:
+    """SPEC-phase1 7: the scaffold a person turns into the week's note.
+
+    **No in-season guard, unlike every other command here.** The others are
+    scheduled and gate on the calendar so an out-of-season cron is a skip rather
+    than a failure; this one is only ever run by hand, by someone who has decided
+    to write about a specific week. Skipping silently because of the date would
+    be answering a question they did not ask.
+
+    Reads the newest scored generation for the week. There is no pre-kickoff
+    subtlety here of the kind `cfb score` has: a scaffold describes games that
+    have been played, so the newest scoring of them is simply the best one.
+    """
+    from cfb.elo.scoring import scored_weeks
+    from cfb.publish.notes import write_scaffold
+
+    season = args.season or _season_of(moment)
+    week = (
+        _week_partition(args.week, flag="--week")
+        if args.week is not None
+        else last_completed_week(moment, calendar=load_calendar(season, data_dir=_data_dir()))
+    )
+    if week is None:
+        log(
+            EVENT_NOTE_WRITTEN,
+            season=season,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
+
+    store = _store(args.store)
+    scored = [found for found in scored_weeks(store, season=season) if found.week == week]
+    if not scored:
+        raise ReplayError(
+            f"week {week} of season {season} has not been scored, so there are no figures "
+            f"to build a note from. Score it first:\n"
+            f"  uv run cfb score --season {season} --week "
+            f"{int(week) if week.isdigit() else week}"
+        )
+
+    week_scored = scored[0]
+    key = write_scaffold(store, week_scored, generated_at=moment)
+    log(
+        EVENT_NOTE_WRITTEN,
+        season=season,
+        week=week,
+        result=RESULT_OK,
+        key=key,
+        games=len(week_scored.games),
+        # The three things the scaffold is built around, so the run says what it
+        # actually had to work with.
+        texas=any(game.home == "texas" or game.away == "texas" for game in week_scored.games),
+        ats=week_scored.full_slate.ats.record,
+        mae=week_scored.full_slate.mae,
     )
     return 0
 

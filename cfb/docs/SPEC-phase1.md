@@ -576,9 +576,17 @@ the target week's own `/games` capture and never from a wall clock, for the reas
 /cfb/data/
   next-game.json        -> /cfb
   accuracy.json         -> /cfb/accuracy
-  notes/index.json      -> the note list
-  notes/<slug>.json     -> /cfb/notes/[slug]
 ```
+
+**The two `notes/` documents are dropped, resolved 2026-08-29.** This section used to
+publish `notes/index.json` and `notes/<slug>.json`, which contradicted §7 — that section says the
+finished note is committed to the repo as MDX under `frontend/app/cfb/notes/`, "because it is prose
+that ships with the site rather than data the pipeline owns". Both could not be the source for
+`/cfb/notes/[slug]`.
+
+§7 wins. The pipeline's only note output is the scaffold it writes to `notes/` in the bucket, which a
+person edits and commits; the site build publishes it. The route therefore does *zero* fetches, which
+satisfies this section's one-fetch rule more completely than a JSON document would have.
 
 Each route does exactly one fetch and renders. No client-side joining, no request waterfall, and the pages
 stay free of composition logic — which matters because they are static-exported and the PRD forbids
@@ -629,6 +637,21 @@ crosswalk's job ends at the boundary of the pipeline.
 `"consensus"` in an earlier draft, which was a guess — CFBD publishes per-book prices and no consensus,
 so the page would have been attributing a DraftKings number to something that does not exist.
 
+**Four things the sketch above leaves out, all of them found by generating the document.**
+
+- **`game` is nullable, and a bye is why.** Texas has bye weeks; a page blanked entirely for one would
+  be a worse statement than a missing fixture. `as_of` is populated either way, because the ratings are
+  true whether or not there is a game that week.
+- **`team` is on the document.** Every other field is *about* a team the sketch never names, and a
+  document whose subject is implicit is one the page has to hardcode.
+- **`predicted_margin` and `win_probability` are signed for the subject team, not the home team.**
+  Everything in `predictions/` is home-perspective (§4.2) and this document is read by a page about one
+  team. An away game left in the storage convention renders perfectly and says the opposite thing.
+  `market_line` is **not** re-signed: it is the book's own quote, printed beside `line_source`.
+- **`as_of` carries `fbs_teams`, and `national_rank` is among the FBS.** The Elo state rates all 266
+  teams Sagarin covers, 128 of them FCS, so a rank over the whole table is a different number wearing
+  the same word. The denominator travels with it for the reason §5.3 makes every sample size travel.
+
 ### 6.4 `accuracy.json`
 
 Carries both records side by side, the calibration curve, the by-week series, and the seed disclosure:
@@ -654,6 +677,26 @@ Carries both records side by side, the calibration curve, the by-week series, an
 and `retired_week` records the week — and the page keeps showing the fact that it retired, because a
 disclosure that vanishes without trace is worse than one that never appeared.
 
+**Retirement is one-way.** A later week climbing back above the threshold does not un-retire it. The
+claim being retired is "these ratings are still a restatement of Sagarin's page", and once that has
+been false for a week it is not something the page can assert again. `current_r` keeps showing the
+newest measurement so both facts are on the page. A `null` correlation — a week Sagarin's page covered
+fewer than two games of — is not a low one and retires nothing.
+
+**Three corrections to the sketch above.**
+
+- **`ats` is an object, not the bare string.** §5.3 says the sample size always travels with the
+  record, and `"2-2"` cannot distinguish four priced games from forty where thirty-six had no line.
+  It carries `record` plus §5.3's five counters. Where §6.4 and §5.3 disagree, §5.3 governs.
+- **`line_mae` carries `line_games`**, its own denominator, which is smaller than `games`. Same for
+  `sagarin_mae` and `sagarin_games`. Averaging a benchmark over games it never priced flatters it.
+- **`through_week` is a separate field from the envelope's `week`.** The envelope's week is the run's
+  — a Friday publish is *for* a week nobody has played — and `through_week` is the newest week the
+  document actually has results for. `null` before the season's first Sunday, which is also when every
+  mean in the document is `null` and both records read zero games. That is a legal, publishable
+  document: refusing to publish it would fail §8's SLO over the absence of results nobody could have
+  had.
+
 ### 6.5 Caching and invalidation
 
 `/cfb/data/*` is served from the data bucket through the existing distribution (Phase 0 §10.2 deferred this
@@ -663,6 +706,46 @@ work to Phase 1). Documents are small and change weekly:
 - The publish step issues a CloudFront invalidation for `/cfb/data/*` after upload. The site pipeline's
   invalidation is manual today (root `CLAUDE.md`); this one is not, because a stale prediction is the
   failure mode the Friday SLO exists to prevent.
+
+**Where the header is set, and why it is not in Terraform.** The behavior runs on the managed
+CachingOptimized policy, which honours the origin's `Cache-Control` rather than imposing a TTL. So the
+directive is written at upload time (`cfb.publish.CACHE_CONTROL`, passed through
+`storage.put_json`) and the distribution has no opinion about it. One place decides how long a
+document is good for and it is the place that knows what the document is — a TTL in `cfb-wiring.tf`
+would be a second answer, in a file that never sees the JSON, that silently wins.
+
+**The invalidation is a separate step from the upload, and a separate log line.** The upload is what
+makes the new numbers exist; the invalidation only makes them visible sooner. A failure of the second
+is a slow page and a failure of the first is a wrong one, and a Friday run has to be readable on that
+distinction. `cfb publish` therefore writes both documents, logs `published`, and only then
+invalidates and logs `invalidated`. When the store is not `s3://` it logs a skip naming the reason
+rather than claiming an invalidation it never made.
+
+**The bucket is reached through an Origin Access Control, not a website endpoint.** The site bucket is
+public-read behind a custom origin (root `CLAUDE.md`); the data bucket blocks all public access and is
+read by CloudFront as a signed principal, with `cfb/terraform` allowing `s3:GetObject` on `cfb/data/*`
+only and conditioned on this distribution's ARN. `raw/` is therefore unreachable from the internet
+because of a policy rather than because no behavior happens to point at it.
+
+**Where the header is set, and why it is not in Terraform.** The behavior runs on the managed
+CachingOptimized policy, which honours the origin's `Cache-Control` rather than imposing a TTL. So the
+directive is written at upload time (`cfb.publish.CACHE_CONTROL`, passed through
+`storage.put_json`) and the distribution has no opinion about it. One place decides how long a
+document is good for and it is the place that knows what the document is — a TTL in `cfb-wiring.tf`
+would be a second answer, in a file that never sees the JSON, that silently wins.
+
+**The invalidation is a separate step from the upload, and a separate log line.** The upload is what
+makes the new numbers exist; the invalidation only makes them visible sooner. A failure of the second
+is a slow page and a failure of the first is a wrong one, and a Friday run has to be readable on that
+distinction. `cfb publish` therefore writes both documents, logs `published`, and only then
+invalidates and logs `invalidated`. When the store is not `s3://` it logs a skip naming the reason
+rather than claiming an invalidation it never made.
+
+**The bucket is reached through an Origin Access Control, not a website endpoint.** The site bucket is
+public-read behind a custom origin (root `CLAUDE.md`); the data bucket blocks all public access and is
+read by CloudFront as a signed principal, with `cfb/terraform` allowing `s3:GetObject` on `cfb/data/*`
+only and conditioned on this distribution's ARN. `raw/` is therefore unreachable from the internet
+because of a policy rather than because no behavior happens to point at it.
 
 ---
 
@@ -675,7 +758,25 @@ to `notes/season=2026/week=04/scaffold.md` in the bucket.
 Commentary is added by hand and the finished note is committed to the repo as MDX under
 `frontend/app/cfb/notes/`, because it is prose that ships with the site rather than data the pipeline
 owns. That is the one thing in this phase that is a human step by design, and the PRD's fifteen-minute
-target is what the scaffold exists to protect.
+target is what the scaffold exists to protect. §6.1's two `notes/` JSON documents are dropped in
+favour of this.
+
+**The key is `notes/season=2026/week=04/<ts>.md`, not the fixed `scaffold.md` named above.** A fixed
+name cannot be written twice: `put_bytes` refuses an existing key and the publisher role has no
+`s3:DeleteObject`, so the second run of a week — after a rescore, or after the first scaffold was
+edited badly — would fail on the write instead of producing a scaffold. Making it the one mutable
+non-JSON object in the layout would buy nothing, since it is derived entirely from `scored/` and a
+person simply takes the newest.
+
+**Team names in the scaffold are rendered, never canonical ids.** The first scaffold generated said
+"Texas hosted ohio-state" and "North Carolina at TCU" appeared as "north-carolina at tcu" — §6.3's
+rule broken in the most visible possible place, a document whose entire purpose is to be read by a
+person and then published as prose.
+
+`cfb note` has no `in_season` guard, unlike every other command in §9. The others are scheduled and
+gate on the calendar so an out-of-season cron is a skip rather than a failure; this one is only run by
+hand, by someone who has decided to write about a specific week, and skipping over the date would be
+answering a question they did not ask.
 
 ---
 
