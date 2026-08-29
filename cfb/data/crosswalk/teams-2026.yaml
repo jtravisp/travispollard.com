@@ -1,13 +1,29 @@
 # Crosswalk for the 2026 season (SPEC-phase0 6.1).
 #
-# canonical_id: project-owned slug, stable forever, vendor-neutral. A vendor
-# renaming a team rewrites one line here rather than every historical row.
+# canonical_id: project-owned slug, minted once from a vendor's spelling -- so it
+# is not vendor-neutral. Every id below is a slug of the Sagarin name, and 31 of
+# the 266 differ from the CFBD spelling for exactly that reason: USC is
+# `southern-california`, UCF is `central-florida-ucf`, UConn is `connecticut`.
 #
-# 266 entries: all 266 teams Sagarin rates, 138 FBS and 128 FCS.
-# 234 matched exactly on name via `cfb crosswalk bootstrap`; the other 32 were
-# decided by hand from _candidates-2026.yaml. cfbd_id and division on those 32
-# were filled from tests/fixtures/rosters/cfbd-2026.json by exact name lookup,
-# which is also what test_crosswalk.py cross-checks them against.
+# Where an id came from stops mattering once it is frozen, and it is frozen twice
+# over. Within the season, because a played season's mapping never changes. Across
+# seasons, because `cfb crosswalk bootstrap` inherits ids by cfbd_id rather than
+# re-deriving them from names -- without which Sagarin respelling "Southern
+# California" to "USC" next year would mint `usc`, and this team's history would
+# split in half precisely where Phase 2's backfill joins across seasons.
+#
+# So cfbd_id is load-bearing here, not decoration. It has to be present and unique
+# on every row: a row missing one is re-minted next season under whatever the
+# vendor calls it then, and two rows sharing one make the inheritance ambiguous.
+# tests/test_crosswalk_stability.py pins both against this file.
+#
+# 266 entries: all 266 teams Sagarin rates, 138 FBS and 128 FCS. 234 matched
+# exactly on name via `cfb crosswalk bootstrap`; the other 32 were decided by hand
+# from _candidates-2026.yaml, which was scratch, is now fully absorbed here, and
+# has been deleted -- git history has it if the scoring is ever wanted again.
+# cfbd_id and division on those 32 were filled from
+# tests/fixtures/rosters/cfbd-2026.json by exact name lookup, which is also what
+# test_crosswalk.py cross-checks them against.
 #
 # Conference is deliberately absent: it is time-varying and belongs in each
 # snapshot's parsed output, not in a mapping that a played season freezes.

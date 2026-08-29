@@ -79,8 +79,12 @@ class TestCoverage:
         missing = _unmapped(sagarin_roster, crosswalk.from_sagarin)
         assert not missing, (
             f"{len(missing)} of {len(sagarin_roster)} Sagarin names are unmapped. "
-            f"Decide them in data/crosswalk/teams-2026.yaml -- the ordered candidates are in "
-            f"_candidates-2026.yaml:\n  " + "\n  ".join(missing[:40])
+            f"Decide them in data/crosswalk/teams-2026.yaml. The ranked candidates file "
+            f"that ordered the original 32 was scratch, is fully absorbed into that "
+            f"file, and has been deleted; it is in git history, and `cfb crosswalk "
+            f"bootstrap` refuses to overwrite a mapping that exists, so move the "
+            f"mapping aside first to rank these:"
+            f"\n  " + "\n  ".join(missing[:40])
         )
 
     def test_every_cfbd_name_resolves(self, crosswalk, cfbd_roster):
