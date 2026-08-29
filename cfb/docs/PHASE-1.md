@@ -883,6 +883,44 @@ Neither of the two suspects was the hang:
 So the chain is: missing system libraries → 7 webkit failures → failures trigger
 the report server → unbounded block.
 
+### And the fix for it introduced a second failure
+
+`--with-deps` assumed a Debian base image. **CodeBuild runs Amazon Linux 2023,
+which has no `apt-get`**, and Playwright's dependency step shells out to it:
+
+```
+22:01:21  npx playwright install --with-deps
+          BEWARE: your OS is not officially supported by Playwright;
+          installing dependencies for ubuntu20.04-x64 as a fallback.
+          sh: line 1: apt-get: command not found
+          Failed to install browsers
+          Error: Installation process exited with code: 127
+22:01:22  Phase complete: INSTALL State: FAILED
+```
+
+**One second, and no browser downloaded at all.** The dependency step runs
+*first*, so its failure aborted the whole install rather than degrading it — the
+build was worse off than before the fix. There is no `Downloading Chromium` line
+in that log.
+
+Worth naming as its own mistake rather than folding into the one above: the first
+fix was verified by reproducing the failure locally, and the second was not
+verified at all. It was reasoned from what Playwright's docs recommend, on an
+image whose package manager I never checked.
+
+- [x] **`--with-deps` dropped.** The libraries it would have installed were only
+      ever needed by webkit
+- [x] **webkit dropped from the projects list**, with the reasoning next to the
+      config rather than only here. **webkit on Linux is not what tests Safari on
+      iOS** — different rendering stack, different fonts, different media support,
+      none of a phone's touch or viewport behaviour. It reads like Safari coverage
+      and is not, so dropping it costs nothing this project was actually getting
+  - [x] If cross-browser coverage matters later, the fix is a **different
+        CodeBuild image** — Ubuntu-based, or Playwright's own container — not a
+        dependency flag on this one
+- [x] Verified with both remaining projects actually installed: **16 passed,
+      exit 0, 25s**, against a five-minute bound
+
 ### Three fixes, in order of what actually mattered
 
 - [x] **`globalTimeout: 5 * 60 * 1000`** — the guard that was missing. **A per-test
@@ -892,10 +930,10 @@ the report server → unbounded block.
       not be a reporter
 - [x] **`reporter: [['html', { open: 'never' }], ['line']]`** — the specific
       cause. Writes the report without serving it, whether or not `CI` is set
-- [x] **`npx playwright install --with-deps`** in `buildspec.yml`, and `CI=true`
-      on the test command as belt to the config's braces — Playwright reads `CI`
-      to suppress the server, retry flaky specs, and forbid `test.only`, and
-      CodeBuild sets none of it
+- [x] **`CI=true`** on the test command in `buildspec.yml`, as belt to the
+      config's braces — Playwright reads `CI` to suppress the server, retry flaky
+      specs, and forbid `test.only`, and CodeBuild sets none of it
+  - [x] `--with-deps` was added here too and **had to be reverted** — see above
 
 ### Verified by reproducing the failure, not by reading the docs
 
