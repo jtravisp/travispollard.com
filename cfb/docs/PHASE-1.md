@@ -34,9 +34,12 @@ Run against **production** this session:
 | `cfb predict --week 2` | exit 0, `games=120 hfa=2.41 benchmarked=0 priced=0` |
 | `cfb publish --week 2` | exit 0, both keys written, **`invalidated ... invalidation=I4VKE563KALNI7LATB9JQX0D90`** |
 | `curl https://travispollard.com/cfb/data/next-game.json` | **200**, `server: AmazonS3`, `cache-control: public, max-age=300, s-maxage=3600` |
+| `cfb fetch cfbd --resource lines --week 2` | exit 0 — 86 games, **7 carry a spread**; books have not posted most of a slate two weeks out |
+| `cfb predict --week 2` again, then `cfb publish` | exit 0, `priced=7`; the regenerate is a second write-once key and `publish` took the newest, which is the designed flow for "a line arrived" |
 
 The live document reads Texas vs Ohio State, week 2, kickoff `2026-09-12T23:30Z`, `national_rank: 5`
-of 138 — and `accuracy.json` reads `through_week: null` with every mean `null`, which is the legal
+of 138, `market_line: -1.5` from DraftKings — the market has Texas by 1.5 and the model has Ohio
+State by 2.2, which is the first real disagreement the page has shown — — and `accuracy.json` reads `through_week: null` with every mean `null`, which is the legal
 empty-season shape §6.4 requires rather than a page claiming zeros.
 
 Also verified, offline:
@@ -602,6 +605,14 @@ selector, and it belongs where every other "read this out of `raw/`" does.
     fixture working: none of them set a classification.
   - The rule selects exactly 171 games — the vendor's classification and this project's crosswalk
     agreeing independently on the same set.
+  - **It loses no FBS game, which is what makes it a scope decision rather than a gap.** Week 1: 99
+    of 99 games involving an FBS team are kept. Week 2: 86 of 86. Everything excluded is either two
+    non-Division-I teams, or an FCS team playing a D-II or NAIA opponent. The deliverable is
+    "predictions for every FBS game" and that is at 100%.
+  - The residual is a **model-fidelity** point, not a coverage one: an FCS team's game against a
+    D-II opponent does not update its Elo, so FCS ratings carry slightly less information into
+    FBS-vs-FCS predictions. Roughly 28 games a week league-wide. A Phase 2 idea is a single
+    synthetic replacement-level opponent to absorb them; nothing in Phase 1 needs it.
 - **The run that found it was stopped by a malformed row in a division that was never ours.**
   `Delta State at Northeastern State`, `home=52 away=None`, on a D-II game that had not kicked off.
   The division filter now runs ahead of the partially-scored check, so a vendor's bookkeeping in
