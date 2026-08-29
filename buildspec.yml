@@ -7,7 +7,13 @@ phases:
     commands:
       - cd frontend
       - npm ci
-      - npx playwright install
+      # --with-deps installs the system libraries the browsers need. Without it
+      # the download succeeds and webkit then cannot launch: the 2026-08-29 run
+      # failed 7 specs on missing libicudata.so.66, libwoff2dec, libx264 and ten
+      # more, while chromium and firefox ran clean. The image also warns that its
+      # OS is not officially supported and falls back to an ubuntu20.04 build,
+      # which is why the gap shows up on webkit first.
+      - npx playwright install --with-deps
 
   build:
     commands:
@@ -16,7 +22,11 @@ phases:
   post_build:
     commands:
       - echo "Running Playwright smoke tests..."
-      - npx playwright test
+      # CI=true is belt to the config's braces. Playwright reads it to suppress
+      # the report server, retry flaky specs, and forbid `test.only`; CodeBuild
+      # does not set it, so without this the container looks like a laptop to
+      # every tool that checks.
+      - CI=true npx playwright test
 
 artifacts:
   base-directory: frontend/out  # This is where `next export` puts static site
