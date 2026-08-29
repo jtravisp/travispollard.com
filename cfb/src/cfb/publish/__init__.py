@@ -158,6 +158,16 @@ class PublishedGame(BaseModel):
     model_config = _STRICT
 
     kickoff: datetime
+    #: **When this forecast was written**, which is not when the page was built.
+    #:
+    #: The document's own ``generated_at`` is the publish run's moment, and the
+    #: two differ by hours -- a prediction stamped 19:40 was republished at 22:12.
+    #: The claim this project makes is that a forecast existed *before kickoff*,
+    #: and only this timestamp carries it: a publish time says when the page was
+    #: rebuilt, which is a fact about the site rather than about the model.
+    #:
+    #: Optional, so a document published before this field existed still reads.
+    forecast_generated_at: datetime | None = None
     #: **The week this game belongs to, which is not always the run's week.**
     #: `/cfb` shows the next unplayed game wherever it is, so a run during a long
     #: week can legitimately feature a game from an earlier week than the one
@@ -869,7 +879,15 @@ def _next_game_document(
             week=log.week,
             team=resolver.display_name(team),
             game=(
-                _published_game(fixture, resolver, state, team=team, week=log.week)
+                _published_game(
+                    fixture,
+                    resolver,
+                    state,
+                    team=team,
+                    week=log.week,
+                    # The prediction log's own moment, not this run's.
+                    forecast_generated_at=log.generated_at,
+                )
                 if fixture is not None
                 else None
             ),
@@ -891,6 +909,7 @@ def _published_game(
     *,
     team: str,
     week: str,
+    forecast_generated_at: datetime,
 ) -> PublishedGame:
     """One prediction row, re-signed from the home team's view to the subject's."""
     at_home = prediction.home == team
@@ -906,6 +925,7 @@ def _published_game(
     )
     return PublishedGame(
         kickoff=prediction.kickoff,
+        forecast_generated_at=forecast_generated_at,
         week=week,
         opponent=resolver.display_name(opponent),
         home=at_home,

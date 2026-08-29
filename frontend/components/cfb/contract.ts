@@ -44,6 +44,14 @@ export interface Envelope {
 /** §6.3's `game` block. Signed for the subject team, not the home team. */
 export interface PublishedGame {
   kickoff: string;
+  /**
+   * When the forecast was written — not when the page was built.
+   *
+   * The document's own `generated_at` is the publish run's moment, and the two
+   * differ by hours. The claim is that a prediction existed *before kickoff*, and
+   * only this timestamp carries it.
+   */
+  forecast_generated_at?: string | null;
   /** The game's own week, which is not always the document's. */
   week: string;
   opponent: string;

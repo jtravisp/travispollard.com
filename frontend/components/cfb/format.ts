@@ -132,3 +132,38 @@ export function formatWeek(week: string): string {
   if (week === 'postseason') return 'Postseason';
   return `Week ${Number(week)}`;
 }
+
+/**
+ * The market's line as a margin **for the subject team**.
+ *
+ * `market_line` is home-perspective and negative-favours-home (§4.3), so the
+ * conversion depends on whether the subject is at home. This is the only place
+ * that flip happens for a subject-team page.
+ */
+export function marketMarginFor(
+  line: number | null | undefined,
+  atHome: boolean,
+): number | null {
+  if (line == null) return null;
+  return atHome ? -line : line;
+}
+
+/**
+ * How much more the model likes the subject team than the market does.
+ *
+ * **The one number that distinguishes this page from a scoreboard.** A win
+ * probability of 99% reads the same whether the model is right or badly wrong;
+ * the disagreement with a book that prices the same game is the claim the
+ * accuracy record eventually settles.
+ *
+ * Positive means the model is higher on the subject team than the market.
+ * `null` when nothing priced the game.
+ */
+export function edgeOver(
+  predictedMargin: number,
+  line: number | null | undefined,
+  atHome: boolean,
+): number | null {
+  const market = marketMarginFor(line, atHome);
+  return market === null ? null : predictedMargin - market;
+}

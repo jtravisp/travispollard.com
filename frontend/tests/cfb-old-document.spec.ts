@@ -76,7 +76,9 @@ test.describe('/cfb against a document written before the new fields', () => {
     await page.goto('/cfb/');
 
     await expect(page.getByRole('heading', { name: /Texas State.*at.*Texas/ })).toBeVisible();
-    await expect(page.getByText('Texas by 39.3')).toBeVisible();
+    // `.first()`: the margin appears twice by design -- once as the headline
+    // figure and once inside the edge card explaining the gap to the market.
+    await expect(page.getByText('Texas by 39.3').first()).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -176,5 +178,71 @@ test.describe('the version 2 rename', () => {
     );
     await page.goto('/cfb/');
     await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
+  });
+});
+
+test.describe('the copy a visitor actually reads', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...NEW_DOCUMENT,
+          game: {
+            ...NEW_DOCUMENT.game,
+            opponent_model_rank: 81,
+            opponent_elo: 1375.0,
+            forecast_generated_at: '2026-08-29T19:40:59.782438Z',
+          },
+        },
+      }),
+    );
+  });
+
+  test('surfaces the edge over the market', async ({ page }) => {
+    /**
+     * The one number that distinguishes this page from a scoreboard. Model
+     * 39.3, market 30.5 on Texas, so the model is 8.8 points higher.
+     */
+    await page.goto('/cfb/');
+    await expect(page.getByText(/The model.s edge/i)).toBeVisible();
+    await expect(page.getByText('8.8 points higher on Texas')).toBeVisible();
+  });
+
+  test('shows both Elo ratings so the margin can be reconstructed', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText('2113')).toBeVisible();
+    await expect(page.getByText('1375')).toBeVisible();
+    await expect(page.getByText(/738-point Elo gap/)).toBeVisible();
+  });
+
+  test('separates the venue from the opponent ranking', async ({ page }) => {
+    await page.goto('/cfb/');
+    // The venue sentence stands alone; the rank sits with the margin it explains.
+    await expect(page.getByText('Texas is at home.', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Texas State is 81st of 138 by this model/)).toBeVisible();
+  });
+
+  test('explains the cap with the actual reason', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText(/FBS teams do lose to FCS teams/)).toBeVisible();
+    await expect(page.getByText(/no way to have been right/)).toHaveCount(0);
+  });
+
+  test('explains the week numbering', async ({ page }) => {
+    await page.goto('/cfb/');
+    await expect(page.getByText(/ten days, spanning both opening Saturdays/)).toBeVisible();
+  });
+
+  test("shows the forecast's timestamp, not the publish run's", async ({ page }) => {
+    /**
+     * The integrity claim is that a prediction existed before kickoff, and only
+     * the prediction's own timestamp carries it. A publish time says when the
+     * page was rebuilt, which is a fact about the site.
+     */
+    await page.goto('/cfb/');
+    await expect(page.getByText(/Forecast written/)).toBeVisible();
+    // The phrase appears in the intro paragraph too; `.first()` is enough here
+    // because the assertion above already pins the footer line.
+    await expect(page.getByText(/before kickoff/).first()).toBeVisible();
   });
 });

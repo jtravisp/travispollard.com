@@ -949,6 +949,57 @@ A local run with a deliberately failing spec:
 That last pair matters as much as the timing: a fix that stopped the hang by
 swallowing the failure would have left CI green on a broken build.
 
+## Follow-up: /cfb read as a visitor rather than as its author
+
+Five things, in the order they mattered.
+
+- [x] **The most interesting number was not on the page.** The model says Texas by
+      39.3 and the market says 30.5 — an **8.8-point disagreement**, which is the
+      claim the accuracy record eventually settles. Meanwhile the headline
+      confidence reads 99% whether the model is right or badly wrong. There is now
+      an edge block: "8.8 points higher on Texas", with both sides shown and a
+      link to the record
+  - [x] Shown whenever a book has priced the game, not only when the two disagree
+        about the *winner*. Most of the information is in games where they agree
+        on the side and differ on the number, which the old disagreement callout
+        said nothing about
+  - [x] `format.edgeOver` and `marketMarginFor` are the only place the market's
+        home-perspective sign is converted for a subject-team page
+- [x] **The opponent's rating was missing**, so a reader could not reconstruct
+      39.3 from what was displayed. Both Elos now appear — Texas 2113, Texas State
+      1375 — with the gap named. The whole premise is that the arithmetic is
+      visible
+- [x] **"Texas is at home. Texas State is 81st of 138" was one sentence doing two
+      jobs.** The venue is structural; the rank is context for the margin. The
+      rank moved to sit under the margin it explains
+- [x] **The cap sentence was a riddle.** "a model that prints a certainty has no
+      way to have been right" is not the reason. The reason is that nothing in
+      this sport justifies 100% — **FBS teams do lose to FCS teams** — so the
+      model is not allowed to say it. That is what the page says now
+- [x] **The week number will confuse anyone who follows the sport.** The page says
+      Week 1, Sep 5; the media calls that Week 1 and today Week 0. The ten-day
+      week footnote existed only on `/cfb/slate` and now appears on `/cfb`, which
+      is the page people land on
+
+### The footer was showing the wrong timestamp
+
+`Published Aug 29, 5:12 PM` was the **publish run's** `generated_at` — when the
+page was rebuilt. Checked rather than assumed:
+
+| | |
+|---|---|
+| document `generated_at` | `2026-08-29T22:12:38Z` — the publish run |
+| prediction `generated_at` | `2026-08-29T19:40:59Z` — the forecast |
+
+Two and a half hours apart. **The claim this project makes is that a prediction
+existed before kickoff, and only the prediction's timestamp carries it**; a
+publish time is a fact about the site rather than about the model.
+
+- [x] `PublishedGame.forecast_generated_at` carries the prediction log's own
+      moment. Optional, so a document published before it existed still reads
+- [x] The footer leads with it, says what it is, and names the rebuild time
+      separately rather than in its place
+
 ## Done, and a rule about how it got done
 
 **The v2 documents are published and the site reads them.** Verified end to end in
