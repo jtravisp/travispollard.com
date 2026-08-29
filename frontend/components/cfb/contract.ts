@@ -33,6 +33,8 @@ export interface PublishedGame {
   kickoff: string;
   opponent: string;
   home: boolean;
+  /** `home` alone is misleading at a neutral site, where CFBD nominates one. */
+  neutral_site: boolean;
   predicted_margin: number;
   win_probability: number;
   /** As the book published it: negative favours the *home* team (§4.3). */

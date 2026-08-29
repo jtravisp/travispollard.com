@@ -15,9 +15,7 @@
  * thirty-six had no line.
  */
 
-import HeaderWithTheme from '@/components/HeaderWithTheme';
-import Link from 'next/link';
-
+import CfbNav from '@/components/cfb/CfbNav';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
 import { AccuracyDocument, Backtest, Record, SeedDisclosure } from '@/components/cfb/contract';
 import {
@@ -32,23 +30,15 @@ export default function AccuracyPage() {
   const state = useCfbDocument<AccuracyDocument>('accuracy.json');
 
   return (
-    <main className="min-h-screen bg-base-100 text-base-content px-6 py-10 sm:px-10">
+    <main className="px-6 py-10 sm:px-10">
       <div className="max-w-4xl mx-auto">
-        <HeaderWithTheme />
+        <CfbNav />
 
-        <h1 className="text-3xl font-bold mb-1">Model accuracy</h1>
+        <h1 className="text-2xl font-bold mb-1">Model accuracy</h1>
         <p className="text-base-content/70 mb-8">
           Every prediction is written before kickoff and scored against the result on Sunday.
           Nothing is dropped: a game that cannot be joined to its prediction fails the run rather
-          than quietly leaving the averages.{' '}
-          <Link href="/cfb" className="link link-primary">
-            This week&rsquo;s game
-          </Link>
-          , or{' '}
-          <Link href="/cfb/slate" className="link link-primary">
-            this week&rsquo;s slate
-          </Link>
-          .
+          than quietly leaving the averages.
         </p>
 
         {state.status !== 'ready' ? (

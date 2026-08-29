@@ -127,6 +127,11 @@ class PublishedGame(BaseModel):
     #: A rendered name, not a canonical id (§6.3).
     opponent: str = Field(min_length=1)
     home: bool
+    #: **Needed because ``home`` alone is misleading at a neutral site.** CFBD
+    #: nominates one team as home for a game played on neither campus, and the
+    #: page was saying "X is at home" about it. §5.1 records that the two sources
+    #: can even disagree about which team that is.
+    neutral_site: bool
     #: **Signed for the subject team, not for the home team.** Everything in
     #: ``predictions/`` is from the home team's perspective (§4.2); this document
     #: is read by a page about one team, and an away game whose margin was left in
@@ -606,6 +611,7 @@ def _published_game(
         kickoff=prediction.kickoff,
         opponent=resolver.display_name(opponent),
         home=at_home,
+        neutral_site=prediction.neutral_site,
         predicted_margin=(
             prediction.predicted_margin if at_home else -prediction.predicted_margin
         ),

@@ -28,6 +28,41 @@ export function formatMargin(margin: number): string {
 }
 
 /**
+ * Who is favoured and by how much.
+ *
+ * **A signed number is not a readable claim.** "−1.5, home team's line" asks a
+ * reader to hold two conventions in their head — which team is home, and which
+ * direction the sign runs — and the two conventions here run *opposite* ways:
+ * `predicted_margin` is positive for the team it is about, while a market line
+ * is negative for the team it favours (§4.3). Anything rendering both as bare
+ * signed numbers is asking to be misread.
+ *
+ * So both go through here, and the caller says which team a positive value
+ * favours. The page then prints a team name and a number of points, which is how
+ * every other football page in the world states it.
+ */
+export interface Favorite {
+  team: string;
+  points: number;
+}
+
+export function favorite(
+  value: number | null,
+  positiveTeam: string,
+  negativeTeam: string,
+): Favorite | null {
+  if (value === null || value === 0) return null;
+  return value > 0
+    ? { team: positiveTeam, points: value }
+    : { team: negativeTeam, points: -value };
+}
+
+/** `favorite` as a sentence: "Texas by 1.5", or "pick'em" at exactly zero. */
+export function describeFavorite(pick: Favorite | null, whenLevel = "pick'em"): string {
+  return pick === null ? whenLevel : `${pick.team} by ${pick.points.toFixed(1)}`;
+}
+
+/**
  * A mean, or an em dash.
  *
  * **`null` is never rendered as `0`.** §5.3 makes every mean `null` rather than
@@ -44,16 +79,28 @@ export function formatCorrelation(value: number | null): string {
 }
 
 /**
- * A market line as the book posted it (§4.3).
+ * The market line as the book posted it (§4.3), for when the raw quote is wanted
+ * alongside the readable version.
  *
- * Negative favours the *home* team, which is the opposite convention from
- * `predicted_margin`. It is not converted here for the same reason the pipeline
- * does not convert it: it is a quotation, and it is printed next to the name of
- * the book that quoted it.
+ * Negative favours the *home* team, the opposite convention from
+ * `predicted_margin`. Never render this on its own — see `favorite`.
  */
 export function formatLine(line: number | null): string {
   if (line === null) return 'no line';
   return line > 0 ? `+${line}` : `${line}`;
+}
+
+/**
+ * The market line as a favourite. `line` is home-perspective and negative
+ * favours home, so the sign is flipped before it reaches `favorite`. **This is
+ * the only place on the site that flip happens.**
+ */
+export function marketFavorite(
+  line: number | null,
+  home: string,
+  away: string,
+): Favorite | null {
+  return line === null ? null : favorite(-line, home, away);
 }
 
 /** A kickoff in the reader's own timezone, which is the only one they care about. */

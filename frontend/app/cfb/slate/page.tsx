@@ -12,18 +12,18 @@
  * the home team, and the page renders the sign against the home team's name.
  */
 
-import HeaderWithTheme from '@/components/HeaderWithTheme';
-import Link from 'next/link';
-
+import CfbNav from '@/components/cfb/CfbNav';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
 import { SlateDocument, SlateGame } from '@/components/cfb/contract';
 import {
+  describeFavorite,
+  favorite,
   formatGeneratedAt,
   formatKickoff,
   formatLine,
-  formatMargin,
   formatProbability,
   formatWeek,
+  marketFavorite,
 } from '@/components/cfb/format';
 import { useCfbDocument } from '@/components/cfb/useCfbDocument';
 
@@ -31,19 +31,14 @@ export default function SlatePage() {
   const state = useCfbDocument<SlateDocument>('slate.json');
 
   return (
-    <main className="min-h-screen bg-base-100 text-base-content px-6 py-10 sm:px-10">
+    <main className="px-6 py-10 sm:px-10">
       <div className="max-w-5xl mx-auto">
-        <HeaderWithTheme />
+        <CfbNav />
 
-        <h1 className="text-3xl font-bold mb-1">This week&rsquo;s slate</h1>
+        <h1 className="text-2xl font-bold mb-1">This week&rsquo;s slate</h1>
         <p className="text-base-content/70 mb-8">
-          Every game the model forecast, written before kickoff. Margins and probabilities are from
-          the <strong>home team&rsquo;s</strong> perspective; the market line is printed as the book
-          posted it, where negative also favours the home team.{' '}
-          <Link href="/cfb" className="link link-primary">
-            Back to Texas
-          </Link>
-          .
+          Every game the model forecast, written before kickoff. Each row names the team it
+          favours and by how many points, so nothing depends on reading a sign.
         </p>
 
         {state.status !== 'ready' ? (
@@ -74,9 +69,9 @@ function Slate({ document }: { document: SlateDocument }) {
             <tr>
               <th>Kickoff</th>
               <th>Game</th>
-              <th className="text-right">Margin</th>
+              <th>Model picks</th>
               <th className="text-right">Win prob.</th>
-              <th className="text-right">Line</th>
+              <th>Market</th>
             </tr>
           </thead>
           <tbody>
@@ -95,6 +90,14 @@ function Slate({ document }: { document: SlateDocument }) {
 }
 
 function Row({ game, team }: { game: SlateGame; team: string }) {
+  // Slate rows are home perspective (§4.2), and the market line is home
+  // perspective with the opposite sign (§4.3). Both go through `favorite` so the
+  // table prints a team name rather than asking a reader to decode two
+  // conventions running in opposite directions.
+  const model = favorite(game.predicted_margin, game.home, game.away);
+  const market = marketFavorite(game.market_line, game.home, game.away);
+  const disagree = model !== null && market !== null && model.team !== market.team;
+
   return (
     <tr className={game.featured ? 'bg-primary/10' : undefined}>
       <td className="whitespace-nowrap text-xs text-base-content/70">
@@ -105,16 +108,32 @@ function Row({ game, team }: { game: SlateGame; team: string }) {
           {game.away} {game.neutral_site ? 'vs' : 'at'} {game.home}
         </span>
         {game.featured && <span className="badge badge-primary badge-sm ml-2">{team}</span>}
-        {game.neutral_site && (
-          <span className="badge badge-ghost badge-sm ml-2">neutral</span>
+        {game.neutral_site && <span className="badge badge-ghost badge-sm ml-2">neutral</span>}
+        {!game.neutral_site && (
+          <span className="block text-[0.65rem] text-base-content/50">
+            {game.home} at home
+          </span>
         )}
       </td>
-      <td className="text-right tabular-nums">{formatMargin(game.predicted_margin)}</td>
-      <td className="text-right tabular-nums">{formatProbability(game.win_probability)}</td>
+      <td className="whitespace-nowrap">
+        <span className="font-medium">{describeFavorite(model, 'dead even')}</span>
+      </td>
       <td className="text-right tabular-nums whitespace-nowrap">
-        {formatLine(game.market_line)}
-        {game.line_source && (
-          <span className="block text-[0.65rem] text-base-content/50">{game.line_source}</span>
+        {formatProbability(game.win_probability)}
+        <span className="block text-[0.65rem] text-base-content/50">{game.home} wins</span>
+      </td>
+      <td className="whitespace-nowrap">
+        {market === null ? (
+          <span className="text-base-content/50">no line</span>
+        ) : (
+          <>
+            <span className={disagree ? 'font-medium text-warning' : 'font-medium'}>
+              {describeFavorite(market)}
+            </span>
+            <span className="block text-[0.65rem] text-base-content/50">
+              {game.line_source} · {formatLine(game.market_line)} on {game.home}
+            </span>
+          </>
         )}
       </td>
     </tr>

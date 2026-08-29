@@ -575,6 +575,38 @@ Neither is in SPEC §6.1's three routes. Both are recorded here rather than sile
   - [x] `priced` travels with the slate, for the reason every denominator in §5.3 does
 - [x] **`cfb backtest --season --week`**, and §6.4's `backtest` block
 
+### What the first real read-through of the pages changed
+
+Reading `/cfb` as a visitor rather than as its author found three things, and all three were the
+same mistake: **a signed number is not a readable claim.**
+
+- **The two sign conventions run in opposite directions.** `predicted_margin` is positive for the
+  team it is about; a market line is *negative* for the team it favours (§4.3). The page printed
+  `-2.2 for Texas` beside `Market line -1.5 ... home team's line` and expected a reader to decode
+  both, plus work out which team was home. Every number now goes through `format.favorite` and the
+  page prints **"Ohio State by 2.2"** and **"Texas by 1.5"**, with the raw quote kept as a footnote
+  for anyone checking the book. `marketFavorite` is the single place the market's sign is flipped.
+- **A bare "41%" said nothing about whose probability it was.** It is now labelled
+  "Texas win probability" with "chance Texas wins outright" under it. The old caption — "never 0%
+  or 100%" — was §3.7 explaining itself in the one place a reader wanted the subject, and has moved
+  to a footnote.
+- **`next-game.json` gained `neutral_site`.** The page said "X is at home" about games played on
+  neither campus. §5.1 already records that the two sources can disagree about who is nominally
+  home at a neutral site, so the document now carries the flag and the page says "Neutral site — X
+  is nominally the home team."
+
+All three apply to every game, not just Texas: `/cfb/slate`'s 120 rows use the same `favorite`
+helpers and each row names its own home team.
+
+- [x] **The section has its own theme and its own navigation.** `/cfb` inherited whichever site-wide
+      theme the visitor had chosen, which put a college football page in Dracula. A scoped
+      `longhorns` daisyUI theme (burnt orange) is applied with `data-theme` on the section's layout
+      wrapper rather than on `<html>`, so it cannot fight `HeaderWithTheme`'s selector. `CfbNav`
+      replaces the site header inside the section — with the three routes, a current-page marker,
+      and a link back — because the site header's theme dropdown would appear to do nothing here.
+- [x] **`/cfb` is reachable from the site.** It had no inbound link at all; `HeaderWithTheme` now
+      carries "CFB Forecast"
+
 ### Backtesting: what it is, and the two things that keep it honest
 
 Week 1 of 2026 opened at `2026-08-27T22:00Z` and the earliest Sagarin capture this project holds is
