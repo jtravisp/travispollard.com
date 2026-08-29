@@ -26,7 +26,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:4321',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -70,10 +70,20 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://127.0.0.1:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  /* Serve the exported site so route specs run against the real build.
+   *
+   * `next start` cannot be used: next.config.ts sets `output: 'export'`, so
+   * there is no server to start. tests/serve-out.mjs is node's http and fs and
+   * nothing else.
+   *
+   * This requires `npm run build` to have run. CI already builds before running
+   * Playwright (buildspec.yml), and locally a missing build fails as a plain 404
+   * rather than something subtler. The visitor-counter spec talks to a live API
+   * and ignores this server entirely. */
+  webServer: {
+    command: 'node tests/serve-out.mjs',
+    url: 'http://127.0.0.1:4321/cfb/',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
 });

@@ -776,6 +776,23 @@ right trade at three routes; it would be the wrong one at thirty.
 renders a plain "data is newer than this page" state rather than throwing — the site and the pipeline
 deploy independently (PRD), so the two versions genuinely can differ for a few minutes.
 
+**It moves only for a change that breaks a reader: a renamed field, a removed field, or a field whose
+meaning changed.** Adding an optional field is not one of those. An older page ignores a key it does
+not know, and a newer page renders the absence, so nothing anywhere is misread and there is nothing
+for the mechanism to protect against.
+
+The reason to hold that line is what the mechanism costs when it fires. Showing "data is newer than
+this page" replaces a working page with an apology, and **firing it for changes that break nothing is
+how it stops meaning anything** — do it often enough and nobody distinguishes the one time it is
+real. Reserving it for the three cases above is what keeps the signal worth showing at all.
+
+So the release rule for an additive change is ordering rather than versioning: **deploy the routes
+first, then publish.** A page that tolerates a missing optional field is correct for the window in
+between; the reverse order would put every visitor in front of the stale state for no gain. That
+window is not hypothetical — the new page reading the old document is the *first* thing that happens
+in production on every such release, which is why it is covered by a route test
+(`frontend/tests/cfb-old-document.spec.ts`) rather than by an assumption.
+
 ### 6.3 `next-game.json`
 
 ```jsonc
@@ -818,6 +835,18 @@ so the page would have been attributing a DraftKings number to something that do
   Everything in `predictions/` is home-perspective (§4.2) and this document is read by a page about one
   team. An away game left in the storage convention renders perfectly and says the opposite thing.
   `market_line` is **not** re-signed: it is the book's own quote, printed beside `line_source`.
+- **`history`, `last_result`, `opponent_rank` and `opponent_elo` are later additions**, all optional
+  and all pure projections of documents the pipeline had already written. `history` is Texas's rating
+  and rank at every stored `elo/` state; `last_result` is the newest scored game the team appears in;
+  the opponent's standing comes from the same state `as_of` names, so the two rankings on the page
+  cannot be from different weeks.
+  - `opponent_rank` is `null` for an FCS opponent. The FBS table has no place for one and a rank on a
+    different denominator would be a different number wearing the same word — the same reason
+    `national_rank` carries `fbs_teams`.
+  - **The page must not draw a chart through one point.** The first `elo/week=NN` state of 2026 lands
+    on 09-13, because `cfb score` grades the last *completed* week and CFBD's week 1 runs to 09-08.
+    Until then `history` is the preseason seed alone, and a one-point line is indistinguishable from a
+    broken chart. `/cfb` shows the rating and says the series has not started rather than drawing it.
 - **`as_of` carries `fbs_teams`, and `national_rank` is among the FBS.** The Elo state rates all 266
   teams Sagarin covers, 128 of them FCS, so a rank over the whole table is a different number wearing
   the same word. The denominator travels with it for the reason §5.3 makes every sample size travel.

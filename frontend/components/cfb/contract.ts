@@ -42,6 +42,45 @@ export interface PublishedGame {
   /** As the book published it: negative favours the *home* team (§4.3). */
   market_line: number | null;
   line_source: string | null;
+  /**
+   * The opponent's standing, from the same state `as_of` came from.
+   * `null` for an FCS opponent — the FBS table has no place for one, and a rank
+   * on a different denominator would be a different number wearing the same word.
+   *
+   * Optional in TypeScript as well as in the document, because a page deployed
+   * before the pipeline republishes reads a document without it. See
+   * `tests/cfb-old-document.spec.ts`.
+   */
+  opponent_rank?: number | null;
+  opponent_elo?: number | null;
+}
+
+/** One week of the subject team's standing. */
+export interface RatingPoint {
+  week: string;
+  elo: number;
+  rank: number;
+  fbs_teams: number;
+}
+
+/**
+ * The subject team's most recent scored game.
+ *
+ * `team_points` and `opponent_points` are nullable: `scored/` is write-once, so
+ * weeks graded before the points were carried through exist and cannot gain them.
+ */
+export interface LastResult {
+  week: string;
+  kickoff: string;
+  opponent: string;
+  home: boolean;
+  team_points: number | null;
+  opponent_points: number | null;
+  won: boolean;
+  predicted_margin: number;
+  actual_margin: number;
+  error: number;
+  beat_market: boolean | null;
 }
 
 export interface AsOf {
@@ -56,6 +95,14 @@ export interface NextGameDocument extends Envelope {
   /** `null` on a bye week. `as_of` is still populated. */
   game: PublishedGame | null;
   as_of: AsOf;
+  /**
+   * Optional on purpose. **The first thing that happens in production every time
+   * this ships is a new page reading an old document** — routes deploy before the
+   * pipeline republishes — so `history` is absent, not empty, for that window.
+   * `doc.history.map(...)` on `undefined` type-checks and throws.
+   */
+  history?: RatingPoint[];
+  last_result?: LastResult | null;
 }
 
 export interface AtsSummary {

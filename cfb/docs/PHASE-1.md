@@ -811,6 +811,65 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
 
+## Follow-up: the page stops being static
+
+Three additions to `/cfb`, all pure projections of documents already in the bucket. No new CFBD calls.
+
+- [x] **(a) Rating and rank over time.** `history` on `next-game.json`, from `season_states` — one
+      listing and one read per state, the same walk `advance` already does. Newest generation per
+      week, because a re-advanced week writes a second object and both survive (§3.5), so taking every
+      state would draw one week twice at two ratings
+  - [x] **The chart refuses to draw fewer than two points**, and that refusal is the feature. The
+        first `elo/week=NN` state lands **2026-09-13** — `cfb score` grades the last *completed* week
+        and CFBD's week 1 runs to 09-08 — so for two weeks the series is the preseason seed alone, and
+        a line through one point is indistinguishable from a broken chart. `/cfb` shows the rating and
+        says the series has not started. Below four points it says so too: a record, not yet a shape
+  - [x] Inline SVG, no chart library. Seventeen points of two numbers is smaller than the dependency
+        that would draw it
+- [x] **(b) The final score.** `ScoredGame.home_points` / `away_points`, carried from `RawGame` rather
+      than re-derived, and `LastResult` on `next-game.json` for the page. It is the only block on
+      `/cfb` that says what happened rather than what will — a page that only ever predicts is
+      asserting a record it never shows
+  - [x] **Both optional, and not cosmetically.** `scored/` is write-once, so every week already stored
+        was written before these existed and cannot gain them. A required field would have made the
+        whole archive unreadable the moment it shipped. Pinned by two tests that validate the exact
+        shapes sitting in the bucket
+- [x] **(c) Opponent context.** `opponent_rank` and `opponent_elo` from the same state `as_of` names,
+      so the two standings on the page cannot be from different weeks. `null` rank for an FCS
+      opponent — the FBS table has no place for one
+  - [x] Texas State is **FBS** (Sun Belt), which a first draft of the test assumed otherwise. Real
+        data: Texas State is #81 of 138, which is what makes "Texas by 39.3" legible
+
+### `schema_version` is not bumped, and §6.2 now says why
+
+All three are additive optional fields. An older page ignores a key it does not know and a newer page
+renders the absence, so nothing is misread and the mechanism has nothing to protect against.
+
+Bumping would have *caused* the outcome it exists to prevent — every visitor in front of "data is
+newer than this page" for the window between publish and deploy — in exchange for nothing. Worse, it
+would degrade the mechanism: fire it for changes that break nothing and nobody distinguishes the one
+time it means something. §6.2 now records the rule: **the version moves for a renamed field, a
+removed field, or a changed meaning, and for nothing else.**
+
+- [x] The release rule is ordering instead: **deploy the routes, then publish.**
+- [x] **That window is covered by a test rather than an assumption.** A new page reading an old
+      document is the *first* thing that happens in production on every such release, and the failure
+      it guards type-checks perfectly: `history` is absent rather than empty, so `doc.history.map(...)`
+      throws and the page renders nothing while TypeScript is satisfied.
+      `frontend/tests/cfb-old-document.spec.ts` renders the real document that was live on 2026-08-29
+      against the new build, and the new shape beside it
+  - [x] `frontend/tests/serve-out.mjs` serves the export for Playwright — node's `http` and `fs`, no
+        dependency — and `playwright.config.ts` gained a `webServer`. The existing visitor-counter
+        spec talks to a live API and ignores it
+
+### Candidate, not this session: remaining schedule and projected wins
+
+Summing win probabilities across Texas's remaining games gives an expected-wins number, and the
+schedule with per-game odds is the natural payoff of already forecasting all 120 games. It needs a
+**season-wide `/games` pull** rather than the week-by-week one the pipeline does now — one extra CFBD
+call against a budget currently spending ~30 of 1,000 a month. Everything else it needs already
+exists.
+
 ## Resolved: the replay bound, and why `cfb elo replay` could not run for 2026
 
 **Fixed. `cfb elo replay --season 2026` exits 0.** It could not before, at any scale:

@@ -44,7 +44,7 @@ from cfb.elo.scoring import (
     calibration_of,
     scored_weeks,
 )
-from cfb.elo.state import load_state
+from cfb.elo.state import load_state, partition_position, season_states
 from cfb.errors import ReplayError
 from cfb.models import validating
 from cfb.predict import (
@@ -68,9 +68,11 @@ __all__ = [
     "AccuracyDocument",
     "AsOf",
     "AtsSummary",
+    "LastResult",
     "Backtest",
     "NextGameDocument",
     "PublishedGame",
+    "RatingPoint",
     "Record",
     "SlateDocument",
     "SlateGame",
@@ -158,6 +160,14 @@ class PublishedGame(BaseModel):
     #: ``line_source``, which is what makes the convention readable.
     market_line: float | None
     line_source: str | None
+    #: The opponent's standing, from the same state ``as_of`` is read from.
+    #: **A margin is not legible without it.** "Texas by 39.3" says nothing about
+    #: whether that is a rout or a formality until the reader knows the opponent
+    #: is 103rd of 138. ``None`` for an FCS opponent: the FBS table has no place
+    #: for one, and a rank on a different denominator would be a different number
+    #: wearing the same word.
+    opponent_rank: int | None = None
+    opponent_elo: float | None = None
 
 
 class AsOf(BaseModel):
@@ -182,6 +192,51 @@ class AsOf(BaseModel):
     fbs_teams: int = Field(ge=1)
 
 
+class LastResult(BaseModel):
+    """The subject team's most recent scored game (§6.3).
+
+    **The accountability claim, made concrete.** Everything else on `/cfb` is a
+    forecast; this is the one block that says what happened and how far off the
+    model was. A page that only ever predicts is asserting a record it never
+    shows.
+
+    Read from the newest scored week that contains the team, so it is whatever
+    the Sunday run last graded rather than "the previous week" by arithmetic --
+    a bye leaves it pointing further back, which is correct.
+    """
+
+    model_config = _STRICT
+
+    week: str = Field(min_length=1)
+    kickoff: datetime
+    opponent: str = Field(min_length=1)
+    home: bool
+    #: ``None`` on a week scored before the points were carried through. The
+    #: archive is write-once, so those documents exist and cannot gain the field.
+    team_points: int | None
+    opponent_points: int | None
+    won: bool
+    #: Both from the subject team's side, matching the rest of this document.
+    predicted_margin: float
+    actual_margin: int
+    #: Signed: positive means the model had the team too high.
+    error: float
+    #: ``True`` beat the line, ``False`` lost to it, ``None`` when there was no
+    #: line or no edge -- §5.3's distinction, carried rather than flattened.
+    beat_market: bool | None
+
+
+class RatingPoint(BaseModel):
+    """One week of the subject team's standing (§6.3's ``history``)."""
+
+    model_config = _STRICT
+
+    week: str = Field(min_length=1)
+    elo: float
+    rank: int = Field(ge=1)
+    fbs_teams: int = Field(ge=1)
+
+
 class NextGameDocument(BaseModel):
     """``cfb/data/next-game.json`` (§6.3), rendered by ``/cfb``."""
 
@@ -201,6 +256,20 @@ class NextGameDocument(BaseModel):
     #: statement than the missing game.
     game: PublishedGame | None
     as_of: AsOf
+    #: The subject team's rating and rank at every stored state of the season,
+    #: oldest first. **A pure projection of ``elo/``**, which already holds every
+    #: team's rating for every week -- nothing is computed here that the pipeline
+    #: did not already write down.
+    #:
+    #: It exists because `/cfb` otherwise shows one static number for weeks. The
+    #: preseason seed is the only point until the first week is scored, which is
+    #: 2026-09-13, and a page that cannot distinguish "one point so far" from
+    #: "this chart is broken" is why the length is published rather than left to
+    #: be inferred from the shape of a line.
+    history: list[RatingPoint] = Field(default_factory=list)
+    #: The team's most recent scored game, or ``None`` before any week has been
+    #: scored -- which is every week before 2026-09-13.
+    last_result: LastResult | None = None
 
 
 class SlateGame(BaseModel):
@@ -438,7 +507,16 @@ def build_next_game(
     log, fixture = _next_fixture(store, season=season, week=week, team=team, now=now)
     state = load_state(store, log.model.elo_state)
 
-    return _next_game_document(log, fixture, state, resolver, team=team, now=now)
+    return _next_game_document(
+        log,
+        fixture,
+        state,
+        resolver,
+        team=team,
+        now=now,
+        history=_history(store, resolver, season=season, team=team),
+        last_result=_last_result(store, resolver, season=season, team=team),
+    )
 
 
 def build_slate(
@@ -653,6 +731,79 @@ def _newest_predictions(store: SnapshotStore, *, season: int, week: str) -> Pred
     return read_predictions(store, generations[-1][1])
 
 
+def _last_result(
+    store: SnapshotStore, resolver: Crosswalk, *, season: int, team: str
+) -> LastResult | None:
+    """The newest scored game the team appears in, or ``None``.
+
+    Walks scored weeks newest-first and stops at the first that contains the
+    team, so a bye week points further back rather than reporting nothing. Reads
+    only ``scored/`` -- never ``backtest/``, which is a separate prefix precisely
+    so a retrospective week cannot reach the parts of the site that describe what
+    the model actually did.
+    """
+    for scored in reversed(scored_weeks(store, season=season)):
+        for game in scored.games:
+            if team not in (game.home, game.away):
+                continue
+            at_home = game.home == team
+            opponent = game.away if at_home else game.home
+            return LastResult(
+                week=scored.week,
+                kickoff=game.kickoff,
+                opponent=resolver.display_name(opponent),
+                home=at_home,
+                team_points=game.home_points if at_home else game.away_points,
+                opponent_points=game.away_points if at_home else game.home_points,
+                won=game.home_won == at_home,
+                # Re-signed to the subject team, like everything else here. The
+                # stored row is home perspective (§4.2).
+                predicted_margin=(
+                    game.predicted_margin if at_home else -game.predicted_margin
+                ),
+                actual_margin=game.actual_margin if at_home else -game.actual_margin,
+                error=game.error if at_home else -game.error,
+                beat_market=game.beat_market,
+            )
+    return None
+
+
+def _history(
+    store: SnapshotStore, resolver: Crosswalk, *, season: int, team: str
+) -> list[RatingPoint]:
+    """The team's rating and rank at every stored state, oldest first.
+
+    One listing and one read per state -- ``season_states`` already walks exactly
+    this, because ``advance`` needs the same thing. A season is at most seventeen
+    small documents.
+
+    **Newest generation per week.** A re-advanced week writes a second object and
+    both survive (§3.5), so taking every state would draw one week twice at two
+    different ratings. ``season_states`` returns them in season order, oldest
+    generation first, so the last sighting of a partition is the one a publish
+    would have read.
+    """
+    newest: dict[str, EloState] = {}
+    for stored in season_states(store, season=season):
+        newest[stored.state.week] = stored.state
+
+    points = []
+    for week in sorted(newest, key=partition_position):
+        state = newest[week]
+        if team not in state.ratings:
+            # A state that does not rate this team came from a different
+            # crosswalk. That is a fault, not a gap to chart around.
+            raise ReplayError(
+                f"the Elo state at week {week} of season {season} has no rating for "
+                f"{team!r}, so `/cfb` cannot chart it"
+            )
+        rank, fbs_teams = _fbs_rank(state, resolver, team=team)
+        points.append(
+            RatingPoint(week=week, elo=state.ratings[team], rank=rank, fbs_teams=fbs_teams)
+        )
+    return points
+
+
 def _next_game_document(
     log: PredictionLog,
     fixture: PredictedGame | None,
@@ -661,6 +812,8 @@ def _next_game_document(
     *,
     team: str,
     now: datetime,
+    history: list[RatingPoint],
+    last_result: LastResult | None,
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
     same_week = [game for game in log.games if team in (game.home, game.away)]
@@ -681,7 +834,7 @@ def _next_game_document(
             week=log.week,
             team=resolver.display_name(team),
             game=(
-                _published_game(fixture, resolver, team=team, week=log.week)
+                _published_game(fixture, resolver, state, team=team, week=log.week)
                 if fixture is not None
                 else None
             ),
@@ -691,15 +844,31 @@ def _next_game_document(
                 national_rank=rank,
                 fbs_teams=fbs_teams,
             ),
+            history=history,
+            last_result=last_result,
         )
 
 
 def _published_game(
-    prediction: PredictedGame, resolver: Crosswalk, *, team: str, week: str
+    prediction: PredictedGame,
+    resolver: Crosswalk,
+    state: EloState,
+    *,
+    team: str,
+    week: str,
 ) -> PublishedGame:
     """One prediction row, re-signed from the home team's view to the subject's."""
     at_home = prediction.home == team
     opponent = prediction.away if at_home else prediction.home
+    # From the same state `as_of` is read from, so the two standings on the page
+    # cannot come from different weeks. `None` for an FCS opponent: the FBS table
+    # has no place for one, and a rank on a different denominator would be a
+    # different number wearing the same word (§6.3).
+    opponent_rank = (
+        _fbs_rank(state, resolver, team=opponent)[0]
+        if resolver.division(opponent) == "FBS"
+        else None
+    )
     return PublishedGame(
         kickoff=prediction.kickoff,
         week=week,
@@ -717,6 +886,8 @@ def _published_game(
         # number no book ever posted under a name that says one did.
         market_line=prediction.market_line,
         line_source=prediction.market_line_source,
+        opponent_rank=opponent_rank,
+        opponent_elo=state.ratings.get(opponent),
     )
 
 
