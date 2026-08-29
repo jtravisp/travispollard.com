@@ -154,6 +154,22 @@ class StateMismatchError(CfbError):
     """
 
 
+class UnscoredGameError(CfbError):
+    """A result and the prediction of it could not be joined (SPEC-phase1 5.2).
+
+    Three shapes, and the accuracy page cannot survive any of them being a filter
+    instead: a result with no prediction, a prediction whose game was played and
+    whose result never came back, and an id that matched while the teams did not.
+
+    The last is the one with no symptom. The join succeeds, the arithmetic runs,
+    and every number produced is attributed to a different game -- most invisibly
+    when the two teams are merely swapped, which inverts every sign and still
+    reads as an ordinary row. Everything the page publishes is a mean, and a mean
+    over a set that quietly lost or mis-filed a game is wrong in no way a reader
+    can see.
+    """
+
+
 class UnknownProviderError(CfbError):
     """A ``/lines`` entry names a sportsbook this project has no mapping for.
 

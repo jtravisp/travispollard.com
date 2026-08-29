@@ -469,8 +469,28 @@ vendor id is used for one thing: matching a result to the prediction of the same
 
 ```python
 # elo/scoring.py
-def score_week(predictions: dict, results: list[Game]) -> ScoredWeek: ...
+def score_week(
+    predictions: PredictionLog,
+    results: list[RawGame],
+    *,
+    results_fetched_at: datetime,
+    now: datetime,
+) -> ScoredWeek: ...
 ```
+
+**Both departures from this section's first draft are forced, not stylistic.**
+
+`predictions` is a `PredictionLog` rather than a bare dict because the third failure mode below
+compares the prediction's teams against the result's, and a mapping of margins cannot answer that. The
+dict was written before §4 existed and gave the log a type at all.
+
+`results_fetched_at` is what makes the *second* failure mode decidable. A prediction with no result is
+fine while the game is unplayed and an error once it has been played — and CFBD's `/games` shape carries
+no `completed` flag, only nullable scores, which is exactly the state an unplayed game and a failed join
+share. So the boundary is the evidence rather than a clock: **a game that kicked off before the results
+capture was taken should have a score in it.** That is the same rule §3.3's HFA selection settled on, for
+the same reason — a wall clock cannot be replayed, and a scoring run that depended on one could not be
+re-derived from `raw/` later.
 
 - A result with no matching prediction → `UnscoredGameError`. Either the slate changed after generation or
   the prediction run missed a game, and both are worth a red run.
@@ -494,9 +514,29 @@ that skips the conversion produces an ATS record that looks entirely normal and 
 A game with `market_line: null` is **excluded from the ATS record and counted as excluded**, rather than
 scored against a zero. The sample size travels with the record for this reason.
 
+**A model margin exactly equal to the market's is excluded too, and counted separately.** There is no
+side to take, so there was no bet — and a push is a position that tied, not the absence of one. Counting
+it as a push would assert a bet that was never made and pull the record toward 50%, which flatters. It
+fires almost never, since continuous margins rarely land exactly on a half-point line; that makes it
+cheap to get right rather than safe to ignore.
+
+So the record carries five counters and they account for every game scored that week:
+
+```
+wins + losses + pushes + excluded_no_line + excluded_no_edge == games
+```
+
+That identity is the point. A bare `2-2` cannot distinguish four priced games from forty where
+thirty-six had no line, and a game that fell out of the record entirely would be invisible in a
+win-loss count — it shows up only in a denominator that no longer adds up.
+
 Per week and per season, for **Texas** and for the **full slate** separately, as the PRD requires:
 
-- MAE against actual margin, and the same figure for the market line and for Sagarin PREDICTOR
+- MAE against actual margin, and the same figure for the market line and for Sagarin PREDICTOR. **Each
+  carries its own denominator**: the market prices a subset of the slate and Sagarin's page covers a
+  different subset again, so averaging either over games it never priced would flatter the benchmark
+- Every mean is `null` rather than `0.0` when it has nothing to average. Texas has bye weeks, and a zero
+  would draw a point on the accuracy page claiming a perfect prediction that was never made
 - Brier score and a calibration curve (predicted probability bucket vs observed win rate)
 - Record against the spread, **always with the sample size attached**
 - The week's Pearson correlation against Sagarin PREDICTOR (§3.6)

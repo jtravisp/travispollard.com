@@ -17,9 +17,9 @@ generated, written write-once and indexed.
 
 | | |
 |---|---|
-| Tests | **790 passing, 22 skipped**, `ruff check .` clean, `terraform validate` clean |
+| Tests | **839 passing, 23 skipped**, `ruff check .` clean, `terraform validate` clean |
 | Landed | `fa40c16` (§3.1–§3.5), `c9c1d85` (the state writer). This session's §4 work is uncommitted |
-| Next | §5, scoring. Predictions exist to join against, and `market_home_margin` is the conversion it must use |
+| Next | §6, the JSON contract and the three routes. `scored/` is computed but not yet written — see §5 |
 | Blocked | nothing. `/lines` is captured and joined; §4 is complete |
 | Blocked on a human | nothing in Phase 1. Phase 0's in-season Sagarin capture still stands |
 
@@ -27,7 +27,7 @@ Verified this session, in `cfb/`:
 
 | Command | Result |
 |---|---|
-| `uv run pytest` | `790 passed, 22 skipped in 13.11s` |
+| `uv run pytest` | `839 passed, 23 skipped in 19.44s` |
 | `uv run ruff check .` | `All checks passed!` |
 | `terraform -chdir=terraform validate` | `Success! The configuration is valid.` |
 | `uv run cfb elo seed --season 2026 --store file://…` | exit 0, `week=preseason teams=266` |
@@ -165,20 +165,35 @@ floating-point bit. The first real generated document shows `predicted_margin` a
 So **§3.6's Pearson correlation opens the season at exactly 1.0**, not near it, and
 `TestTheWeekOneContamination` pins the identity that makes it so.
 
-## 5. Scoring — not started, and the next session's work
+## 5. Scoring
 
-- [ ] `elo/scoring.py`, `score_week()`, joining on `cfbd_game_id` (§5.1)
-- [ ] Every §5.2 failure mode raises: `UnscoredGameError` for a result with no prediction, for a
-      completed game with no result, and for an id that matched while the teams did not
-- [ ] §5.3's figures, for Texas and the full slate separately, with sample sizes attached
+- [x] `elo/scoring.py`, `score_week()`, joining on `cfbd_game_id` (§5.1)
+- [x] Every §5.2 failure mode raises `UnscoredGameError`, and **each is confirmed by sabotage**
+      rather than by assertion alone: the implementation was broken four ways and the tests that
+      should have caught each one did (8, 5, 4 and 3 failures respectively)
+- [x] §5.3's figures, for Texas and the full slate separately, every mean carrying its own
+      denominator and `null` rather than `0.0` on an empty population
 - [ ] The Elo advance moves into `cfb score` — see the batch-partition decision below
-- [ ] `scored/season=2026/week=NN/<ts>.json`
-- [ ] **Beating the line goes through `sources.market_home_margin`.** §5.3 says so now. Comparing
-      `market_line` against `predicted_margin` directly inverts every ATS record, and the result
-      looks entirely normal — `test_lines.py::TestTheSign` is what fails if the conversion is
-      dropped, in both directions and across all 194 entries of the capture
-- [ ] **A null `market_line` is excluded from the ATS record and counted as excluded**, never scored
-      against a zero
+- [ ] `scored/season=2026/week=NN/<ts>.json` — the write-once document and `cfb score`. The library
+      computes the `ScoredWeek`; nothing stores it yet
+- [x] **Beating the line goes through `sources.market_home_margin`.** Dropping the conversion fails
+      8 tests, and fails them as reversed *verdicts* rather than as different numbers
+- [x] **A null `market_line` is excluded and counted**, never scored as a push. Scoring one as a
+      push fails 5 tests, every one of them on the denominator
+
+### Two decisions §5 settled
+
+**`score_week`'s signature departs from §5.2's sketch, and both departures are forced.** `predictions`
+is a `PredictionLog` rather than a dict because the third failure mode compares teams and a mapping of
+margins cannot; the dict predates §4 giving the log a type. `results_fetched_at` is added because the
+second failure mode needs to know whether a game was played and `/games` carries no `completed` flag —
+so the boundary is the evidence, matching §3.3's HFA rule. SPEC-phase1 §5.2 now records the real
+signature.
+
+**A model margin exactly equal to the market's is excluded, not pushed**, counted in its own
+`excluded_no_edge`. A push is a position that tied; this is the absence of a position. The ATS record
+carries five counters whose sum is the slate, which is the property that makes a game falling out of it
+visible at all.
 - [x] **The HFA rule is already shared and cannot drift.** `sources.hfa_at` is the single
       implementation of §3.3, and `hfa_for` (a game's own kickoff) and `predict` (a slate's first
       kickoff) are two boundaries into it. `cfb score` uses `hfa_for` by importing it, not by
@@ -248,6 +263,18 @@ silently added:
 ---
 
 ## Found this session
+
+- **There are no real results yet, and there could not be.** The bucket holds no `/games` capture at
+  all — only lines, calendar and teams — because the season had not started: week 1's first kickoff is
+  `2026-08-29T07:00Z` and `last_completed_week` returns `None`. Every scoring fixture is constructed,
+  which the §5.2 failure modes require anyway — no vendor publishes a game whose id matches a
+  prediction and whose teams do not. `test_scoring.py::TestARealWeek` is skipped and waiting on the
+  first played Saturday.
+- **`USC` resolves to `southern-california`, not `usc`.** Found by the team-mismatch check firing on a
+  test fixture that had guessed the slug. The check catching its own author is reasonable evidence it
+  will catch a vendor.
+
+## Also found this session
 
 - **`cfb/lines-wk1.json` is a stray in the repo root.** It is the raw capture, untracked, and it has
   been copied to `tests/fixtures/cfbd_lines_2026_week01.json`. Safe to delete; left alone because it
