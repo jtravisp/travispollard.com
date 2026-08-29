@@ -1,0 +1,79 @@
+# SPEC-phase1 §8. Sunday: update Elo, score last week, write `scored/`.
+#
+# 12:30 UTC, thirty minutes after `cfb-cfbd.yml` pulls the completed week's
+# games and lines. The gap is deliberate and it is the only ordering constraint
+# between any two workflows here: `cfb score` reads the `/games` capture that job
+# writes, and §5.2 decides "unplayed, or a join that failed" against *when that
+# capture was taken*. A score run that started first would read last week's
+# capture, find this week's games missing from it, and be correct to go red --
+# which is a confusing way to discover a scheduling mistake.
+#
+# **Actions cron drifts 5-15 minutes under load**, so thirty is the margin rather
+# than the interval. If the collect job is ever slow enough to overrun it, this
+# run fails loudly on a stale capture rather than scoring a partial week; both
+# jobs are idempotent in the way that matters (write-once keys, newest capture
+# wins), so the fix is to re-run this one.
+#
+# **One command, and it does both halves of §8's row.** `cfb score` folds the
+# week's results onto the previous Elo state *and* grades the predictions, in
+# that order, reading every input before writing anything. Splitting it into two
+# steps here would put the ordering in YAML, where nothing tests it.
+#
+# **The season's first two Sundays do nothing, and that is correct.** Week 1 runs
+# 2026-08-29 to 2026-09-08, so no week has completed before September 13. The CLI
+# exits 0 with `reason=no_completed_week` and the run stays green -- turning those
+# Sundays red would train a reader to ignore the one that matters.
+name: cfb-score
+
+on:
+  schedule:
+    - cron: "30 12 * * 0" # Sunday 12:30 UTC, after cfb-cfbd
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to score (1-15). Blank uses the week that just completed."
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      # --extra s3: the default store is s3:// and `cfb score` reads and writes
+      # four prefixes through it.
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # `--week` only when a human dispatched one. The scheduled path passes
+      # nothing and the CLI reads the committed calendar, which is what keeps the
+      # week arithmetic in a tested place rather than in this file.
+      - name: Score the completed week
+        run: |
+          uv run cfb score ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
+
+      # SPEC-phase1 §11 step 5, run every week rather than by hand. The stored
+      # state this job just wrote is a cache; this rebuilds the season from raw/
+      # and exits 1 if the two disagree. A stored state nobody can regenerate is
+      # a second source of truth wearing a cache's clothes, and this is the only
+      # thing that would ever notice.
+      - name: Verify the state is reproducible from raw/
+        run: uv run cfb elo replay

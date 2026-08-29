@@ -1,0 +1,67 @@
+# SPEC-phase1 §8. Thursday: write the coming week's predictions.
+#
+# 12:00 UTC on Thursday, ahead of the week's first kickoff. That ordering is the
+# whole point of the file and it is enforced twice over: this job runs before the
+# games, and `cfb score` will later refuse to grade any generation stamped after
+# its own slate had started (SPEC-phase1 §5.4). A prediction published after
+# kickoff is not a prediction, and neither half of the pipeline will pretend
+# otherwise.
+#
+# **Thursday rather than Friday, and the gap is deliberate.** `cfb-publish.yml`
+# runs Friday and is the SLO; putting generation a day ahead of publication means
+# a bad Thursday can be re-run by hand with a whole day in reserve, instead of
+# turning the deadline itself into the first place a problem shows up.
+#
+# **Re-running is safe and is the intended repair.** Prediction objects are
+# write-once (§4.1): a second run writes a new key beside the first and the
+# publish step takes the newest that still precedes kickoff. Nothing is
+# overwritten and nothing is lost, so "run it again" is always available.
+name: cfb-predict
+
+on:
+  schedule:
+    - cron: "0 12 * * 4" # Thursday 12:00 UTC
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to predict (1-15). Blank uses the coming week."
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # No `--week` on the scheduled path: `calendar.coming_week` is the mirror
+      # of the `last_completed_week` that `cfb-cfbd.yml` and `cfb-score.yml`
+      # already use, and it lives in tested Python rather than in a cron
+      # expression.
+      #
+      # Past the last regular week this exits 0 with `reason=no_coming_week`
+      # rather than failing. Nothing is ahead to predict in December, and a red
+      # run every Thursday of the bowl season would bury a real one.
+      - name: Generate the coming week's predictions
+        run: |
+          uv run cfb predict ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
