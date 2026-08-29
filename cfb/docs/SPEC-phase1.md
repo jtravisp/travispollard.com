@@ -382,6 +382,51 @@ a cache.
 The PRD leaned toward committing Elo state to the repo. That reasoning was tied to the git tamper-evidence
 argument §1.1 drops, and it carries the same `contents: write` cost.
 
+#### The accumulation can start late, and the state says where
+
+`replay` folds every completed game of a season, and §3.3 prices each one from the newest Sagarin
+snapshot captured **strictly before** its kickoff. A game that kicked off before the earliest such
+snapshot exists therefore has no HFA and never will — no later capture can be moved in front of it.
+
+`EloState.folded_from` records the earliest kickoff an accumulation actually folded, and is `null`
+when it covered the season entire. It is **the same idea as `PredictionLog.forecast_from` (§4.4) on
+the scoring side, and deliberately the same shape of name**: a forecast cannot cover a game that has
+already kicked off, and an accumulation cannot cover a game that no page can price. Two names for one
+concept is how the next reader concludes they are different things.
+
+Three properties keep it from being a hole in §3.5's argument:
+
+- **Derived, never stored as a constant.** `replay` computes it from the manifests in `raw/` the same
+  way on every run, so it is a restatement of the evidence rather than a second source of truth —
+  which is precisely what "state is a cache" depends on there not being. A written-down date would be
+  the second source of truth this section spends its argument denying.
+- **Exactly the unpriceable set, not a heuristic for it.** `hfa_at` fails on one condition and one
+  only: no manifest precedes the kickoff. Any game after the earliest manifest therefore has at least
+  that one available and cannot fail. So `kickoff <= earliest` is the *complete* failure set, and
+  every other missing-HFA case still raises the way §3.3 requires. This is what stops the skip being
+  a catch-all that swallows real faults.
+- **In the document, and compared by `verify`.** A replay and an advance that disagree about which
+  games they folded is exactly what §11 step 5 exists to catch, and it cannot catch it if neither says
+  what it folded. The comparison is exact: letting `null` mean "unbounded, match anything" would put a
+  permanent hole in the one guarantee this section rests on, to paper over a one-time migration.
+
+**Excluding a season's opening games is expected; excluding all of them is not.** If the bound would
+leave nothing, `replay` raises. Skipping the first few is a pipeline that came online after the first
+kickoffs. Skipping every one means the captures and the games do not overlap at all, and returning a
+seed-only state for that would report "the season has not started" about a season that has — the quiet
+wrong answer this module exists to prevent.
+
+**This is transitional, exactly as §4.4's path is.** It arises only because the pipeline came online
+*after* the season's first kickoffs: CFBD's week 1 of 2026 opened on 08-27 and the first Sagarin
+capture is 08-28T16:50Z, so nineteen completed FCS games sit before any page that could price them.
+Every future season seeds from a preseason page captured before a single game is played, so nothing is
+skipped and `folded_from` is `null`.
+
+§4.4's corollary applies unchanged, and is the reason this is worth writing down rather than
+forgetting: **a bound set on a season the pipeline was live for is evidence of a missing capture, not
+of a late start.** If `folded_from` is ever non-null on a season that was covered from the start, a
+Sagarin fetch did not happen and the field is the thing that says so.
+
 ### 3.6 The seed contaminates one benchmark, and the contamination is measured
 
 In week 1 a prediction is Sagarin's rating gap divided by 28, multiplied by 28, plus Sagarin's HFA — which
@@ -1042,13 +1087,26 @@ truth wearing a cache's clothes.
   a single game may move a rating, made with no data: 0.25 caps one result at ~422 Elo, which is chosen for
   being obviously too much rather than for being measured. Phase 2's backfill is what replaces it, and the
   raise beside the clamp is what guarantees the question gets asked rather than silently answered — every
-  game that crosses it is a red run naming the gap that got there. **§3.1's rescale made it unreachable
-  from the preseason seed** — at 28 the seed spanned 211 to 2486 and 39 of the top team's opponents would
-  have crossed the floor by beating it; at 20 the seed spans 579 to 2204 and none do, the widest pairing
-  leaving the denominator at 0.58. That removes 39 potential false alarms and also removes the only
-  production path that would ever have exercised the guard, which is why `mov_denominator` is public and
-  tested directly. **If those runs turn out to be
-  legitimate FBS-vs-FCS upsets rather than data faults, the floor is too high and this is how we find out.**
+  game that crosses it is a red run naming the gap that got there.
+  - **It is now a pure invariant guard rather than a tunable, and §12's retirement condition for it
+    can never fire.** That condition was: if the runs it produces turn out to be legitimate FBS-vs-FCS
+    upsets rather than data faults, the floor is too high. At `ELO_PER_POINT = 20` it produces no runs
+    at all — the widest preseason pairing leaves the denominator at **0.58** against a floor of 0.25 —
+    so there is no evidence it can ever generate about its own value. A number that cannot be
+    disconfirmed is not a tunable.
+  - **It stays anyway, and the reason is §12's own refit.** The argument for the floor is about the
+    *shape* of the arithmetic — past zero the multiplier inverts and a bigger win lowers the winner's
+    rating — and that argument holds at any positive value. §12 expects the calibration curve to push
+    `ELO_PER_POINT` further down, toward **17–18**, which widens the Elo spread again and moves the
+    boundary back toward reachable. Removing a guard because the current constant happens to clear it,
+    when the open question in this very section is whether that constant should move, would be
+    removing it exactly before it is needed.
+  - **§3.1's rescale is what made it unreachable.** At 28 the seed spanned 211 to 2486 and 39 of the
+    top team's opponents would have crossed the floor by beating it, 5 of them driving the denominator
+    negative; at 20 the seed spans 579 to 2204 and none do. That removes 39 potential false alarms on
+    legitimate upsets — good — and also removes the only production path that would ever have
+    exercised the guard, which is why `mov_denominator` is public and tested directly rather than
+    reached only through `update`.
 - **What happens when a game is cancelled after prediction and never played.** §5.2 treats it as
   not-an-error while unplayed, which is indefinitely true for a cancelled game. Probably wants an explicit
   cancellation signal from `/games` rather than a timeout.

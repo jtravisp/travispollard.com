@@ -222,6 +222,27 @@ class EloState(BaseModel):
     #: replay that agrees on every rating but not on this has applied something
     #: twice in a way that cancelled out, which no rating comparison would show.
     games_applied: int = Field(ge=0)
+    #: The earliest kickoff this state folded, when the season's opening games
+    #: could not be priced and were left out. ``None`` when the accumulation
+    #: covers the season entire, which is every ordinary season.
+    #:
+    #: **The same idea as ``PredictionLog.forecast_from`` (§4.4), on the scoring
+    #: side, and deliberately the same shape of name.** A forecast cannot cover a
+    #: game that has already kicked off; an accumulation cannot cover a game that
+    #: kicked off before any Sagarin page carrying an HFA had been captured. Two
+    #: names for one concept is how the next reader concludes they are different
+    #: things.
+    #:
+    #: **Derived on every run, never written down as a date.** ``replay`` computes
+    #: it from the manifests in ``raw/`` the same way each time, so it is a
+    #: restatement of the evidence rather than a second source of truth -- which
+    #: §3.5's "state is a cache" argument depends on there not being one.
+    #:
+    #: It is compared by ``verify``: a replay and an advance that disagree about
+    #: which games they folded is exactly what §11 step 5 exists to catch, and it
+    #: cannot catch it if neither says what it folded.
+    folded_from: datetime | None = None
+
     #: The kickoff of the last game folded in, or ``None`` when none has been.
     #:
     #: This is what makes the state say *when* it is as of, and it is load-bearing

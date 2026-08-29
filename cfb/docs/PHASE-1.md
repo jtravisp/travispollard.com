@@ -17,10 +17,10 @@ and five workflows run the week without a person in it.
 
 | | |
 |---|---|
-| Tests | **942 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
+| Tests | **968 passing, 23 skipped**, `ruff check .` clean, both `terraform validate` clean, `npm run build` clean |
 | Landed | §3–§8 through PRs #44–#48 |
 | Next | Nothing until the season exercises it. Then Phase 2's backfill — the thing that turns `K`, `ELO_PER_POINT` and `MOV_DENOMINATOR_FLOOR` from conventional numbers into fitted ones |
-| Blocked | nothing |
+| Blocked | nothing. The `cfb elo replay` blocker found during §3.1's rescale is fixed — see below |
 | Blocked on a human | Phase 0's in-season Sagarin capture, and the first weekly note |
 
 ### The schedule from here
@@ -811,42 +811,94 @@ selector, and it belongs where every other "read this out of `raw/`" does.
 
 ---
 
-## BLOCKER, found during the rescale: `cfb elo replay` cannot run for 2026
+## Resolved: the replay bound, and why `cfb elo replay` could not run for 2026
 
-**Not caused by the rescale — it fails at any scale, and it will redden a scheduled run.**
+**Fixed. `cfb elo replay --season 2026` exits 0.** It could not before, at any scale:
 
 ```
-$ uv run cfb elo replay --season 2026
 ReplayError: no Sagarin snapshot for season 2026 carrying hfa['predictor'] was captured
 before game 401866532 (Maine at Towson, 2026-08-27T22:00:00+00:00).
 ```
 
-`replay` folds every **completed** game of the season, and week 1's completed games include the 19
-that kicked off on 08-27 and 08-28 — before the first Sagarin capture this project ever took
-(08-28T16:50Z). `hfa_for` is per-game and correctly refuses to invent an HFA for them.
+`replay` folds every **completed** game, and week 1's include nineteen that kicked off on 08-27 and
+08-28 — before the first Sagarin capture this project ever took (08-28T16:50Z). §3.3 prices a game
+from the newest snapshot captured strictly before its kickoff, so those games have no HFA and never
+will. `cfb-score.yml` runs `cfb elo replay` as its last step, so **the scheduled Sunday run would have
+gone red** on data nobody can retroactively supply.
 
-**This is the same root cause as the week 1 prediction bug, on the scoring side**, and it was not
-fixed by that change: `predict` now skips games it cannot forecast, but `replay` has no equivalent —
-it is supposed to fold *everything*, because dropping a completed game is exactly what §3.5's
-replay check exists to catch.
+- [x] **`EloState.folded_from`** — the earliest kickoff an accumulation folded, `null` when it covered
+      the season entire. Named to match `PredictionLog.forecast_from`: the same idea on the scoring
+      side, and two names for one concept is how the next reader concludes they are different
+- [x] **Derived on every run, never stored as a constant.** Computed from the manifests in `raw/`, so
+      it restates the evidence rather than becoming the second source of truth §3.5's "state is a
+      cache" argument depends on there not being. Pinned by `TestItIsDerivedNotStored`, including a
+      case where backfilling an earlier capture moves the bound — which a written-down date could not
+      do
+- [x] **The skip is provably exactly the unpriceable set.** `hfa_at` fails on one condition only, so
+      `kickoff <= earliest` is the complete failure set rather than a heuristic for it, and every
+      other missing-HFA case still raises. That is what keeps this from being a catch-all that
+      swallows real faults
+- [x] **In the state document and compared by `verify`**, exactly rather than tolerantly. Letting
+      `null` mean "unbounded, match anything" would have put a permanent hole in the one guarantee
+      §3.5 rests on, to paper over a one-time migration
+- [x] **SPEC §3.5 records that this is transitional**, with §4.4's corollary carried over: a bound set
+      on a season the pipeline was live for is evidence of a **missing capture**, not of a late start
+- [x] `tests/test_replay_bound.py` — 11 tests, new file, nothing committed modified
 
-**It fires tomorrow.** `cfb-score.yml`'s last step is `uv run cfb elo replay`, added so §11 step 5
-runs weekly rather than by hand. The scoring step ahead of it will skip cleanly
-(`reason=no_completed_week`), and then the replay step will exit 1 and the Sunday run goes red — for
-a real reason, on data nobody can retroactively supply.
+### What a committed test caught, and why it was not obsolete
 
-Three options, none of them obviously right, which is why this is recorded rather than fixed in
-passing:
+`test_replay.py::test_no_snapshot_before_a_game_raises_rather_than_defaulting` failed on the first
+implementation. It was **not** obsolete-by-design and was not edited.
 
-1. **Let `replay` skip games that predate the season's first HFA snapshot**, the way `predict` skips
-   games that have kicked off. Honest, but it weakens the one check that guarantees nothing was
-   dropped — and it would have to be recorded in the state so a later replay agrees.
-2. **Bound the replay at the first game it can price**, and have the stored state carry that bound.
-   Same shape as `forecast_from`, applied to `elo/`.
-3. **Accept a red Sunday until week 1's games age out of the comparison** — they never do; `replay`
-   always starts from the season's first game.
+Its scenario has *one* game and a capture after it, so the bound excluded everything and the replay
+quietly returned an empty seed-only state. The test's stated intent — never invent an HFA — was
+preserved, but the outcome was materially worse than raising: a store whose only Sagarin capture
+postdates the entire season is not "the pipeline came online mid-week", it is a store with no usable
+coverage, and reporting "the season has not started" about a season that has is the quiet wrong answer
+this module exists to prevent.
 
-Option 2 looks right and is not a small change. It needs its own session.
+So the implementation gained a line the design had not called for: **excluding a season's opening
+games is expected; excluding all of them raises.** The test passes unmodified.
+
+### Named step: the state migration, which turned out not to be needed
+
+Planned as a one-time rewrite of stored model state, because a stored state written under the old rule
+would disagree with a replay under the new one — correctly, since they folded different game sets.
+Recorded here rather than folded into "production work" because a rewrite of stored state should be
+findable later.
+
+**It was not necessary, and the check is why that is known rather than assumed.**
+
+| | |
+|---|---|
+| Before | `elo/season=2026/week=preseason/2026-08-28T223403Z.json`, `elo/season=2026/week=preseason/2026-08-29T194047Z.json` |
+| After | unchanged — nothing written, nothing rewritten |
+
+`cfb elo advance` has **never run against the real bucket**: the only stored states are the two
+preseason ones (the original, and the re-seed from §3.1's rescale). With no week state stored,
+`newest_state_key` returns `None` and `verify` logs a skip rather than comparing — so there was
+nothing written under the old rule to migrate.
+
+Two things confirmed along the way, both load-bearing and both now checked rather than believed:
+
+- **`newest_state_key` takes the newest**, `keys[-1]` over a lexicographic listing of fixed-width UTC
+  stamps. Write-once means a regenerated state lands beside its predecessor and the newest wins, which
+  is what would have made a migration safe.
+- **The backward-regeneration hazard did not apply.** §3.5 warns that re-advancing an earlier week
+  widens its batch and can strand a later game. Nothing had advanced past week 1 — nothing had
+  advanced at all — so the migration would have been safe today and not in general. Had anything been
+  downstream, the migration would have been re-advancing every week from the affected one forward, in
+  order.
+
+### Verified against production
+
+| Command | Result |
+|---|---|
+| `cfb elo replay --season 2026` | exit 0, `games=6 snapshots=2 teams=266`, `elo_verify result=skip reason=no_stored_state` |
+| `cfb score` (as the schedule runs it, no `--week`) | exit 0, `result=skip reason=no_completed_week` |
+| `cfb elo replay` (no `--season`, as `cfb-score.yml` runs it) | exit 0 |
+
+Both steps of tomorrow's `cfb-score.yml` are green.
 
 ## Follow-up: ELO_PER_POINT was 28 on reasoning that inverted
 
@@ -906,8 +958,18 @@ spans 579 to 2204, the widest pairing leaves the denominator at **0.58**, and **
 Crossing raises rather than clamping silently, so the old scale carried 39 pairings that would have
 reddened a run on a legitimate if enormous upset — losing those is good. But a guard that never fires
 in production is also a guard nothing exercises there, which is why `mov_denominator` stays public and
-directly tested rather than reached only through `update`. It is still reachable in principle: ratings
-diverge as a season runs.
+directly tested rather than reached only through `update`.
+
+- [x] **§12 now records that the floor is a pure invariant guard rather than a tunable.** Its
+      retirement condition was "if the runs it produces turn out to be legitimate upsets rather than
+      data faults, it is too high" — and at scale 20 it produces no runs at all, so there is no
+      evidence it can ever generate about its own value. A number that cannot be disconfirmed is not
+      a tunable.
+- [x] **And that it stays anyway**, because §12's own refit expects the calibration curve to push
+      `ELO_PER_POINT` toward 17–18, which widens the Elo spread and moves the boundary back toward
+      reachable. Removing a guard because the current constant happens to clear it — when the open
+      question in that very section is whether the constant should move — would be removing it
+      exactly before it is needed.
 
 ### Everything that quoted the old numbers
 

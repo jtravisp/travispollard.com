@@ -138,6 +138,10 @@ class Replay:
     applied: tuple[_Applied, ...]
     #: Every ``raw/cfbd/`` games key read, newest capture first.
     games_keys: tuple[str, ...]
+    #: The earliest kickoff this rebuild folded, when the season's opening games
+    #: could not be priced. ``None`` when it covered the season entire. See
+    #: ``EloState.folded_from``.
+    folded_from: datetime | None = None
 
     @property
     def games_applied(self) -> int:
@@ -162,6 +166,7 @@ class Replay:
             generated_at=generated_at,
             seeded_from=self.seeded_from,
             games_applied=self.games_applied,
+            folded_from=self.folded_from,
             through_kickoff=self.through_kickoff,
             ratings=dict(self.ratings),
         )
@@ -192,7 +197,7 @@ def replay(
     ratings = seed(sagarin_snapshot(store, seed_from), resolver)
 
     cutoff = week_position(through_week, label="--through-week")
-    applied, games_keys = _applied_games(
+    applied, games_keys, folded_from = _applied_games(
         store,
         season=season,
         resolver=resolver,
@@ -214,6 +219,7 @@ def replay(
         seeded_from=seed_from.snapshot_key,
         applied=tuple(applied),
         games_keys=tuple(games_keys),
+        folded_from=folded_from,
     )
 
 
@@ -323,7 +329,7 @@ def advance(
     # disagree permanently with no re-run able to reconcile them.
     target = week_position(week)
     since = previous.state.through_kickoff
-    applied, games_keys = _applied_games(
+    applied, games_keys, batch_bound = _applied_games(
         store,
         season=season,
         resolver=resolver,
@@ -348,6 +354,12 @@ def advance(
             # changed halfway is a chain that cannot be replayed.
             seeded_from=previous.state.seeded_from,
             games_applied=previous.state.games_applied + len(applied),
+            # **Inherited, then set once.** The bound is a property of the season
+            # rather than of a week: it is where the accumulation began, and every
+            # later advance is building on that same beginning. The first advance
+            # to meet unpriceable games sets it; the rest carry it forward. Later
+            # advances see none, because `since` has already moved past them.
+            folded_from=previous.state.folded_from or batch_bound,
             # Carried forward when nothing was applied: a week that was entirely
             # postponed leaves the ratings and the cutoff exactly where they were.
             through_kickoff=applied[-1].kickoff if applied else since,
@@ -366,7 +378,7 @@ def _applied_games(
     resolver: Crosswalk,
     manifests: list[Manifest],
     keep: Callable[[RawGame], bool],
-) -> tuple[list[_Applied], list[str]]:
+) -> tuple[list[_Applied], list[str], datetime | None]:
     """Every completed game ``keep`` accepts, resolved and in kickoff order.
 
     The one place ``replay`` and ``advance`` share. The selection rules themselves
@@ -374,8 +386,49 @@ def _applied_games(
     the resolution to canonical ids and the kickoff sort, which only the two
     accumulating paths need. They differ only in ``keep`` -- a season-to-date cut
     for one, a single week for the other.
+
+    **Games that no snapshot can price are left out, and the third return value
+    says where that started.** ``hfa_for`` reads the newest Sagarin manifest
+    captured *strictly before* a game's kickoff (§3.3), so a game that kicked off
+    before the earliest such manifest exists has no HFA and never will -- no
+    later capture can be retroactively moved in front of it.
+
+    **The skip is provably exactly that set, which is what stops it being a
+    catch-all.** ``hfa_at`` fails on one condition and one only: no manifest
+    precedes the kickoff. Any game after the earliest manifest therefore has at
+    least that one available and cannot fail. So ``kickoff <= earliest`` is not a
+    heuristic for "probably unpriceable" -- it is the complete failure set, and
+    every other missing-HFA case still raises the way §3.3 requires.
     """
     games, games_keys = completed_games(store, season, keep)
+
+    # Oldest first (`hfa_manifests`), so the first is the boundary. An empty list
+    # is left to `hfa_for` below, which raises naming the season -- refusing here
+    # would replace a specific message with a vaguer one.
+    earliest = manifests[0].fetched_at if manifests else None
+    priceable = [
+        (raw_game, games_key)
+        for raw_game, games_key in games
+        if earliest is None or raw_game.start_date > earliest
+    ]
+    skipped = len(games) - len(priceable)
+    if skipped and not priceable:
+        # **The bound excludes a season's opening games, never all of them.**
+        # Skipping the first few is a pipeline that came online after the first
+        # kickoffs (§3.5). Skipping every one is a store whose Sagarin coverage
+        # does not overlap its games at all -- and returning a seed-only state for
+        # that would report "the season has not started" about a season that has,
+        # which is the quiet wrong answer this whole module exists to prevent.
+        raise ReplayError(
+            f"season {season} has {skipped} completed game"
+            f"{'' if skipped == 1 else 's'} and no snapshot carrying "
+            f"hfa[{HFA_COLUMN!r}] was captured before any of them -- the earliest is "
+            f"{manifests[0].fetched_at.isoformat()}, after the last kickoff. Excluding "
+            f"the opening games of a season is expected when the pipeline started "
+            f"late; excluding all of them means the captures and the games do not "
+            f"overlap, so there is nothing to rebuild from"
+        )
+    games = priceable
 
     applied = [
         _Applied(
@@ -410,7 +463,12 @@ def _applied_games(
     # floating point too, not merely in principle. It is here so that the sequence
     # a run applied is reproducible when someone comes to read it.
     applied.sort(key=lambda entry: (entry.kickoff, entry.game.cfbd_game_id))
-    return applied, games_keys
+
+    # The first game actually folded, and only when something was left out. A run
+    # that covered everything reports `None`, so an ordinary season's state is
+    # unchanged by any of this.
+    folded_from = applied[0].kickoff if skipped and applied else None
+    return applied, games_keys, folded_from
 
 
 def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
@@ -451,6 +509,18 @@ def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
             0,
             f"games_applied: stored {stored.games_applied}, replayed "
             f"{rebuilt.games_applied}",
+        )
+    # **Compared, and deliberately not tolerantly.** Two accumulations that folded
+    # different sets of games should disagree -- that is this check working. A
+    # comparison that let `None` mean "unbounded, match anything" would put a
+    # permanent hole in the one guarantee §3.5 rests on, to paper over a
+    # migration.
+    if stored.folded_from != rebuilt.folded_from:
+        problems.insert(
+            0,
+            f"folded_from: stored {stored.folded_from}, replayed "
+            f"{rebuilt.folded_from} -- the two folded different games, not merely "
+            f"different numbers",
         )
     if not problems:
         return
