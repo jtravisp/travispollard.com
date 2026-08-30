@@ -999,6 +999,54 @@ result trustworthy, so: **a marker now, the number after the first Sunday run.**
       the markers appear on the next publish. This is the mechanism waiting on
       data rather than a bug
 
+## Follow-up: the slate becomes browsable
+
+Ninety-six rows in kickoff order, which is the order the schedule happens to put
+them in rather than the order they are worth reading in.
+
+- [x] **Sortable, defaulting to disagreement with the market.** The model reading
+      Idaho State by 19.0 against a market of 34.5 is the best row on the page and
+      sat two thirds of the way down a table nobody scrolls. Kickoff order stays
+      as the other option
+  - [x] **Games no book priced get a defined position, not an accidental one.**
+        Last as a group, in kickoff order. Reading a missing line as an edge of
+        zero would file them among the games where the model and the market
+        genuinely agree, which is a different and much stronger claim
+  - [x] The order is total — disagreement, then kickoff, then `cfbd_game_id` — so
+        no two rows can swap places between renders
+- [x] **Click a row for the arithmetic behind it**: both Elos, the gap, what the
+      gap converts to in points, and the edge. The same detail the featured game
+      gets on `/cfb`
+  - [x] `slate.json` did **not** carry the ratings; it does now. A pure projection
+        of `PredictedGame.elo_home`/`elo_away`, which the prediction log already
+        stores at full precision — no new capture and no new stored field
+  - [x] Optional, because `cfb.cli` reads this document back and the published
+        copy predates them. Additive and optional, so §6.2 leaves the version
+        alone
+  - [x] Client-side over data already fetched. The PRD's non-goals rule out a live
+        API, and an interaction costing a request per click would be one
+- [x] **Not free without JS, and worth saying so.** The table is behind a client
+      fetch already — there is no server-rendered slate for sorting to degrade to,
+      so this adds no dependency the page did not have
+
+### Two things this turned up
+
+- [x] **A previous commit's `opacity-60` never landed.** It was the one string
+      replacement written without an assertion, its indentation did not match, and
+      it silently did nothing: the played label rendered, every text assertion
+      passed, and the row was as loud as the games still to come. Fixed, and
+      `cfb-clarity.spec.ts` now asserts the class — the only kind of check that
+      would have caught it
+- [ ] **`npx playwright test` serves `frontend/out`, not the sources.** A local
+      run after an edit silently tests the previous build. Caught while checking
+      that the default-sort spec actually fails on a regression: it passed with
+      the default flipped, because the export was stale. CI is unaffected —
+      `buildspec.yml` builds before it tests — so this is a local footgun rather
+      than a hole in the suite. Worth a `webServer.command` that builds first
+- [ ] **`npm run lint` is not configured** and prompts interactively for a config
+      that was never chosen, so the command `CLAUDE.md` documents cannot run
+      unattended. Pre-existing and outside this section
+
 ## Follow-up: /cfb/slate layout and scope
 
 ### A layout bug no text assertion could catch

@@ -26,6 +26,7 @@ import { SeedDisclosure } from '@/components/cfb/contract';
 import {
   describeFavorite,
   edgeOver,
+  eloGapInPoints,
   favorite,
   formatGeneratedAt,
   formatKickoff,
@@ -364,7 +365,7 @@ function Ratings({
           of them means anything. Twenty points of Elo is about one point of predicted margin
           {gap != null && (
             <>
-              , so this {gap}-point gap is roughly {Math.round(gap / 20)} points before home
+              , so this {gap}-point gap is roughly {eloGapInPoints(gap)} points before home
               advantage
             </>
           )}

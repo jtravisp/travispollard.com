@@ -172,6 +172,25 @@ test.describe('a played game is marked as played', () => {
     await expect(upcoming.getByText('played')).toHaveCount(0);
   });
 
+  test('the played row is dimmed, and the upcoming one is not', async ({ page }) => {
+    /**
+     * A class assertion, which is unusual here and deliberate. The dimming
+     * shipped as a string replacement that matched at the wrong indentation and
+     * silently did nothing -- the label was there, every text assertion passed,
+     * and the row was as loud as the games still to come. Nothing but this would
+     * have noticed.
+     */
+    await page.route('**/cfb/data/slate.json*', (route) => route.fulfill({ json: SLATE }));
+    await page.goto('/cfb/slate/');
+
+    await expect(page.getByRole('row', { name: /Jacksonville State/ })).toHaveClass(
+      /opacity-60/,
+    );
+    await expect(page.getByRole('row', { name: /Texas State/ })).not.toHaveClass(
+      /opacity-60/,
+    );
+  });
+
   test('the page says when results were last known, rather than implying live', async ({
     page,
   }) => {

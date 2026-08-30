@@ -251,6 +251,13 @@ export interface SlateGame {
   featured: boolean;
   /** The game has been played, per the newest results capture. */
   played?: boolean;
+  /**
+   * The two ratings behind `predicted_margin`, so an expanded row can show its
+   * own arithmetic. Optional: a document published before they existed does not
+   * carry them, and the row then shows what it has.
+   */
+  home_elo?: number | null;
+  away_elo?: number | null;
 }
 
 export interface SlateDocument extends Envelope {

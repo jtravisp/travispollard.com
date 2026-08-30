@@ -22,6 +22,22 @@ export function formatProbability(probability: number): string {
   return `${Math.round(probability * 100)}%`;
 }
 
+/**
+ * The pipeline's `ELO_PER_POINT`, mirrored.
+ *
+ * Not a second source of truth so much as a second *copy*: the pages convert a
+ * rating gap into points to explain themselves, and the conversion has to be the
+ * model's own or the explanation describes a different model. If the pipeline's
+ * constant ever moves, this moves with it -- §3.1's calibration work is the kind
+ * of thing that moves it.
+ */
+export const ELO_PER_POINT = 20;
+
+/** A rating gap in points of predicted margin, before home advantage. */
+export function eloGapInPoints(gap: number): number {
+  return Math.round(gap / ELO_PER_POINT);
+}
+
 /** A margin with an explicit sign, because "3" and "-3" are opposite claims. */
 export function formatMargin(margin: number): string {
   return `${margin > 0 ? '+' : ''}${margin.toFixed(1)}`;
@@ -146,6 +162,22 @@ export function marketMarginFor(
 ): number | null {
   if (line == null) return null;
   return atHome ? -line : line;
+}
+
+/**
+ * The size of the model's disagreement with the market, ignoring direction.
+ *
+ * What `/cfb/slate` sorts on. `edgeOver` answers "which way and by how much for
+ * this team"; a slate has no subject team, so the interesting quantity is simply
+ * how far apart the two opinions are. `null` when no book priced the game --
+ * **never `0`**, which is the specific claim that the model and the market agree.
+ */
+export function disagreement(
+  predictedMargin: number,
+  line: number | null | undefined,
+): number | null {
+  const edge = edgeOver(predictedMargin, line, true);
+  return edge === null ? null : Math.abs(edge);
 }
 
 /**

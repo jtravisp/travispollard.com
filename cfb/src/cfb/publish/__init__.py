@@ -372,6 +372,19 @@ class SlateGame(BaseModel):
     #: As the book published it: negative favours the home team (§4.3).
     market_line: float | None
     line_source: str | None
+    #: **The two ratings behind ``predicted_margin``**, so an expanded row can
+    #: show its own arithmetic instead of asking the reader to trust a number.
+    #:
+    #: A pure projection of ``PredictedGame.elo_home``/``elo_away``, which the
+    #: prediction log already stores at full precision -- no new capture, no new
+    #: stored field, and nothing here that the forecast did not already say.
+    #:
+    #: Optional because ``cfb.cli`` reads this document back, and the published
+    #: copy predates them. Additive and optional, so §6.2 leaves the version
+    #: alone: firing it for a change that breaks nothing is what makes the
+    #: signal worthless when a rename actually needs it.
+    home_elo: float | None = None
+    away_elo: float | None = None
     #: ``True`` when this game involves the team ``next-game.json`` is about, so
     #: the page can mark it without knowing who that is.
     featured: bool
@@ -682,6 +695,8 @@ def build_slate(
             win_probability=clamp(game.win_probability),
             market_line=game.market_line,
             line_source=game.market_line_source,
+            home_elo=game.elo_home,
+            away_elo=game.elo_away,
             featured=team in (game.home, game.away),
             played=game.cfbd_game_id in finished,
         )
