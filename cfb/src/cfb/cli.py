@@ -710,7 +710,25 @@ def _publish(args, *, moment: datetime) -> int:
     log(
         EVENT_PUBLISHED,
         season=season,
-        week=week,
+        # **Three weeks, because there are three.** `requested_week` is what the
+        # run was invoked for -- `--week`, or `coming_week`'s answer. The other
+        # two are what each document actually resolved to, and neither has to
+        # match it: `_slate_week` holds the board on a week that still has games
+        # ahead, and `_next_fixture` finds the team's next unplayed game wherever
+        # it is filed.
+        #
+        # A bare `week=` used to be the only one on this line, and it named the
+        # request. It was true and it was the single thing someone reads in an
+        # Actions log to check whether the hold worked -- where it said the
+        # opposite, and the only contrary evidence was a game count they would
+        # have to already know the right value of.
+        requested_week=week,
+        slate_week=slate.week,
+        next_game_week=next_game.week,
+        # Named as a state rather than left to a comparison of the two above.
+        # `board_held=True` is greppable and alertable; "these two fields differ"
+        # is neither.
+        board_held=slate.week != week,
         result=RESULT_OK,
         keys=" ".join(sorted(written)),
         team=next_game.team,
@@ -735,12 +753,19 @@ def _publish(args, *, moment: datetime) -> int:
 
 
 def _invalidate(args, *, season: int, week: str, moment: datetime) -> None:
-    """§6.5's `/cfb/data/*` invalidation, or a logged skip saying why not."""
+    """§6.5's `/cfb/data/*` invalidation, or a logged skip saying why not.
+
+    `week` is the requested week and is provenance only -- the invalidation is
+    path-based and covers every document regardless. It is logged as
+    `requested_week` for the same reason the publish line is: no line from a
+    publish run should say a bare `week`, because the one thing a reader must not
+    do is assume it names what was published.
+    """
     if urlparse(args.store).scheme != "s3":
         log(
             EVENT_INVALIDATED,
             season=season,
-            week=week,
+            requested_week=week,
             result=RESULT_SKIP,
             reason=REASON_NOT_A_CDN_ORIGIN,
             store=args.store,
@@ -757,7 +782,7 @@ def _invalidate(args, *, season: int, week: str, moment: datetime) -> None:
     log(
         EVENT_INVALIDATED,
         season=season,
-        week=week,
+        requested_week=week,
         result=RESULT_OK,
         distribution=distribution,
         paths=" ".join(DATA_PATHS),
