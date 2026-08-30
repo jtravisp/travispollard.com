@@ -949,6 +949,104 @@ A local run with a deliberately failing spec:
 That last pair matters as much as the timing: a fix that stopped the hang by
 swallowing the failure would have left CI green on a broken build.
 
+## Follow-up: what a visitor finds confusing
+
+Five things, in the order they mislead.
+
+- [x] **The seed disclosure was not on the page that needs it.** `/cfb` showed
+      "the model's edge: 8.8 points higher on Texas" and never said why the model
+      disagreed — and while §3.6's identity holds, the honest answer is that a
+      week 1 forecast *is* Sagarin's preseason opinion, so the edge is **Sagarin
+      against DraftKings**, not this model against DraftKings.
+  - [x] It was computed correctly, published in `accuracy.json`, and absent from
+        the one place it changes what a number means. `next-game.json` now carries
+        it and `/cfb` renders it beside the edge, retiring on the same one-way
+        rule
+  - [x] **Duplicated between documents deliberately.** §6.1 makes each route one
+        fetch and names duplication as the price; the alternative was a front page
+        that fetches twice or stays silent, and it was staying silent
+- [x] **Played games were listed as forecasts.** CFBD's week 1 runs ten days, so
+      by the second Sunday the top of the slate is history with no marker. Rows
+      now say `played` and dim
+- [x] **"96 priced by a book" read as a subset of something larger** when it was
+      complete coverage. Phrased as a count only when it is not all of them
+- [x] **Nothing on `/cfb` said how the model was doing.** The record now appears
+      on the front page, with an explicit "no games have been scored yet" state
+      that lights up on its own from 2026-09-13
+- [x] **Elo was unexplained.** "2113" and "a 738-point gap" mean nothing to a
+      football fan. One sentence now says what the number is and converts the gap
+      using **this game's own** figures rather than a hardcoded example, which
+      would be wrong the moment the opponent changed
+
+### Two decisions on "played", recorded rather than defaulted
+
+**What counts as played: the evidence.** A game is played when the newest
+`/games` capture carries both its scores — the same thing §5.2 decides "unplayed,
+or a join that failed" from, and for the reason §3.3 already rejected a clock:
+a wall clock cannot be replayed. `results_known_at` is published alongside, so
+the page says "results as of 04:33, so a game played since then is not yet
+marked" rather than implying live.
+
+**The score waits for scoring.** Scores exist in `raw/` before they exist in
+`scored/`, and publishing one from `raw/` would put a second answer to "what
+happened" on the read path, where no join check and no replay looks — which is
+what §6's generator rule forbids. §5.2's failure modes are what make a published
+result trustworthy, so: **a marker now, the number after the first Sunday run.**
+
+- [ ] **The marker is currently inert, for an honest reason.** The newest `/games`
+      capture for week 1 is `2026-08-29T04:33Z`, before that afternoon's kickoffs,
+      so nothing is marked yet. Tomorrow's `cfb-cfbd` run supplies the evidence and
+      the markers appear on the next publish. This is the mechanism waiting on
+      data rather than a bug
+
+## Follow-up: the slate becomes browsable
+
+Ninety-six rows in kickoff order, which is the order the schedule happens to put
+them in rather than the order they are worth reading in.
+
+- [x] **Sortable, defaulting to disagreement with the market.** The model reading
+      Idaho State by 19.0 against a market of 34.5 is the best row on the page and
+      sat two thirds of the way down a table nobody scrolls. Kickoff order stays
+      as the other option
+  - [x] **Games no book priced get a defined position, not an accidental one.**
+        Last as a group, in kickoff order. Reading a missing line as an edge of
+        zero would file them among the games where the model and the market
+        genuinely agree, which is a different and much stronger claim
+  - [x] The order is total — disagreement, then kickoff, then `cfbd_game_id` — so
+        no two rows can swap places between renders
+- [x] **Click a row for the arithmetic behind it**: both Elos, the gap, what the
+      gap converts to in points, and the edge. The same detail the featured game
+      gets on `/cfb`
+  - [x] `slate.json` did **not** carry the ratings; it does now. A pure projection
+        of `PredictedGame.elo_home`/`elo_away`, which the prediction log already
+        stores at full precision — no new capture and no new stored field
+  - [x] Optional, because `cfb.cli` reads this document back and the published
+        copy predates them. Additive and optional, so §6.2 leaves the version
+        alone
+  - [x] Client-side over data already fetched. The PRD's non-goals rule out a live
+        API, and an interaction costing a request per click would be one
+- [x] **Not free without JS, and worth saying so.** The table is behind a client
+      fetch already — there is no server-rendered slate for sorting to degrade to,
+      so this adds no dependency the page did not have
+
+### Two things this turned up
+
+- [x] **A previous commit's `opacity-60` never landed.** It was the one string
+      replacement written without an assertion, its indentation did not match, and
+      it silently did nothing: the played label rendered, every text assertion
+      passed, and the row was as loud as the games still to come. Fixed, and
+      `cfb-clarity.spec.ts` now asserts the class — the only kind of check that
+      would have caught it
+- [ ] **`npx playwright test` serves `frontend/out`, not the sources.** A local
+      run after an edit silently tests the previous build. Caught while checking
+      that the default-sort spec actually fails on a regression: it passed with
+      the default flipped, because the export was stale. CI is unaffected —
+      `buildspec.yml` builds before it tests — so this is a local footgun rather
+      than a hole in the suite. Worth a `webServer.command` that builds first
+- [ ] **`npm run lint` is not configured** and prompts interactively for a config
+      that was never chosen, so the command `CLAUDE.md` documents cannot run
+      unattended. Pre-existing and outside this section
+
 ## Follow-up: /cfb/slate layout and scope
 
 ### A layout bug no text assertion could catch

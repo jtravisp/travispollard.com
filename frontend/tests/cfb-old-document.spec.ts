@@ -212,7 +212,10 @@ test.describe('the copy a visitor actually reads', () => {
     await page.goto('/cfb/');
     await expect(page.getByText('2113')).toBeVisible();
     await expect(page.getByText('1375')).toBeVisible();
-    await expect(page.getByText(/738-point gap/)).toBeVisible();
+    // Appears twice by design: beside the rating, and in the worked example
+    // explaining what an Elo gap converts to in points.
+    await expect(page.getByText(/738-point gap/).first()).toBeVisible();
+    await expect(page.getByText(/roughly 37 points before home advantage/)).toBeVisible();
   });
 
   test('separates the venue from the opponent ranking', async ({ page }) => {

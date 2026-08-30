@@ -133,6 +133,21 @@ export interface NextGameDocument extends Envelope {
    */
   history?: RatingPoint[];
   last_result?: LastResult | null;
+  /**
+   * §3.6's disclosure, on the page where it changes what a number means.
+   *
+   * While it is active, the model's "edge" over the market is really Sagarin's
+   * preseason opinion against a book, not this model against one.
+   */
+  seed_disclosure?: SeedDisclosure | null;
+  season_so_far?: SeasonSoFar | null;
+}
+
+/** How the model has done so far, duplicated onto `/cfb` so it needs one fetch. */
+export interface SeasonSoFar {
+  through_week: string | null;
+  texas: Record;
+  full_slate: Record;
 }
 
 export interface AtsSummary {
@@ -234,6 +249,15 @@ export interface SlateGame {
   line_source: string | null;
   /** Involves the team `next-game.json` is about. */
   featured: boolean;
+  /** The game has been played, per the newest results capture. */
+  played?: boolean;
+  /**
+   * The two ratings behind `predicted_margin`, so an expanded row can show its
+   * own arithmetic. Optional: a document published before they existed does not
+   * carry them, and the row then shows what it has.
+   */
+  home_elo?: number | null;
+  away_elo?: number | null;
 }
 
 export interface SlateDocument extends Envelope {
@@ -247,5 +271,7 @@ export interface SlateDocument extends Envelope {
    * a smaller number than the model produced.
    */
   excluded_non_fbs?: number;
+  /** When the results behind `played` were captured. Not "now". */
+  results_known_at?: string | null;
   games: SlateGame[];
 }

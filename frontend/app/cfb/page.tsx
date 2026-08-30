@@ -21,15 +21,18 @@ import Link from 'next/link';
 import CfbNav from '@/components/cfb/CfbNav';
 import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import { LastResult, NextGameDocument } from '@/components/cfb/contract';
+import { LastResult, NextGameDocument, SeasonSoFar } from '@/components/cfb/contract';
+import { SeedDisclosure } from '@/components/cfb/contract';
 import {
   describeFavorite,
   edgeOver,
+  eloGapInPoints,
   favorite,
   formatGeneratedAt,
   formatKickoff,
   formatLine,
   formatMargin,
+  formatMean,
   formatProbability,
   formatWeek,
   marketFavorite,
@@ -166,6 +169,27 @@ function NextGame({ document }: { document: NextGameDocument }) {
             </div>
           )}
 
+          {/* (1) Beside the edge, not in a footnote. While this is active the
+              "edge" above is Sagarin's preseason opinion against a book rather
+              than this model against one -- which changes what the number means,
+              so it belongs where the number is. */}
+          {document.seed_disclosure?.active && edge !== null && (
+            <p className="text-xs text-base-content/70 mt-2">
+              <strong>Read that edge carefully.</strong> The ratings are still seeded from
+              Sagarin&rsquo;s preseason numbers, so an early-season forecast is close to a
+              restatement of his — which makes this a gap between <em>his</em> opinion and the
+              book&rsquo;s, more than between this model&rsquo;s and the book&rsquo;s. It stops
+              being true as results move the ratings, and this note retires itself when they have.
+            </p>
+          )}
+          {document.seed_disclosure && !document.seed_disclosure.active && (
+            <p className="text-xs text-base-content/70 mt-2">
+              The ratings separated from their preseason seed in{' '}
+              {formatWeek(document.seed_disclosure.retired_week ?? '').toLowerCase()}, so this is
+              the model&rsquo;s own disagreement with the market.
+            </p>
+          )}
+
           {disagree && (
             <div className="alert alert-warning mt-4">
               <p className="text-sm">
@@ -178,6 +202,7 @@ function NextGame({ document }: { document: NextGameDocument }) {
         </div>
       </div>
 
+      <HowItIsDoing record={document.season_so_far} />
       {document.last_result && (
         <LastGame result={document.last_result} team={team} />
       )}
@@ -190,6 +215,52 @@ function NextGame({ document }: { document: NextGameDocument }) {
         opponentRank={game.opponent_model_rank}
       />
       <Published document={document} />
+    </div>
+  );
+}
+
+function HowItIsDoing({ record }: { record?: SeasonSoFar | null }) {
+  /**
+   * (4) The strongest sentence this project can put on its front page, because
+   * it is the claim the whole thing makes. It lights up on its own: the first
+   * scoring run is 2026-09-13, and until then this renders the empty state
+   * rather than being absent, so a reader knows the record exists and is coming.
+   */
+  const scored = record && record.through_week !== null;
+
+  return (
+    <div className="card bg-base-200">
+      <div className="card-body">
+        <h2 className="card-title text-lg">How the model is doing</h2>
+        {scored ? (
+          <p className="text-sm">
+            Through {formatWeek(record.through_week!).toLowerCase()}, over{' '}
+            {record.full_slate.games} games: the model&rsquo;s predictions miss by{' '}
+            <strong>{formatMean(record.full_slate.mae)}</strong> points on average
+            {record.full_slate.line_mae !== null && (
+              <>
+                , against the betting market&rsquo;s{' '}
+                <strong>{formatMean(record.full_slate.line_mae)}</strong> over the{' '}
+                {record.full_slate.line_games} games a book priced
+              </>
+            )}
+            .{' '}
+            <Link href="/cfb/accuracy" className="link link-primary">
+              The full record
+            </Link>
+            .
+          </p>
+        ) : (
+          <p className="text-sm text-base-content/70">
+            No games have been scored yet. Every prediction is written before kickoff and graded
+            against the result on Sunday, so this fills in from the first scored week onward —{' '}
+            <Link href="/cfb/accuracy" className="link link-primary">
+              the record
+            </Link>{' '}
+            is empty and will not be quietly backfilled.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -279,11 +350,27 @@ function Ratings({
   history?: NextGameDocument['history'];
 }) {
   const points = history ?? [];
+  const gap =
+    opponentElo != null ? Math.abs(Math.round(asOf.elo - opponentElo)) : null;
 
   return (
     <div className="card bg-base-200">
       <div className="card-body">
         <h2 className="card-title text-lg">Ratings this forecast was made from</h2>
+        {/* (5) "2113" and "a 738-point gap" mean nothing to a football fan.
+            The worked example uses this game's own gap rather than a fixed
+            number, which would be wrong the moment the opponent changed. */}
+        <p className="text-xs text-base-content/60 -mt-1 mb-2">
+          An Elo rating is a single number for how strong a team is, and only the gap between two
+          of them means anything. Twenty points of Elo is about one point of predicted margin
+          {gap != null && (
+            <>
+              , so this {gap}-point gap is roughly {eloGapInPoints(gap)} points before home
+              advantage
+            </>
+          )}
+          .
+        </p>
         <div className="flex flex-wrap gap-8">
           <div>
             <div className="text-xs uppercase tracking-wide text-base-content/60">
@@ -321,7 +408,7 @@ function Ratings({
                 {opponentRank != null
                   ? `${ordinal(opponentRank)} of ${asOf.fbs_teams} by this model`
                   : 'outside the FBS, so this model does not rank it'}
-                {' · '}a {Math.abs(Math.round(asOf.elo - opponentElo))}-point gap
+                {' · '}a {gap}-point gap
               </div>
             </div>
           )}
