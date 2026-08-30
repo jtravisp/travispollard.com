@@ -123,11 +123,7 @@ function NextGame({ document }: { document: NextGameDocument }) {
             <Figure
               label="Model picks"
               value={describeFavorite(model, 'dead even')}
-              note={
-                game.opponent_model_rank != null
-                  ? `${game.opponent} is ${ordinal(game.opponent_model_rank)} of ${asOf.fbs_teams} by this model`
-                  : `${game.opponent} is outside the FBS, so this model does not rank it`
-              }
+              note={`the model's margin, from ${team}'s side`}
               emphasis
             />
             <Figure
@@ -191,6 +187,7 @@ function NextGame({ document }: { document: NextGameDocument }) {
         history={document.history}
         opponentName={game.opponent}
         opponentElo={game.opponent_elo}
+        opponentRank={game.opponent_model_rank}
       />
       <Published document={document} />
     </div>
@@ -270,11 +267,13 @@ function Ratings({
   history,
   opponentName,
   opponentElo,
+  opponentRank,
 }: {
   asOf: NextGameDocument['as_of'];
   team: string;
   opponentName?: string;
   opponentElo?: number | null;
+  opponentRank?: number | null;
   // Optional, not merely possibly-empty: a document published before this field
   // existed has no `history` key at all, and `.length` on undefined throws.
   history?: NextGameDocument['history'];
@@ -316,7 +315,13 @@ function Ratings({
               </div>
               <div className="text-2xl font-semibold">{Math.round(opponentElo)}</div>
               <div className="text-xs text-base-content/60">
-                a {Math.abs(Math.round(asOf.elo - opponentElo))}-point Elo gap
+                {/* The opponent's standing belongs with the opponent's rating,
+                    beside the gap it explains -- not inside the card showing the
+                    margin, where it read as a footnote to the wrong number. */}
+                {opponentRank != null
+                  ? `${ordinal(opponentRank)} of ${asOf.fbs_teams} by this model`
+                  : 'outside the FBS, so this model does not rank it'}
+                {' · '}a {Math.abs(Math.round(asOf.elo - opponentElo))}-point gap
               </div>
             </div>
           )}

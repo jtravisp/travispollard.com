@@ -374,6 +374,21 @@ class SlateDocument(BaseModel):
     #: a slate is shorter than the week it names, rather than leaving a reader to
     #: conclude the model missed games.
     forecast_from: datetime | None
+    #: Games the model forecast that are **not listed**, because neither team is
+    #: FBS.
+    #:
+    #: **The model needs those games; the page does not.** FCS results move FCS
+    #: ratings, which is how an FBS-vs-FCS forecast gets a sensible opponent --
+    #: so they are predicted, scored and stored exactly like any other. They are
+    #: dropped only here, at the last step, where the audience is someone who
+    #: follows Texas and would otherwise scroll past forty matchups between teams
+    #: they have never heard of to reach the ones they came for.
+    #:
+    #: The count is published rather than the games silently vanishing. A slate
+    #: that said 99 where the model forecast 144 would be understating the work,
+    #: and the difference is exactly the sort of thing this project refuses to
+    #: leave to inference.
+    excluded_non_fbs: int = Field(default=0, ge=0)
     games: list[SlateGame]
 
 
@@ -580,6 +595,17 @@ def build_slate(
     resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
     log = _newest_predictions(store, season=season, week=week)
 
+    # At least one FBS team. `division` is the crosswalk's, which is the same
+    # source `is_modelled` selects the model's universe from -- so a game reaching
+    # here always has both teams rated, and this is purely about what is worth
+    # showing.
+    shown = [
+        game
+        for game in log.games
+        if "FBS" in (resolver.division(game.home), resolver.division(game.away))
+    ]
+    excluded = len(log.games) - len(shown)
+
     games = [
         SlateGame(
             cfbd_game_id=game.cfbd_game_id,
@@ -593,7 +619,7 @@ def build_slate(
             line_source=game.market_line_source,
             featured=team in (game.home, game.away),
         )
-        for game in sorted(log.games, key=lambda g: (g.kickoff, g.cfbd_game_id))
+        for game in sorted(shown, key=lambda g: (g.kickoff, g.cfbd_game_id))
     ]
 
     return SlateDocument(
@@ -604,6 +630,7 @@ def build_slate(
         team=resolver.display_name(team),
         priced=sum(1 for game in games if game.market_line is not None),
         forecast_from=log.forecast_from,
+        excluded_non_fbs=excluded,
         games=games,
     )
 

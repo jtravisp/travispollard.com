@@ -136,7 +136,7 @@ test.describe('/cfb against a document carrying the new fields', () => {
 
     await page.goto('/cfb/');
 
-    await expect(page.getByText(/Texas State is 81st of 138 by this model/)).toBeVisible();
+    await expect(page.getByText(/81st of 138 by this model/)).toBeVisible();
     await expect(page.getByRole('img', { name: /Elo rating by week/ })).toBeVisible();
     await expect(page.getByText('Texas 45, Texas State 14')).toBeVisible();
     await expect(page.getByText(/It beat the closing number/)).toBeVisible();
@@ -212,14 +212,16 @@ test.describe('the copy a visitor actually reads', () => {
     await page.goto('/cfb/');
     await expect(page.getByText('2113')).toBeVisible();
     await expect(page.getByText('1375')).toBeVisible();
-    await expect(page.getByText(/738-point Elo gap/)).toBeVisible();
+    await expect(page.getByText(/738-point gap/)).toBeVisible();
   });
 
   test('separates the venue from the opponent ranking', async ({ page }) => {
     await page.goto('/cfb/');
-    // The venue sentence stands alone; the rank sits with the margin it explains.
+    // The venue sentence stands alone. The opponent's rank sits with the
+    // opponent's rating, beside the gap it explains, rather than inside the card
+    // showing the margin -- where it read as a footnote to the wrong number.
     await expect(page.getByText('Texas is at home.', { exact: true })).toBeVisible();
-    await expect(page.getByText(/Texas State is 81st of 138 by this model/)).toBeVisible();
+    await expect(page.getByText(/81st of 138 by this model . a 738-point gap/)).toBeVisible();
   });
 
   test('explains the cap with the actual reason', async ({ page }) => {
