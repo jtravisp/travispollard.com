@@ -297,16 +297,24 @@ red run is reproducible with one copy-paste.
 | Sun 12:30 | `cfb-score` | Update Elo, score last week, write `scored/`, then verify the state replays |
 | Tue 12:00 | `cfb-sagarin` | Snapshot the ratings page, check it is still moving |
 | Thu 12:00 | `cfb-predict` | Generate and write `predictions/` for the coming slate |
-| Fri 12:00 | `cfb-publish` | Build `/cfb/data/*`, upload, invalidate, confirm the site serves it |
+| Thu 12:30 | `cfb-publish` | Build `/cfb/data/*`, upload, invalidate, confirm the site serves it |
+| Fri 12:00 | `cfb-publish` | Again, for lines that moved |
 
 Plus `cfb-ci` on every PR touching `cfb/` — deliberately with **no AWS
 credentials at all**, so a test that reached for the network fails there rather
 than passing on someone's laptop.
 
-**The Friday publish is the SLO** and its deadline is first kickoff Saturday. It
-is the only job that can genuinely be missed, which is what makes the alerting
-mean something. There is no retry-until-it-works loop: a prediction published
-after kickoff is not a prediction.
+**The publish is the SLO** and its deadline is first kickoff of the week. It is
+the only job that can genuinely be missed, which is what makes the alerting mean
+something. There is no retry-until-it-works loop: a prediction published after
+kickoff is not a prediction.
+
+It runs twice because the deadline used to read "first kickoff *Saturday*", which
+assumed a sport that only plays Saturdays. Week 1 of 2026 has forty Thursday
+games; a Friday-only publish landed fourteen hours after the first of them.
+Thursday 12:30 is now the run that has to make the deadline and Friday is a
+refresh. SPEC-phase1 §8.1 has the measurement, including the weeks this still
+does not cover — November MACtion plays Tuesday nights.
 
 Everything gates on the committed calendar. Out of season, and on the season's
 first two Sundays when no week has completed, jobs exit 0 with a reason — turning

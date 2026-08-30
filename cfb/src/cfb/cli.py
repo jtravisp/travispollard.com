@@ -636,18 +636,25 @@ def _score(args, *, moment: datetime) -> int:
 
 
 def _publish(args, *, moment: datetime) -> int:
-    """SPEC-phase1 8's Friday run: build `/cfb/data/*` and upload it.
+    """SPEC-phase1 8's publish run: build `/cfb/data/*` and upload it.
 
-    **This is the SLO**, and its deadline is first kickoff Saturday. §8 is
+    **This is the SLO**, and its deadline is first kickoff *of the week* -- §8.1
+    on why that used to read "first kickoff Saturday" and what it cost. §8 is
     explicit that it can genuinely be missed and that there is no
     retry-until-it-works loop, because a prediction published after kickoff is not
     a prediction -- so everything here either succeeds loudly or fails loudly, and
     the `published` line is what an alert reads.
 
+    Runs twice: Thursday 12:30, half an hour after `cfb predict`, which is the one
+    that has to make the deadline, and Friday 12:00 as a refresh for lines that
+    moved. Nothing here distinguishes them -- a publish is idempotent on
+    `cfb/data/`, and a run that behaved differently depending on the weekday would
+    be the second calendar in a codebase that already keeps one.
+
     The week default is `coming_week`, the same one `cfb predict` uses, because
-    the two commands are two halves of one week: Thursday writes the forecast and
-    Friday puts it on the page. A publish that resolved the week differently from
-    the predict that fed it would be publishing a slate nobody generated.
+    the two commands are two halves of one week: the forecast is written and then
+    put on the page. A publish that resolved the week differently from the predict
+    that fed it would be publishing a slate nobody generated.
 
     **The invalidation is a separate step and a separate log line**, after both
     documents are written. §6.5 pairs it with the upload, but the upload is what

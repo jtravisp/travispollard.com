@@ -917,7 +917,7 @@ work to Phase 1). Documents are small and change weekly:
 - `Cache-Control: public, max-age=300, s-maxage=3600` on the JSON.
 - The publish step issues a CloudFront invalidation for `/cfb/data/*` after upload. The site pipeline's
   invalidation is manual today (root `CLAUDE.md`); this one is not, because a stale prediction is the
-  failure mode the Friday SLO exists to prevent.
+  failure mode the publish SLO exists to prevent.
 
 **Where the header is set, and why it is not in Terraform.** The behavior runs on the managed
 CachingOptimized policy, which honours the origin's `Cache-Control` rather than imposing a TTL. So the
@@ -1000,13 +1000,37 @@ answering a question they did not ask.
 | Sun 12:30 UTC | `cfb-score.yml` | update Elo, score last week's predictions, write `scored/` |
 | Tue 12:00 UTC | `cfb-sagarin.yml` *(exists)* | snapshot, freshness check |
 | Thu 12:00 UTC | `cfb-predict.yml` | generate and write `predictions/` for the coming slate |
-| Fri 12:00 UTC | `cfb-publish.yml` | build `/cfb/data/*`, upload, invalidate |
+| Thu 12:30 UTC | `cfb-publish.yml` | build `/cfb/data/*`, upload, invalidate |
+| Fri 12:00 UTC | `cfb-publish.yml` | again, for lines that moved |
 
 Every step is a command a human runs locally, per Phase 0 §11. All of them gate on `calendar.in_season`.
 
-**The Friday publish is the SLO**, and its deadline is first kickoff Saturday. It can genuinely be missed,
+**The publish is the SLO**, and its deadline is **first kickoff of the week**. It can genuinely be missed,
 which is what makes the alerting mean something. A failed publish is a red run and an email; there is no
 retry-until-it-works loop, because a prediction published after kickoff is not a prediction.
+
+### 8.1 Why the deadline is not "first kickoff Saturday"
+
+It said that until it was measured. The wording assumed a Saturday sport, and college football is not one:
+week 1 of 2026 has **40 Thursday games and 18 Friday games**, and the season's first kickoff was
+**Thu 27 Aug 22:00 UTC**. A single Friday 12:00 UTC publish lands *fourteen hours after* a Thursday
+5:00 PM CDT kickoff, so the first publish of the week was already carrying finished games as forecasts —
+and because results are only captured Sunday 12:00 UTC, they stayed unmarked until Sunday.
+
+The predictions themselves were never late; that distinction is the whole point of splitting these jobs.
+`cfb predict` runs Thursday 12:00 UTC and writes before kickoff, which is the claim §11 step 1 checks. It
+was the *publish* that missed, so the fix is a second publish rather than an earlier forecast.
+
+**Thursday 12:30 is now the run that has to make the deadline, and Friday is a refresh.** Half an hour
+after `cfb-predict` is the same gap `cfb-score` leaves after `cfb-cfbd`, for the same reason: Actions cron
+drifts 5–15 minutes under load.
+
+**The deadline is still not met in every week, and saying so is the point of writing it down.** November
+MACtion plays Tuesday and Wednesday nights, inside the same CFBD week and roughly 36 hours *before* the
+Thursday run. Meeting "first kickoff of the week" literally in those weeks needs a Monday or Tuesday
+publish. An SLO the schedule is known to miss in four weeks of the season is worth stating as such rather
+than quietly redefining the deadline to whatever the cron already achieves — which is exactly how
+"first kickoff Saturday" came to be written.
 
 ---
 
