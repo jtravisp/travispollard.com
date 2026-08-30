@@ -949,6 +949,56 @@ A local run with a deliberately failing spec:
 That last pair matters as much as the timing: a fix that stopped the hang by
 swallowing the failure would have left CI green on a broken build.
 
+## Follow-up: what a visitor finds confusing
+
+Five things, in the order they mislead.
+
+- [x] **The seed disclosure was not on the page that needs it.** `/cfb` showed
+      "the model's edge: 8.8 points higher on Texas" and never said why the model
+      disagreed — and while §3.6's identity holds, the honest answer is that a
+      week 1 forecast *is* Sagarin's preseason opinion, so the edge is **Sagarin
+      against DraftKings**, not this model against DraftKings.
+  - [x] It was computed correctly, published in `accuracy.json`, and absent from
+        the one place it changes what a number means. `next-game.json` now carries
+        it and `/cfb` renders it beside the edge, retiring on the same one-way
+        rule
+  - [x] **Duplicated between documents deliberately.** §6.1 makes each route one
+        fetch and names duplication as the price; the alternative was a front page
+        that fetches twice or stays silent, and it was staying silent
+- [x] **Played games were listed as forecasts.** CFBD's week 1 runs ten days, so
+      by the second Sunday the top of the slate is history with no marker. Rows
+      now say `played` and dim
+- [x] **"96 priced by a book" read as a subset of something larger** when it was
+      complete coverage. Phrased as a count only when it is not all of them
+- [x] **Nothing on `/cfb` said how the model was doing.** The record now appears
+      on the front page, with an explicit "no games have been scored yet" state
+      that lights up on its own from 2026-09-13
+- [x] **Elo was unexplained.** "2113" and "a 738-point gap" mean nothing to a
+      football fan. One sentence now says what the number is and converts the gap
+      using **this game's own** figures rather than a hardcoded example, which
+      would be wrong the moment the opponent changed
+
+### Two decisions on "played", recorded rather than defaulted
+
+**What counts as played: the evidence.** A game is played when the newest
+`/games` capture carries both its scores — the same thing §5.2 decides "unplayed,
+or a join that failed" from, and for the reason §3.3 already rejected a clock:
+a wall clock cannot be replayed. `results_known_at` is published alongside, so
+the page says "results as of 04:33, so a game played since then is not yet
+marked" rather than implying live.
+
+**The score waits for scoring.** Scores exist in `raw/` before they exist in
+`scored/`, and publishing one from `raw/` would put a second answer to "what
+happened" on the read path, where no join check and no replay looks — which is
+what §6's generator rule forbids. §5.2's failure modes are what make a published
+result trustworthy, so: **a marker now, the number after the first Sunday run.**
+
+- [ ] **The marker is currently inert, for an honest reason.** The newest `/games`
+      capture for week 1 is `2026-08-29T04:33Z`, before that afternoon's kickoffs,
+      so nothing is marked yet. Tomorrow's `cfb-cfbd` run supplies the evidence and
+      the markers appear on the next publish. This is the mechanism waiting on
+      data rather than a bug
+
 ## Follow-up: /cfb/slate layout and scope
 
 ### A layout bug no text assertion could catch

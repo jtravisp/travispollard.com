@@ -66,7 +66,13 @@ function Slate({ document }: { document: SlateDocument }) {
         <span aria-hidden>&middot;</span>
         {/* The denominator travels, as it does everywhere else here: a slate with
             three lines on it looks the same as one with a hundred otherwise. */}
-        <span>{document.priced} priced by a book</span>
+        {/* Only a count when it is not all of them. "96 priced by a book" on a
+            96-game slate reads as a subset of something larger. */}
+        <span>
+          {document.priced === document.games.length
+            ? 'all priced by a book'
+            : `${document.priced} of them priced by a book`}
+        </span>
         {excluded > 0 && (
           <>
             <span aria-hidden>&middot;</span>
@@ -127,6 +133,13 @@ function Slate({ document }: { document: SlateDocument }) {
 
       <p className="text-xs text-base-content/50">
         Published {formatGeneratedAt(document.generated_at)} &middot; season {document.season}
+        {document.results_known_at && (
+          <>
+            {' '}
+            &middot; results as of {formatGeneratedAt(document.results_known_at)}, so a game
+            played since then is not yet marked
+          </>
+        )}
       </p>
     </div>
   );
@@ -145,6 +158,13 @@ function Row({ game, team }: { game: SlateGame; team: string }) {
     <tr className={game.featured ? 'bg-primary/10' : undefined}>
       <td className="whitespace-nowrap text-xs text-base-content/70">
         {formatKickoff(game.kickoff)}
+        {/* A played game keeps its forecast -- that is the point of writing one
+            down -- but the row must not read as something still to come. */}
+        {game.played && (
+          <span className="block text-[0.65rem] uppercase tracking-wide text-base-content/50">
+            played
+          </span>
+        )}
       </td>
       <td>
         <span className={game.featured ? 'font-semibold' : undefined}>

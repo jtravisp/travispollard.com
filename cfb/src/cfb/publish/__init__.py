@@ -54,7 +54,7 @@ from cfb.predict import (
     prediction_generations,
     read_predictions,
 )
-from cfb.sources import week_position
+from cfb.sources import results_capture, week_position, week_slate
 from cfb.storage import SnapshotStore
 
 __all__ = [
@@ -75,6 +75,7 @@ __all__ = [
     "PublishedGame",
     "RatingPoint",
     "Record",
+    "SeasonSoFar",
     "SlateDocument",
     "SlateGame",
     "SeedDisclosure",
@@ -280,6 +281,24 @@ class RatingPoint(BaseModel):
     fbs_teams: int = Field(ge=1)
 
 
+class SeasonSoFar(BaseModel):
+    """How the model has actually done, for `/cfb` (§6.3).
+
+    **Duplicated from `accuracy.json` on purpose.** §6.1 makes each route exactly
+    one fetch and accepts duplication between documents as the price; the
+    alternative is a front page that fetches twice or says nothing about its own
+    record. It says nothing today, which is the worse of the two.
+    """
+
+    model_config = _STRICT
+
+    #: ``None`` before any week has been scored, which is every week before
+    #: 2026-09-13. The page renders that state rather than hiding the section.
+    through_week: str | None
+    texas: "Record"
+    full_slate: "Record"
+
+
 class NextGameDocument(BaseModel):
     """``cfb/data/next-game.json`` (§6.3), rendered by ``/cfb``."""
 
@@ -313,6 +332,19 @@ class NextGameDocument(BaseModel):
     #: The team's most recent scored game, or ``None`` before any week has been
     #: scored -- which is every week before 2026-09-13.
     last_result: LastResult | None = None
+    #: §3.6's disclosure, **on the page where it changes what a number means.**
+    #:
+    #: `/cfb` shows the model's edge over the market and says nothing about why
+    #: the two disagree. While this is active the honest answer is that a week 1
+    #: forecast *is* Sagarin's preseason opinion -- the seed identity of §3.6,
+    #: correlation exactly 1.0 -- so the edge is Sagarin against a book rather
+    #: than this model against one.
+    #:
+    #: It was computed correctly and published in `accuracy.json`, a document
+    #: nobody reads, and absent from the one place it changes a reading.
+    seed_disclosure: "SeedDisclosure | None" = None
+    #: The record so far, so the front page can say what the Accuracy tab is for.
+    season_so_far: SeasonSoFar | None = None
 
 
 class SlateGame(BaseModel):
@@ -343,6 +375,26 @@ class SlateGame(BaseModel):
     #: ``True`` when this game involves the team ``next-game.json`` is about, so
     #: the page can mark it without knowing who that is.
     featured: bool
+    #: **The game has been played**, on the evidence rather than on a clock.
+    #:
+    #: CFBD's week 1 of 2026 runs ten days, so by the second Sunday the top third
+    #: of the slate is history — and a row showing a forecast with no marker reads
+    #: as something still to come. A prediction keeps its place once the game is
+    #: played; that is the entire point of writing it down. It just has to say
+    #: which it is.
+    #:
+    #: Taken from whether the newest ``/games`` capture carries both scores, the
+    #: same evidence §5.2 decides "unplayed, or a join that failed" from. A wall
+    #: clock cannot be replayed, and §3.3 already rejected one for the same
+    #: reason.
+    #:
+    #: **The score is deliberately not here.** Scores exist in ``raw/`` before
+    #: they exist in ``scored/``, and publishing one from ``raw/`` would put a
+    #: second answer to "what happened" on the read path, where no scoring rule
+    #: and no replay check looks. §5.2's join failures are what make a published
+    #: result trustworthy, so the result waits for them: a marker now, the number
+    #: after the first Sunday run.
+    played: bool = False
 
 
 class SlateDocument(BaseModel):
@@ -374,6 +426,10 @@ class SlateDocument(BaseModel):
     #: a slate is shorter than the week it names, rather than leaving a reader to
     #: conclude the model missed games.
     forecast_from: datetime | None
+    #: When the results behind ``SlateGame.played`` were captured. ``None`` when
+    #: no ``/games`` snapshot for the week exists yet, which is every week before
+    #: it is first pulled. The page says "as of" rather than implying live.
+    results_known_at: datetime | None = None
     #: Games the model forecast that are **not listed**, because neither team is
     #: FBS.
     #:
@@ -528,6 +584,13 @@ class AccuracyDocument(BaseModel):
     backtest: Backtest | None
 
 
+# `SeasonSoFar` and `NextGameDocument` name `Record` and `SeedDisclosure`, which
+# are defined above this line but below their use. Pydantic resolves the forward
+# references on demand.
+SeasonSoFar.model_rebuild()
+NextGameDocument.model_rebuild()
+
+
 # --- building them ------------------------------------------------------------
 
 
@@ -574,6 +637,7 @@ def build_next_game(
         now=now,
         history=_history(store, resolver, season=season, team=team),
         last_result=_last_result(store, resolver, season=season, team=team),
+        scored=scored_weeks(store, season=season),
     )
 
 
@@ -594,6 +658,7 @@ def build_slate(
     """
     resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
     log = _newest_predictions(store, season=season, week=week)
+    finished, results_known_at = _finished(store, season=season, week=week)
 
     # At least one FBS team. `division` is the crosswalk's, which is the same
     # source `is_modelled` selects the model's universe from -- so a game reaching
@@ -618,6 +683,7 @@ def build_slate(
             market_line=game.market_line,
             line_source=game.market_line_source,
             featured=team in (game.home, game.away),
+            played=game.cfbd_game_id in finished,
         )
         for game in sorted(shown, key=lambda g: (g.kickoff, g.cfbd_game_id))
     ]
@@ -630,6 +696,7 @@ def build_slate(
         team=resolver.display_name(team),
         priced=sum(1 for game in games if game.market_line is not None),
         forecast_from=log.forecast_from,
+        results_known_at=results_known_at,
         excluded_non_fbs=excluded,
         games=games,
     )
@@ -731,6 +798,34 @@ def publish(
 
 
 # --- the pieces ---------------------------------------------------------------
+
+
+def _finished(
+    store: SnapshotStore, *, season: int, week: str
+) -> tuple[set[int], datetime | None]:
+    """Which games of a week have a result, and when that was captured.
+
+    **Evidence, not a clock.** A game counts as played when the newest `/games`
+    capture carries both its scores -- the same thing §5.2 decides "unplayed, or
+    a join that failed" from, and for the same reason §3.3 refuses to price a
+    game from a snapshot taken after it: a wall clock cannot be replayed.
+
+    Returns ids only. The scores stay out of the published document deliberately:
+    they exist in `raw/` before they exist in `scored/`, and publishing one from
+    `raw/` would put a second answer to "what happened" on the read path, where
+    no join check and no replay looks.
+
+    ``(set(), None)`` when no capture exists yet, which is the ordinary answer for
+    a week nobody has pulled results for.
+    """
+    try:
+        capture = results_capture(store, season, week)
+    except ReplayError:
+        return set(), None
+
+    target = week_position(week)
+    games, _ = week_slate(store, season, lambda raw: raw.order == target)
+    return {raw.id for raw, _ in games if raw.is_complete}, capture.fetched_at
 
 
 def _next_fixture(
@@ -886,6 +981,7 @@ def _next_game_document(
     now: datetime,
     history: list[RatingPoint],
     last_result: LastResult | None,
+    scored: list[ScoredWeek],
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
     same_week = [game for game in log.games if team in (game.home, game.away)]
@@ -926,6 +1022,10 @@ def _next_game_document(
             ),
             history=history,
             last_result=last_result,
+            # Both read from the same `scored/` walk, so the disclosure and the
+            # record on this page can never describe different weeks.
+            seed_disclosure=_seed_disclosure(scored),
+            season_so_far=_season_so_far(scored),
         )
 
 
@@ -1045,6 +1145,21 @@ def _record(games: list[ScoredGame]) -> Record:
             excluded_no_line=figures.ats.excluded_no_line,
             excluded_no_edge=figures.ats.excluded_no_edge,
         ),
+    )
+
+
+def _season_so_far(weeks: list[ScoredWeek]) -> SeasonSoFar:
+    """§6.4's headline figures, recomputed over the union of the rows.
+
+    The same call `build_accuracy` makes, for the same reason: the weeks have
+    different denominators, so a mean of the weekly means would publish a number
+    the rows do not support.
+    """
+    games = [game for scored in weeks for game in scored.games]
+    return SeasonSoFar(
+        through_week=weeks[-1].week if weeks else None,
+        texas=_record([game for game in games if TEXAS in (game.home, game.away)]),
+        full_slate=_record(games),
     )
 
 
