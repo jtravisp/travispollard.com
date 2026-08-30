@@ -20,12 +20,13 @@ from datetime import UTC, datetime
 
 import pytest
 
+from cfb.cli import main
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo.state import write_state
 from cfb.predict import predict_week, write_predictions
 from cfb.publish import build_slate
 from cfb.replay import seed_state
-from cfb.storage import MemorySnapshotStore
+from cfb.storage import FileSnapshotStore, MemorySnapshotStore
 from test_replay import PRESEASON_AT, SEASON, cfbd_game, put_games, put_sagarin
 
 SEEDED_AT = datetime(2026, 8, 28, 18, 0, tzinfo=UTC)
@@ -94,7 +95,7 @@ def played(games, *scores):
     return out
 
 
-def overlapping(crosswalk, *, later=None):
+def overlapping(crosswalk, *, later=None, store=None):
     """The 2026 overlap: week 1 half played, week 2 already forecast.
 
     Built in the order it happened, which is the only order that produces a
@@ -104,7 +105,7 @@ def overlapping(crosswalk, *, later=None):
     newer capture written afterwards, the way a Sunday pull arrives after the
     predictions it grades.
     """
-    store = MemorySnapshotStore()
+    store = store if store is not None else MemorySnapshotStore()
     put_sagarin(store, fetched_at=PRESEASON_AT)
     put_games(store, week="01", fetched_at=CAPTURED_AT, games=week_one_games())
     put_games(store, week="02", fetched_at=CAPTURED_AT, games=week_two_games())
@@ -277,3 +278,86 @@ class TestTheOrdinaryWeek:
 
         assert document.week == "01"
         assert all(game.played for game in document.games)
+
+
+class TestTheLogLine:
+    """What an Actions log says about a run that held the board.
+
+    The line is the only thing a person looks at to decide whether a publish did
+    the right thing, and it used to carry a single `week=` naming the *request*.
+    On the run that actually held the board it read `week=02` while writing a
+    week-1 slate: true, and the exact opposite of what its reader was checking.
+    Same class as a page footer showing the rebuild time where someone is looking
+    for the forecast time.
+    """
+
+    def published(self, crosswalk, tmp_path, capsys, *, later=None):
+        overlapping(crosswalk, later=later, store=FileSnapshotStore(tmp_path))
+        assert (
+            main(
+                [
+                    "publish", "--season", "2026", "--force",
+                    "--store", f"file://{tmp_path.as_posix()}",
+                ],
+                now=PUBLISHED_AT,
+            )
+            == 0
+        )
+        return next(
+            line
+            for line in capsys.readouterr().out.splitlines()
+            if "event=published" in line
+        )
+
+    def test_it_names_the_published_week_beside_the_requested_one(
+        self, crosswalk, tmp_path, capsys
+    ):
+        """**The regression.** `coming_week` resolves this moment to week 2 and
+        the board is held on week 1, so the line has to say both."""
+        line = self.published(crosswalk, tmp_path, capsys)
+
+        assert "requested_week=02" in line
+        assert "slate_week=01" in line
+        assert "next_game_week=01" in line
+
+    def test_a_held_board_is_stated_rather_than_inferred(
+        self, crosswalk, tmp_path, capsys
+    ):
+        """Greppable and alertable. "These two fields differ" is neither, and
+        counting games requires already knowing the right answer."""
+        line = self.published(crosswalk, tmp_path, capsys)
+
+        assert "board_held=True" in line
+
+    def test_no_line_from_a_publish_run_says_a_bare_week(
+        self, crosswalk, tmp_path, capsys
+    ):
+        """The point of the rename. A reader who sees `week=` will take it for
+        what was published, and on the one run where that matters it is wrong."""
+        overlapping(crosswalk, store=FileSnapshotStore(tmp_path))
+        main(
+            [
+                "publish", "--season", "2026", "--force",
+                "--store", f"file://{tmp_path.as_posix()}",
+            ],
+            now=PUBLISHED_AT,
+        )
+
+        for line in capsys.readouterr().out.splitlines():
+            assert " week=" not in line, line
+
+    def test_an_ordinary_week_says_the_board_is_not_held(
+        self, crosswalk, tmp_path, capsys
+    ):
+        """The pair. With week 1 finished the board moves on, and the flag has to
+        move with it -- a field that is always True is not a signal."""
+        line = self.published(
+            crosswalk,
+            tmp_path,
+            capsys,
+            later=played(week_one_games(), (13, 45, 10), (14, 21, 20)),
+        )
+
+        assert "requested_week=02" in line
+        assert "slate_week=02" in line
+        assert "board_held=False" in line

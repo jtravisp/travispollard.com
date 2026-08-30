@@ -80,8 +80,16 @@ EVENT_PREDICTIONS_WRITTEN = "predictions_written"
 EVENT_WEEK_SCORED = "week_scored"
 #: One per publish run (SPEC-phase1 6), with both keys and the numbers a
 #: reader would check the page against. **This is the SLO line.** §8 makes the
-#: Friday publish the only deadline in the pipeline that can genuinely be
-#: missed, so the run that meets it has to say so in a form an alert can read.
+#: publish the only deadline in the pipeline that can genuinely be missed, so the
+#: run that meets it has to say so in a form an alert can read.
+#:
+#: **It carries three weeks and no bare `week`.** `requested_week` is what the
+#: run was invoked for; `slate_week` and `next_game_week` are what each document
+#: resolved to, which is not the same thing once a week runs long. `board_held`
+#: names the difference rather than leaving it to be spotted. A line reporting
+#: only the request is true and reads as the answer to a question nobody asked --
+#: the same failure as a page footer showing its rebuild time where a reader is
+#: looking for the forecast time.
 EVENT_PUBLISHED = "published"
 #: One per CloudFront invalidation (SPEC-phase1 6.5). Separate from
 #: `published` because the upload is what makes the documents exist and this

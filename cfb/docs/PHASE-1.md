@@ -1052,6 +1052,38 @@ board they are on.
       With `_slate_week` bypassed: **5 failed, 3 passed**, the key one among them.
       Restored: 993 pass
 
+## Follow-up: the publish log named the wrong week
+
+`cfb publish --season 2026` with no `--week` logged `week=02` while writing a
+week-1 slate. Accurate — that is the week the run was invoked for — and it is the
+line someone reads in an Actions log to check whether the board hold worked,
+where it said the opposite. The only contrary evidence on the line was a game
+count a reader would have to already know the right value of.
+
+Same class as a page footer showing its rebuild time where a reader is looking
+for the forecast time: true, and misleading in the one place it is checked.
+
+- [x] **Three weeks on the line, because there are three.** `requested_week` is
+      what the run was invoked for; `slate_week` and `next_game_week` are what
+      each document resolved to. Neither has to match the request — `_slate_week`
+      holds the board and `_next_fixture` searches every week
+- [x] **`board_held` states it rather than leaving it to a comparison.**
+      Greppable and alertable; "these two fields differ" is neither
+- [x] **No line from a publish run says a bare `week` any more**, including the
+      invalidation's. A reader who sees `week=` will take it for what was
+      published, and on the one run where that matters it was wrong
+- [x] Read from the re-read documents, like every other number on the line —
+      §6's rule, and the reason the line can be trusted against the live page
+- [x] The four tests fail on the old line, verified by reverting rather than
+      assumed: **4 failed, 8 passed**. Restored: 997 pass
+
+Live, on the run that held the board:
+
+```
+event=published season=2026 requested_week=02 slate_week=01 next_game_week=01
+  board_held=True result=ok ... slate_games=96 slate_priced=96
+```
+
 ## Follow-up: the publish deadline assumed a Saturday sport
 
 §8 set the deadline at "first kickoff **Saturday**". Week 1 of 2026 has **40
