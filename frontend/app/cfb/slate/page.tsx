@@ -82,7 +82,9 @@ export default function SlatePage() {
       <div className="max-w-5xl mx-auto">
         <CfbNav />
 
-        <h1 className="text-2xl font-bold mb-1">This week&rsquo;s slate</h1>
+        <h1 className="text-2xl font-bold mb-1">
+          {state.status === 'ready' ? `${formatWeek(state.document.week)} slate` : 'The slate'}
+        </h1>
         <p className="text-base-content/70 mb-8">
           Every game involving an FBS team, written before kickoff. Each row names the team it
           favours and by how many points, so nothing depends on reading a sign. The model also
@@ -115,7 +117,6 @@ function Slate({ document }: { document: SlateDocument }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-sm text-base-content/70">
-        <span className="badge badge-ghost">{formatWeek(document.week)}</span>
         <span>{document.games.length} games</span>
         <span aria-hidden>&middot;</span>
         {/* The denominator travels, as it does everywhere else here: a slate with
@@ -197,6 +198,25 @@ function Slate({ document }: { document: SlateDocument }) {
           </tbody>
         </table>
       </div>
+
+      {/* Why this board is not the newest one. The generator holds it here while
+          the week still has games ahead; without saying so, a reader who knows a
+          later week exists has to guess whether the pipeline is stuck. */}
+      {document.next_week_forecast && (
+        <div className="alert alert-info text-sm">
+          <div>
+            <p>
+              <strong>
+                This is {formatWeek(document.week).toLowerCase()}, and it is still being played.
+              </strong>{' '}
+              {formatWeek(document.next_week_forecast)} is already forecast. This board moves to
+              it once {formatWeek(document.week).toLowerCase()}&rsquo;s last game has been
+              played — a slate of games still to come is what the page is for, so the newer
+              forecast waits its turn rather than displacing one.
+            </p>
+          </div>
+        </div>
+      )}
 
       {document.forecast_from && (
         <div className="alert alert-info text-sm">

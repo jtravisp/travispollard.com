@@ -273,5 +273,11 @@ export interface SlateDocument extends Envelope {
   excluded_non_fbs?: number;
   /** When the results behind `played` were captured. Not "now". */
   results_known_at?: string | null;
+  /**
+   * A later week that is already forecast, while this board is deliberately not
+   * it. Null on an ordinary week. Set during an overlap, when the week being
+   * played still has games ahead and a newer one has been generated.
+   */
+  next_week_forecast?: string | null;
   games: SlateGame[];
 }

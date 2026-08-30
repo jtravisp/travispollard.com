@@ -443,6 +443,20 @@ class SlateDocument(BaseModel):
     #: no ``/games`` snapshot for the week exists yet, which is every week before
     #: it is first pulled. The page says "as of" rather than implying live.
     results_known_at: datetime | None = None
+    #: **A later week that is already forecast, while this board is not it.**
+    #:
+    #: ``None`` on an ordinary week, where the board is the newest thing there is.
+    #: Set during an overlap: CFBD's week 1 of 2026 ran ten days, so week 2 was
+    #: predicted on 09-03 while 268 week-1 games -- including that Saturday's 209
+    #: -- had not kicked off. The board stays on week 1, because a slate of games
+    #: still to be played is the thing the page is for.
+    #:
+    #: Published rather than left implicit. Holding a board back is a decision the
+    #: generator makes, and a reader looking at week 1 on a day when week 2 exists
+    #: should be told that is deliberate instead of wondering whether the pipeline
+    #: is stuck. §6.3's rule is that the page renders what it is given; it cannot
+    #: explain a choice the document did not record.
+    next_week_forecast: str | None = None
     #: Games the model forecast that are **not listed**, because neither team is
     #: FBS.
     #:
@@ -654,6 +668,87 @@ def build_next_game(
     )
 
 
+def _on_the_board(log: PredictionLog, resolver: Crosswalk) -> list[PredictedGame]:
+    """The games this page would list: at least one FBS team.
+
+    ``division`` is the crosswalk's, the same source ``is_modelled`` selects the
+    model's universe from, so a game reaching here always has both teams rated
+    and this is purely about what is worth showing.
+
+    Shared with ``_slate_week`` on purpose. "Which week still has games ahead"
+    has to be asked about the games the reader can see, or the board can be held
+    open by an FCS fixture nobody is looking at.
+    """
+    return [
+        game
+        for game in log.games
+        if "FBS" in (resolver.division(game.home), resolver.division(game.away))
+    ]
+
+
+def _slate_week(
+    store: SnapshotStore, *, season: int, week: str, resolver: Crosswalk
+) -> tuple[str, str | None]:
+    """Which week's board to publish, and the later week held behind it.
+
+    The slate's half of the bug ``_next_fixture`` fixes, and it fires on the same
+    day for the same reason. ``calendar.coming_week`` answers "which week is about
+    to start", which stops being "which week is being played" the moment a week
+    runs long: it returns "02" from 2026-08-29 07:00Z, when week 1 still had 320
+    of its 455 games unplayed. Publishing that answer would have swapped the live
+    board for week 2 while 268 week-1 games -- that Saturday's 209 among them --
+    were still ahead.
+
+    So the same treatment: **ask the question the page actually asks.** Every week
+    with stored predictions is a candidate, and the earliest one that still has
+    games ahead wins.
+
+    **Ahead is decided on evidence, not a clock.** A game is behind us when the
+    newest ``/games`` capture carries both its scores -- the identical rule
+    ``_finished`` uses for the played marker, so the board's week and its markers
+    can never disagree about the same game. §3.3 rejected a wall clock for the
+    reason that outlasts this case: a clock cannot be replayed, and a document
+    that cannot be regenerated from ``raw/`` is not one this project publishes.
+    A week with no capture at all has nothing shown complete, so all of it is
+    ahead -- the same rule with an empty evidence set, not a special case.
+
+    **Never later than ``week``.** ``coming_week`` remains the ceiling; this only
+    ever holds the board back. A search that could also run forward would be a
+    second week resolver rather than a correction to one, and the failure it would
+    cause -- publishing a slate before its week -- is the one thing the SLO is
+    about.
+
+    Returns ``(week, None)`` unchanged when the requested week has no predictions,
+    so ``_newest_predictions`` raises and the SLO failure of §8 is still loud.
+    """
+    weeks = sorted(
+        {entry.week for entry in index_entries(store) if entry.season == season},
+        key=week_position,
+    )
+    if week not in weeks:
+        return week, None
+
+    ceiling = week_position(week)
+    for candidate in weeks:
+        if week_position(candidate) > ceiling:
+            break
+        log = _newest_predictions(store, season=season, week=candidate)
+        finished, _ = _finished(store, season=season, week=candidate)
+        if not any(
+            game.cfbd_game_id not in finished for game in _on_the_board(log, resolver)
+        ):
+            continue
+        later = next(
+            (w for w in weeks if week_position(w) > week_position(candidate)), None
+        )
+        return candidate, later
+
+    # Every candidate is finished. Publish what was asked for and let the ordinary
+    # path describe it: a board of played games is a truthful Sunday page, and
+    # inventing a different week here would be the forward search ruled out above.
+    return week, None
+
+
 def build_slate(
     *,
     store: SnapshotStore,
@@ -664,24 +759,24 @@ def build_slate(
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
 ) -> SlateDocument:
-    """Every game the model forecast this week, in kickoff order.
+    """Every game the model forecast for the week being played, in kickoff order.
 
-    Reads the same generation ``build_next_game`` does, so the featured game on
-    ``/cfb`` and its row here can never be two different forecasts.
+    ``week`` is the ceiling rather than the answer -- see ``_slate_week``, which
+    holds the board on an earlier week that still has games ahead of it.
+
+    Reads the newest generation, as ``build_next_game`` does. The two documents
+    resolve their weeks separately because they answer different questions, and
+    on the overlap that is a feature: ``/cfb`` finds Texas's next unplayed game
+    wherever it is filed, and this board is the week that game belongs to.
     """
     resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
+    week, next_week_forecast = _slate_week(
+        store, season=season, week=week, resolver=resolver
+    )
     log = _newest_predictions(store, season=season, week=week)
     finished, results_known_at = _finished(store, season=season, week=week)
 
-    # At least one FBS team. `division` is the crosswalk's, which is the same
-    # source `is_modelled` selects the model's universe from -- so a game reaching
-    # here always has both teams rated, and this is purely about what is worth
-    # showing.
-    shown = [
-        game
-        for game in log.games
-        if "FBS" in (resolver.division(game.home), resolver.division(game.away))
-    ]
+    shown = _on_the_board(log, resolver)
     excluded = len(log.games) - len(shown)
 
     games = [
@@ -712,6 +807,7 @@ def build_slate(
         priced=sum(1 for game in games if game.market_line is not None),
         forecast_from=log.forecast_from,
         results_known_at=results_known_at,
+        next_week_forecast=next_week_forecast,
         excluded_non_fbs=excluded,
         games=games,
     )
