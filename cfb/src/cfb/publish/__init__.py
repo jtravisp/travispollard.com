@@ -632,7 +632,7 @@ def build_next_game(
     team was idle and its actual next opponent sat unforecast in week 1. A page
     whose headline is "next game" has to mean it.
 
-    Raises when the week has no predictions at all. That is the Friday SLO failing
+    Raises when the week has no predictions at all. That is the publish SLO failing
     (§8) -- the publish run exists to put a forecast on the page before kickoff,
     and one that quietly published a page without one would have removed the only
     signal that it did not happen.

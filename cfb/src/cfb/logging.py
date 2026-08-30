@@ -69,9 +69,9 @@ EVENT_ELO_VERIFY = "elo_verify"
 #: it away leaves nothing to decide from.
 EVENT_HTTP_ERROR = "http_error"
 #: One per week of predictions written (SPEC-phase1 4.1), with the key. The
-#: Friday publish is the SLO (SPEC-phase1 8), so this line is what says a
-#: prediction existed before kickoff -- the thing step 1 of SPEC-phase1 11 checks
-#: from the bucket side.
+#: publish is the SLO (SPEC-phase1 8), so this line is what says a prediction
+#: existed before kickoff -- the thing step 1 of SPEC-phase1 11 checks from the
+#: bucket side.
 EVENT_PREDICTIONS_WRITTEN = "predictions_written"
 #: One per week scored (SPEC-phase1 5.3), with the key and the counts the ATS
 #: record has to add up to. `games` and `unplayed` are on this line for the same

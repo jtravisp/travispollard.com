@@ -142,12 +142,12 @@ Weekly rhythm
 When	What
 Sunday	Ingest final scores, update Elo, score last week's predictions
 Tuesday	Sagarin snapshot, freshness check, alert if stale
-Thursday	Generate predictions for the coming slate, commit to the log
-Friday	Publish JSON. Deadline is first kickoff Saturday.
+Thursday	Generate predictions for the coming slate, commit to the log; publish JSON
+Friday	Publish again, for lines that moved
 Saturday	Games
 Sunday	Note published with generated scaffold
 
-The Friday publish deadline is the SLO. It can genuinely be missed, which is what makes freshness alerting and pipeline monitoring mean something rather than being decoration.
+The publish deadline is the SLO, and it is first kickoff of the week — not first kickoff Saturday, which is what it said until it was measured against a sport that plays Thursday and Friday nights (SPEC-phase1 §8.1). It can genuinely be missed, which is what makes freshness alerting and pipeline monitoring mean something rather than being decoration.
 
 Definition of done for v1
 

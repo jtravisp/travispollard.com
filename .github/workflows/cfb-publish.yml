@@ -1,14 +1,29 @@
-# SPEC-phase1 §8. Friday: build `/cfb/data/*`, upload, invalidate.
+# SPEC-phase1 §8. Build `/cfb/data/*`, upload, invalidate.
 #
-# **This is the SLO, and its deadline is first kickoff Saturday.** It is the one
-# thing in this pipeline that can genuinely be missed, which is what makes the
-# alerting mean anything -- every other job has a whole week of slack. There is
-# deliberately **no retry-until-it-works loop**: a prediction published after
-# kickoff is not a prediction, so a failed Friday is a red run and an email, and
-# a person decides whether it is still worth publishing.
+# **This is the SLO, and its deadline is first kickoff of the week.** It is the
+# one thing in this pipeline that can genuinely be missed, which is what makes
+# the alerting mean anything -- every other job has a whole week of slack. There
+# is deliberately **no retry-until-it-works loop**: a prediction published after
+# kickoff is not a prediction, so a failed run is a red run and an email, and a
+# person decides whether it is still worth publishing.
 #
-# 12:00 UTC on Friday gives roughly a day and a half before a Saturday noon ET
-# kickoff, which absorbs Actions cron drift and leaves room to re-run by hand.
+# **Thursday 12:30, then Friday 12:00.** The deadline used to read "first kickoff
+# Saturday", and a Friday publish met it comfortably. College football does not
+# only play Saturdays: week 1 has forty Thursday games and eighteen Friday games,
+# and the first kickoff of the season was Thu 27 Aug 22:00 UTC. Friday 12:00 UTC
+# lands *fourteen hours after* a Thursday 5:00 PM CDT kickoff, so the first
+# publish of the week was already showing finished games as forecasts -- and with
+# results only captured on Sunday, they stayed unmarked for two days.
+#
+# So Thursday is now the publish that has to make the deadline and Friday is a
+# refresh for lines that moved. 12:30 is half an hour after `cfb-predict`, the
+# same gap `cfb-score` leaves after `cfb-cfbd`, and for the same reason: Actions
+# cron drifts 5-15 minutes under load and the margin absorbs it.
+#
+# **This does not cover a Tuesday.** November MACtion plays Tuesday and Wednesday
+# nights, which are inside the same CFBD week and roughly 36 hours *before* the
+# Thursday run. Meeting the deadline literally in those weeks needs a Monday or
+# Tuesday publish; that is recorded in PHASE-1 rather than guessed at here.
 #
 # **It publishes what `cfb-predict.yml` wrote the day before**, and it takes the
 # newest generation of that week -- unlike `cfb score`, which takes the newest
@@ -25,6 +40,8 @@ name: cfb-publish
 
 on:
   schedule:
+    # Thursday is the one that has to make the deadline; Friday refreshes lines.
+    - cron: "30 12 * * 4" # Thursday 12:30 UTC, after cfb-predict
     - cron: "0 12 * * 5" # Friday 12:00 UTC
   workflow_dispatch:
     inputs:

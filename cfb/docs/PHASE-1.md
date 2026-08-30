@@ -999,6 +999,68 @@ result trustworthy, so: **a marker now, the number after the first Sunday run.**
       the markers appear on the next publish. This is the mechanism waiting on
       data rather than a bug
 
+## Follow-up: the publish deadline assumed a Saturday sport
+
+§8 set the deadline at "first kickoff **Saturday**". Week 1 of 2026 has **40
+Thursday games and 18 Friday games**, and the season's first kickoff was
+**Thu 27 Aug 22:00 UTC**. A single Friday 12:00 UTC publish lands fourteen hours
+after a Thursday 5:00 PM CDT kickoff, so the first publish of the week already
+carried finished games as forecasts — and with results captured only on Sunday,
+they stayed unmarked for two days.
+
+- [x] **`cfb-publish` now runs Thursday 12:30 UTC as well.** Half an hour after
+      `cfb-predict`, the same gap `cfb-score` leaves after `cfb-cfbd` and for the
+      same reason: Actions cron drifts 5–15 minutes under load
+- [x] Friday 12:00 stays, as a refresh for lines that moved. The command is
+      identical in both runs — a publish that behaved differently by weekday would
+      be a second calendar in a codebase that already keeps one
+- [x] §8's SLO is now **first kickoff of the week**, with §8.1 recording why the
+      original wording was wrong and what it cost
+- [x] The same sentence corrected in `README.md`, `PRD.md`, `cli._publish`,
+      `logging.py` and `publish/__init__.py`, so no copy still says Saturday
+
+### The predict timing: measured, and there is no problem
+
+Asked whether Thursday 12:00 UTC is tight against a Tuesday MACtion kickoff.
+**It is not, and the ten-hour figure is a week-1 artifact.** From the committed
+calendar and the stored `/games` captures:
+
+| week | predicted on | first real kickoff | margin |
+|---|---|---|---|
+| 01 | Thu 27 Aug 12:00Z | Thu 27 Aug 22:00Z | **10.0h** |
+| 02 | Thu 03 Sep 12:00Z | Thu 10 Sep 23:00Z | **179.0h** |
+
+The reason is `coming_week`: it returns the first week whose `first_game_start`
+is still ahead, and from week 2 on that boundary is the **following Monday**. So
+every Thursday run forecasts the week that opens 3.8 days later and whose games
+start ~7.5 days later. A November Tuesday game sits ~40h inside its own partition,
+so it gets ~130h of margin. Nowhere near tight.
+
+Week 1's ten hours are not a weekday assumption but a partition one: week 1 is a
+ten-day window whose boundary (Sat 29 Aug 07:00Z) falls **after** its own first
+games (Thu 27 Aug 22:00Z). It is the only week in the calendar shaped that way.
+**Nothing moved.**
+
+### Two things this turned up
+
+- [ ] **The deadline is still missed in the MACtion weeks, and §8.1 says so
+      rather than redefining it.** November Tuesday and Wednesday games are inside
+      the same CFBD week and ~36 hours *before* the Thursday publish. Meeting
+      "first kickoff of the week" literally there needs a Monday or Tuesday
+      publish. Left as a stated gap: an SLO quietly redefined to whatever the cron
+      already achieves is how "first kickoff Saturday" got written in the first
+      place
+- [ ] **`/cfb/slate` publishes the wrong week during a long week.** `_next_fixture`
+      already fixes this half for `/cfb` — its docstring names the case exactly —
+      but `build_slate` still takes only `coming_week`'s answer. `coming_week`
+      returns "02" from **Sat 29 Aug 07:00Z**, when week 1 still had **320 of 455
+      games unplayed**, so the Fri 04 Sep publish will replace the live week-1
+      board with week 2 while **268 week-1 games** — including that Saturday's 209,
+      and Texas–Texas State — are still ahead. Not fixed here: it is a behaviour
+      change beyond this section's scope, and it wants the same treatment
+      `_next_fixture` got rather than a quick filter. **Visible on the site from
+      04 Sep**
+
 ## Follow-up: the slate becomes browsable
 
 Ninety-six rows in kickoff order, which is the order the schedule happens to put
