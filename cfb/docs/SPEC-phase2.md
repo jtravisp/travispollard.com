@@ -145,7 +145,28 @@ regression applied twice, so roughly 44% of the 2019 signal survives:
 ```
 
 The ratings **step over** the gap rather than through it, which is what "structural break" means
-operationally. Two alternatives were considered and both cost more:
+operationally.
+
+**The squaring is an assumption, and it is the weakest arithmetic in this spec.** `(1 - r)^2` says
+two years of turnover is one year applied twice — that turnover is independent and identically
+distributed year over year. Across 2020 specifically it is not: the NCAA granted every player an
+extra year of eligibility, so players who would have graduated stayed, and **rosters turned over
+*less* across that gap than a normal two-year span**. The assumption is wrong in a known direction,
+and the direction says `(1 - r)^2` over-regresses 2021.
+
+**And `r` is fitted on transitions that are not this one.** There are eight or so gap-1 transitions
+in the window and **exactly one gap-2 transition**, so the search in §4.2 learns `r` almost entirely
+from normal off-seasons and then extrapolates it, squared, to the single case it could not learn
+from. That extrapolation is unvalidated by construction — one observation, and it is inside the
+sample being predicted. §12 is where that leads, and it is the strongest argument there for pinning
+`r` rather than fitting it.
+
+**It matters less than it looks, because of §4.4.** 2021's seeding affects 2021's predictions, and
+the effect is concentrated in 2021's early weeks — which are exactly what the sensitivity fit
+excludes. If §4.4's rule fires and the sensitivity fit ships, the games most sensitive to this
+question are not in the sample that produced the shipped constants.
+
+Two alternatives to stepping over the gap were considered and both cost more:
 
 - *Fold 2020 into the chain but drop it from every fit.* Keeps continuity, and leaks anyway: 2021's
   early weeks would then be predicted from ratings distorted by a disjoint graph, and 2021's games
@@ -316,9 +337,9 @@ never traded away silently:
 | Parameter | Phase 1 value | Search range | Note |
 |---|---|---|---|
 | `ELO_PER_POINT` | 20 | 12 – 26 | §12 expects 17–18; the range must contain 20 so the fit can decline to move |
-| `K` | 20 | 10 – 40 | Reported as `K / ELO_PER_POINT`, per Phase 1 §3.4 |
+| `K` | 20 | 10 – 40 | Reported as `K / ELO_PER_POINT`, per Phase 1 §3.4. The constant §4.4's bias acts on most; the shipping rule there decides it |
 | `MOV_DENOMINATOR_FLOOR` | 0.25 | 0.05 – 1.0 | See below — it may not be fittable |
-| `REGRESSION_TO_MEAN` | 1/3 | 0.1 – 0.6 | New in this phase (§3.3) |
+| `REGRESSION_TO_MEAN` | 1/3 | 0.1 – 0.6 | New in this phase (§3.3). Fitted on ~8 gap-1 transitions and extrapolated, squared, to 1 gap-2 case — §12 leans toward pinning it |
 | HFA | Sagarin's per-snapshot value | 1.0 – 4.0 | Fitted for history; the live rule is unchanged |
 
 **`K` and `ELO_PER_POINT` are searched jointly, never one at a time.** Phase 1 §3.4 records that the
@@ -398,9 +419,38 @@ Where it bites, in order of severity:
 
 **Both fits are reported, and neither is engineered away.** The primary fit uses all non-burn-in
 weeks, because the model is used all season and a constant fitted only on October is a constant for
-October. A sensitivity fit excluding weeks 1–3 of each season is published beside it. **If the two
-disagree materially, that is an open question rather than a licence to pick one** — and the shape of
-the disagreement says which constant the seeding is contaminating.
+October. A sensitivity fit excluding weeks 1–3 of each season is published beside it, and the shape
+of any disagreement says which constant the seeding is contaminating.
+
+#### When they disagree, the sensitivity fit ships
+
+Reporting both is not a decision, and the live pipeline needs one value. So:
+
+> **Material disagreement is a held-out MAE difference of more than 0.25 points between the two
+> constant sets. Below that, the primary fit ships. At or above it, the sensitivity fit ships and the
+> margin is recorded in `fits/`.**
+
+The threshold is stated in the phase's own metric rather than per-constant, because "materially" has
+to be decidable by the run rather than argued each time, and because swapping constant sets is
+exactly the comparison a per-constant threshold would be a proxy for.
+
+**The sensitivity fit wins the tie because the live model is Sagarin-seeded.** Excluding weeks 1–3
+approximates a model that already knows something in September, and that is the live model's regime
+all season — Phase 1 §3.6 puts the week-1 correlation with Sagarin at exactly 1.0. The primary fit's
+September is a model with more to learn than the live one ever has, and §4.4's whole argument is that
+fitting on it biases `K` upward.
+
+**The cost, stated rather than buried.** `K` does not enter a week-1 *prediction* at all — a week-1
+forecast is the seed (Phase 1 §3.6) — so `K`'s first real effect is on week 2, and its influence is
+largest across weeks 2–4. The sensitivity fit sees only the last of those. **The shipped `K` is
+therefore estimated from the wrong end of the season for the weeks it matters most in**, which is a
+worse problem than the one it fixes only if the seeding contamination is small. The primary fit
+existing beside it is what makes that checkable.
+
+**One diagnostic falls out of it.** Phase 1 §3.2 proves `ELO_PER_POINT` cancels between `seed()` and
+`predict()`, so the seeding regime should barely move it. If it moves a lot between the two fits, the
+September contamination is worse than §4.4 models — that is a flag about the fit rather than a number
+to ship, and it goes in `fits/` as one.
 
 **The real test arrives for free.** 2026 is a live, Sagarin-seeded season being scored week by week
 under Phase 1 §5.3. If the constants fitted here produce a calibration curve on *that* season
@@ -730,10 +780,24 @@ described a different model, and §4.4 is the reason to expect that it might.**
   partly on them is fitted partly on a different sport. Leaning toward including them in the ratings
   chain and excluding them from the constant fit, with both reported. Same shape as §3.2's argument
   and a much smaller effect.
-- **Whether `REGRESSION_TO_MEAN` should be fitted at all**, given §4.4 says the live model has no
-  carry-forward for it to describe. It is needed to *produce* the backfill, so it must have a value;
-  whether that value is worth searching for or should simply be pinned at 1/3 is a question about
-  how much the other constants move when it does.
+- **Whether `REGRESSION_TO_MEAN` should be fitted at all — leaning toward pinning it at 1/3.** Two
+  arguments, and the second is the stronger one.
+  - §4.4: the live model has no carry-forward at all. It discards the prior season and takes
+    Sagarin's opinion, so a fitted regression coefficient describes a step the live pipeline never
+    performs.
+  - §3.3: **one parameter is doing two jobs.** `r` describes ordinary year-over-year turnover *and*,
+    squared, a two-year gap across a pandemic that suspended the usual turnover. Those are not the
+    same quantity, the fit has ~8 observations of the first and **1** of the second, and the
+    eligibility waiver says the extrapolation is wrong in a known direction. Searching 0.1–0.6 for a
+    value that then gets squared and applied to a case outside the search's evidence is precision
+    the data does not support.
+  - **The deciding evidence is cheap and should be gathered before choosing.** Run §4.2's grid with
+    `r` free and with `r` pinned at 1/3, and compare the *other* constants. If they do not move, pin
+    it and say so — which is the outcome to hope for, because it converts a parameter with one
+    relevant observation into a stated convention.
+  - If it stays fitted, the 2021 factor should be reported as a sensitivity rather than as a fitted
+    value: the same backfill at 0.44 (the squaring) and at a higher factor reflecting the waiver,
+    checking whether any downstream constant notices.
 - **Whether the two 2026 models should both appear on `/cfb/slate` before the gate is cleared.**
   §6.4 governs `/cfb` and is silent about the slate. Two margins per row is a real information gain
   for the reader who wants it and a real cost to a table that is already five columns wide.
