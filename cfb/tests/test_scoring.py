@@ -796,7 +796,15 @@ class TestCalibration:
 class TestTheScoredDocument:
     def test_it_carries_the_envelope(self):
         week = score(log(predicted(1)), [result(1)])
-        assert week.schema_version == 1
+        """2 since SPEC-phase2 4.1.
+
+        The envelope version is shared across the internal documents (SPEC-phase1
+        6.2), and 4.1 moves it for ``EloState`` gaining its ``model`` block. This
+        document rides along: its own ``ModelBlock`` widened ``elo_per_point`` and
+        ``k`` to float at the same time, which a stored integer still satisfies.
+        ``PUBLISHED_SCHEMA_VERSION`` -- the site contract -- is untouched.
+        """
+        assert week.schema_version == 2
         assert week.generated_at == SCORED_AT
 
     def test_it_round_trips(self):

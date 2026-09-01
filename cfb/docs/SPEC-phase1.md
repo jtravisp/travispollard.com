@@ -103,7 +103,14 @@ frontend/app/cfb/
 Elo, computed from CFBD game results. The whole model is a rating per team, an update rule, and two
 formulas. Anything more sophisticated is Phase 2 and has to beat this to justify existing.
 
-### 3.1 Scale: 20 Elo per point
+### 3.1 Scale: 16 Elo per point
+
+> **Superseded in part by SPEC-phase2 §4.** This section argued 20 from a reference curve, which
+> was the best available before the backfill existed. §4.2's grid search over 2015–2025 returned
+> **16.0**, and §4.3 replaces this section's plausibility table with measured win rates. The
+> reasoning below is kept because it is the record of how the constant was arrived at twice before
+> it was measured — and because §4.3's deletion of the σ = 15 column only makes sense beside the
+> argument that column was serving.
 
 A Sagarin rating difference is already a predicted margin in points. Elo is a different unit, so both the
 seed and the prediction need a conversion, and one constant does both:

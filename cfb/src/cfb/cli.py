@@ -1044,11 +1044,13 @@ def _elo_replay(args, *, moment: datetime) -> int:
     is a second source of truth wearing a cache's clothes, and it should cost a
     red run the first Sunday it stops being reproducible.
     """
+    from cfb.elo import constants_of
     from cfb.replay import load_state, newest_state_key, replay, verify
 
     store = _store(args.store)
     season = args.season or _season_of(moment)
-    rebuilt = replay(store=store, season=season, through_week=_through_week(args))
+    through_week = _through_week(args)
+    rebuilt = replay(store=store, season=season, through_week=through_week)
 
     log(
         EVENT_ELO_REPLAY,
@@ -1072,7 +1074,21 @@ def _elo_replay(args, *, moment: datetime) -> int:
         )
         return 0
 
-    verify(rebuilt, load_state(store, key), key=key)
+    stored = load_state(store, key)
+
+    # SPEC-phase2 4.1: check the document against the constants *it* was written
+    # under. The rebuild above ran on the season's current set for the log line,
+    # which is the right thing to report and the wrong thing to compare when a
+    # refit has landed since the state was written. Rebuilding a second time is
+    # cheap -- it is the same stored snapshots -- and it is the difference between
+    # verifying a state and asserting that the current module agrees with itself.
+    written_under = constants_of(stored)
+    if written_under != rebuilt.constants:
+        rebuilt = replay(
+            store=store, season=season, through_week=through_week, constants=written_under
+        )
+
+    verify(rebuilt, stored, key=key)
     log(
         EVENT_ELO_VERIFY,
         season=rebuilt.season,
@@ -1080,6 +1096,7 @@ def _elo_replay(args, *, moment: datetime) -> int:
         result=RESULT_OK,
         key=key,
         games=rebuilt.games_applied,
+        elo_per_point=written_under.elo_per_point,
     )
     return 0
 

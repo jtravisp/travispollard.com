@@ -3,11 +3,22 @@
 The whole model is a rating per team, one update rule and two formulas. Anything
 more sophisticated is Phase 2 and has to beat this to justify existing.
 
-**Every constant here is conventional rather than fitted**, and SPEC-phase1 12
-says so plainly: ``ELO_PER_POINT``, ``K`` and the multiplier's ``2.2`` have no
-source outside the decision to use them. They are pinned by ``tests/test_elo.py``
-against hand-worked cases so that changing one is a deliberate act with a visible
-diff rather than a tuning session.
+**Three of these constants are now fitted rather than conventional**, which is
+the change SPEC-phase1 12 was waiting on and SPEC-phase2 4 delivers.
+``ELO_PER_POINT``, ``K`` and ``MOV_DENOMINATOR_FLOOR`` come from a grid search
+over the 2015-2025 backfill; ``MOV_DAMPING``'s 2.2 is still conventional and says
+so at its own definition. They stay pinned by ``tests/test_elo.py`` against
+hand-worked cases, because a fitted constant is still a constant that should not
+move without a visible diff.
+
+**A constant is a property of a season, not of this module** (SPEC-phase2 4.1).
+Refitting ``ELO_PER_POINT`` rescales every rating, so a state written at 20 and a
+state written at 16 are not comparable and ``cfb elo replay`` would go red against
+every object in ``elo/`` the moment the module moved. ``ModelConstants`` is what
+each state document records about itself, ``constants_for`` says which set a season
+runs under, and ``constants_of`` reads them back off a stored document. Replay
+checks a document against the constants *it* was written under, never against
+whatever this module currently holds.
 
 ``seed`` lives in ``cfb.elo.seed`` and is deliberately not re-exported here: it
 reads ``ELO_PER_POINT`` from this module, and a re-export at the bottom of this
@@ -23,13 +34,19 @@ equality rather than a method someone has to trust.
 import math
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from cfb.errors import EloDomainError, UnratedTeamError
 
 __all__ = [
     "ELO_PER_POINT",
+    "FITTED",
+    "FIRST_FITTED_SEASON",
     "K",
+    "ModelConstants",
+    "PHASE_1",
+    "constants_for",
+    "constants_of",
     "MOV_DAMPING",
     "MOV_DENOMINATOR_FLOOR",
     "mov_denominator",
@@ -45,51 +62,67 @@ __all__ = [
     "win_probability",
 ]
 
-#: SPEC-phase1 3.1. One constant converts both ways: it turns a Sagarin rating
-#: difference into Elo when seeding, and an Elo gap back into a predicted margin.
+#: SPEC-phase1 3.1, refitted by SPEC-phase2 4.2. One constant converts both ways:
+#: it turns a Sagarin rating difference into Elo when seeding, and an Elo gap back
+#: into a predicted margin.
 #:
-#: **20, and it was 28 for a reason that ran backwards.** The old comment said
-#: "28 rather than the conventional 25 because college margins are far wider than
-#: the NFL ones the 25 figure came from". The observation is correct and the
-#: inference from it inverts: with the 400 divisor held fixed, a *higher* value
-#: here makes the model *more* confident at a given margin, so wider scatter
-#: argues for a number below the NFL figure rather than above it.
+#: **16.0, and it is the first value here that was measured rather than argued.**
+#: The history is worth keeping because both previous values were reasoned to. It
+#: was 28 on an inference that ran backwards, then 20 on the observation that
+#: college margins scatter with a standard deviation of 14 to 16 -- correct, and
+#: still an argument from a reference curve rather than from this sport's games.
+#: SPEC-phase2 4.2's grid search over 2015-2025 minimising mean absolute error of
+#: predicted margin lands at 16.0, which sits at the wide end of that same range.
+#: The earlier reasoning was pointing the right way and stopped short.
 #:
-#: At 28 the model behaved as though college margins scatter with a standard
-#: deviation of about 10.5 points -- 7 points implied 75.6%, which is a sigma of
-#: 10.1. The real figure is 14 to 16. At 20 the logistic tracks a normal with
-#: sigma 15 closely across the whole range (SPEC-phase1 3.1's table).
+#: **The fit is not contaminated by the seeding difference it might have been.**
+#: SPEC-phase2 4.4 flags that the constants are fitted on a model seeded from a
+#: uniform 1500 while the live model is seeded from Sagarin, and singles this
+#: constant out as the one the backfill measures cleanly for both -- because
+#: SPEC-phase1 3.2 proves it cancels between ``seed()`` and ``predict()``. The
+#: sensitivity fit excluding weeks 1-3 returned 16.0 as well, which is the
+#: diagnostic 4.4 asks for: had September contamination mattered, this is the
+#: constant that would have moved between the two fits.
 #:
-#: **Only the ratio to ``_LOGISTIC_DIVISOR`` matters.** ``(20, 400)``,
-#: ``(10, 200)`` and ``(40, 800)`` are the same model. Anyone adjusting one of
-#: them is adjusting the other's meaning.
+#: **Only the ratio to ``_LOGISTIC_DIVISOR`` matters.** ``(16, 400)`` and
+#: ``(8, 200)`` are the same model. Anyone adjusting one is adjusting the other's
+#: meaning.
 #:
-#: ``test_the_spec_3_1_calibration_table`` pins the win probabilities this
-#: produces, so changing it invalidates the spec's argument loudly rather than
-#: quietly.
-ELO_PER_POINT = 20
+#: SPEC-phase2 4.3 replaces SPEC-phase1 3.1's reference-curve table with measured
+#: win rates, and ``test_the_spec_4_3_measured_table`` pins them -- so changing
+#: this invalidates a measurement loudly rather than a hypothesis quietly.
+ELO_PER_POINT = 16.0
 
-#: SPEC-phase1 3.4. Conventional, not fitted.
+#: SPEC-phase1 3.4, refitted by SPEC-phase2 4.2.
 #:
 #: **Coupled to ``ELO_PER_POINT``, and the coupling is easy to miss.** What K
 #: controls is Elo movement, but what anyone reasoning about the model cares
-#: about is *points of predicted margin* moved per game, which is ``K /
-#: ELO_PER_POINT``. At the old scale of 28 that was 0.71 points; at 20 it is a
-#: full point, so dropping the scale made the model about 40% more responsive per
-#: game without K itself changing.
+#: about is *points of predicted margin* moved per game, which is
+#: ``K / ELO_PER_POINT``. At 30 over 16 that is 1.875 points, against 1.0 at the
+#: previous pair -- so the refit made the model substantially more responsive per
+#: game, and it did so as a decision this time rather than as a side effect of
+#: rescaling something else.
 #:
-#: That is probably the right direction -- practitioners raise K for college
-#: given the shorter season and the greater unpredictability -- but it happened
-#: as a consequence rather than as a decision, which is why it is written down
-#: here and in SPEC-phase1 3.4 rather than left to be rediscovered.
-K = 20
+#: **This is the constant SPEC-phase2 4.4 warns about, and the warning survives
+#: the fit.** K is fitted on a model seeded from a uniform 1500, which has more to
+#: learn each September than the Sagarin-seeded live model ever does, biasing it
+#: upward. 4.4's tie-break asks for the sensitivity fit that excludes weeks 1-3
+#: when the two disagree by more than 0.25 held-out MAE. They did not disagree at
+#: all -- both fits returned K=30.0 -- so the primary fit ships and the bias 4.4
+#: describes is bounded by that agreement rather than by assertion.
+#:
+#: The residual caveat is 4.4's own and is not resolved by the fit: K does not
+#: enter a week-1 prediction at all, its influence is largest across weeks 2-4,
+#: and the sensitivity fit sees only the last of those. 2026 is the live test.
+K = 30.0
 
 #: The margin-of-victory damping constant (SPEC-phase1 3.4). Without the term it
 #: sits in, a strong team running up the score on a weak one gains more than the
 #: result warrants and the top of the table inflates.
 MOV_DAMPING = 2.2
 
-#: The floor under that term's denominator (SPEC-phase1 3.4).
+#: The floor under that term's denominator (SPEC-phase1 3.4), refitted by
+#: SPEC-phase2 4.2.
 #:
 #: The denominator is ``elo_diff_winner * 0.001 + 2.2`` and ``elo_diff_winner`` is
 #: signed, so a large enough upset drives it toward zero and then through it. Past
@@ -97,42 +130,151 @@ MOV_DAMPING = 2.2
 #: the model silently running backwards on the most informative result of the
 #: season. The floor makes that arithmetically impossible.
 #:
-#: 0.25 rather than something just above zero, because the interesting boundary is
-#: not the sign flip but the size of the swing. At 0.25 the multiplier is 8.8 and a
-#: ten-point win moves a rating by up to 422 Elo -- 15 points of Sagarin rating from
-#: one game, on a scale whose whole FBS spread is 67. A single result worth that
-#: much is not a rating update, it is a reseed.
+#: **0.05 rather than 0.25, and the guard is doing less work than it looks.** The
+#: floor was never the interesting number; the raise standing in front of it is.
+#: ``update`` refuses a game whose *unclamped* denominator is under the floor, so
+#: lowering the floor does not admit enormous updates -- it narrows the band in
+#: which the run raises instead of proceeding. What the fit found is that the
+#: quarter-point floor was rejecting legitimate results: real upsets that belong
+#: in the training signal, on a scale where the seed now spans a narrower range.
 #:
-#: **No pairing on the 2026 preseason seed reaches it, and that changed when
-#: ``ELO_PER_POINT`` did.** At the old scale of 28 the seed spanned 211 to 2486,
-#: and 39 of the top team's possible opponents would have crossed this floor by
-#: beating it -- 5 of them driving the denominator negative. At 20 the seed spans
-#: 579 to 2204, the widest gap leaves the denominator at 0.58, and the count is
-#: zero.
+#: At 0.05 the multiplier's ceiling is 44 and a ten-point win could move a rating
+#: by up to 3165 Elo -- which sounds alarming and is exactly why the raise, not
+#: the clamp, is the guard. No call to ``update`` divides by a clamped value; the
+#: ceiling describes an update the code refuses to perform.
 #:
-#: That is a side effect of the rescale rather than a decision about the floor,
-#: and it cuts both ways. Crossing raises rather than clamping silently, so the
-#: old scale had 39 pairings that would have reddened a run on a legitimate if
-#: enormous upset. Fewer false alarms is good; a guard that never fires is also a
-#: guard nothing tests in production, which is why ``mov_denominator`` stays
-#: public and directly exercised.
-#:
-#: **Still reachable in principle**, just not from the seed: ratings diverge as a
-#: season runs, and SPEC-phase1 12's refit of ``ELO_PER_POINT`` moves the boundary
-#: again.
-MOV_DENOMINATOR_FLOOR = 0.25
+#: **Reachability changed with the scale.** At ``ELO_PER_POINT`` 20 the 2026 seed
+#: spanned 579 to 2204 and no pairing reached the old floor. At 16 the seed spans
+#: 763 to 2063, a narrower spread, and the widest gap leaves the denominator at
+#: 0.90 -- comfortably clear of 0.05. As with the previous rescale this is a side
+#: effect rather than a decision about the floor, and ``mov_denominator`` stays
+#: public and directly exercised precisely because the guard does not fire from
+#: the seed.
+MOV_DENOMINATOR_FLOOR = 0.05
 
 #: The divisor of the standard Elo logistic. Textbook, and unchanged.
 _LOGISTIC_DIVISOR = 400
 
 #: SPEC-phase1 6.2's envelope version, for the stored state document below.
-SCHEMA_VERSION = 1
+#:
+#: **2 since SPEC-phase2 4.1.** ``EloState`` gained a ``model`` block, and this is
+#: the case 6.2 reserves a bump for: a field whose meaning changed. A state that
+#: does not say which scale it was written on meant one thing when only one scale
+#: had ever existed and means something much weaker now. The site contract
+#: (``PUBLISHED_SCHEMA_VERSION``) is untouched -- no published document gains,
+#: loses or renames a field.
+SCHEMA_VERSION = 2
 
 #: A canonical team id to its Elo rating. See the module docstring for why this
 #: is a type alias and not a class.
 Ratings = dict[str, float]
 
 _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+
+class ModelConstants(BaseModel):
+    """The constants one set of ratings was produced under (SPEC-phase2 4.1).
+
+    **This exists so that a rating can be read.** ``ELO_PER_POINT`` is a scale, and
+    a number on an unnamed scale is not a measurement. Before this block a state
+    document recorded 2204 for Ohio State and there was exactly one scale in the
+    world, so the omission cost nothing; the moment a second scale exists the same
+    file means 2204-at-20 or 2204-at-16 and nothing in it can say which.
+
+    Carried on the document rather than looked up by season, even though
+    ``constants_for`` can answer for every season this project has run. A lookup
+    table is the current opinion about the past and can be edited; the document is
+    what was actually used, and ``replay`` needs the second one. That is the whole
+    difference between reproducing a state and asserting one.
+    """
+
+    model_config = _STRICT
+
+    elo_per_point: float = Field(gt=0)
+    k: float = Field(gt=0)
+    mov_damping: float = Field(gt=0)
+    mov_denominator_floor: float = Field(gt=0)
+    #: ``None`` on a live season, and that is not a missing value. The live model
+    #: reseeds from Sagarin's preseason page every year and never carries a season
+    #: forward (SPEC-phase1 3.2), so the fitted carry-forward coefficient has no
+    #: live counterpart at all -- SPEC-phase2 4.4 says so in as many words. A
+    #: number here would describe an operation the live pipeline does not perform.
+    regression_to_mean: float | None = None
+    #: ``None`` on a live season, where HFA is read per-run from the Sagarin
+    #: manifest (SPEC-phase1 3.3) and therefore is not a constant of the season.
+    #: A fitted scalar only on a backfilled season, which has no Sagarin page.
+    hfa: float | None = None
+    #: Where the HFA came from: ``"sagarin"`` on a live season, ``"fitted"`` on a
+    #: backfilled one. Named rather than inferred from ``hfa`` being null, because
+    #: "read per-run from a manifest" and "nobody recorded it" are different facts
+    #: and only one of them is fine.
+    hfa_source: str = Field(min_length=1)
+
+
+#: What every state written before SPEC-phase2 4.1 was produced under.
+#:
+#: A ``schema_version`` 1 document carries no ``model`` block, and this is what it
+#: means -- not a guess. Only one set of constants had ever been shipped when
+#: those documents were written, and ``git log`` on this file is the evidence.
+#: ``constants_of`` returns this for any state that predates the block, which is
+#: what keeps the 2026 preseason states replayable across the refit.
+PHASE_1 = ModelConstants(
+    elo_per_point=20.0,
+    k=20.0,
+    mov_damping=2.2,
+    mov_denominator_floor=0.25,
+    hfa_source="sagarin",
+)
+
+#: SPEC-phase2 4.2's fitted set, and what this module currently holds.
+#:
+#: Built from the module constants rather than repeating their values, so the two
+#: cannot drift into disagreeing about what "current" means.
+FITTED = ModelConstants(
+    elo_per_point=ELO_PER_POINT,
+    k=K,
+    mov_damping=MOV_DAMPING,
+    mov_denominator_floor=MOV_DENOMINATOR_FLOOR,
+    hfa_source="sagarin",
+)
+
+#: The first live season run on the fitted constants (SPEC-phase2 4.2).
+#:
+#: **2026, and it is a boundary the refit reached two days late.** SPEC-phase2 4.1
+#: freezes constants within a season and lands a refit between seasons, because a
+#: record accumulating on one scale must not be republished on another halfway
+#: through. The fit completed on 2026-08-31, after the season's first Saturday.
+#:
+#: It applies to 2026 anyway, and the reason is that the harm 4.1 names had barely
+#: begun. At the switch nothing had been scored -- ``scored/`` was empty and
+#: ``accuracy.json`` read ``games: 0`` -- and no week had been advanced, so ``K``
+#: and ``MOV_DENOMINATOR_FLOOR`` had never touched a stored rating. Week 2 was
+#: still ahead of its kickoffs and is regenerated on the new constants before it.
+#:
+#: **What it does cost, stated rather than buried: week 1's Brier.** Week 1's 144
+#: forecasts are logged at 20 and cannot be reforecast -- the games are played and
+#: the log is append-only. SPEC-phase1 3.2 proves ``ELO_PER_POINT`` cancels
+#: between ``seed()`` and ``predict()``, so their *margins* are exactly what the
+#: refit would have produced and the season's MAE is untouched. Win probability is
+#: not a margin: it is the logistic of one *times this constant*, so those 144
+#: probabilities sit ~3.2 points from where 16 would have put them (max 5.0). The
+#: 2026 Brier therefore blends one week at 20 with the rest at 16, and it is a
+#: blend of two weeks' worth of nothing if the season is instead run entire on
+#: constants the backfill says are worse.
+#:
+#: 3.2 records the same manoeuvre being made once before, when the scale went 28
+#: to 20 in-season -- and the week 2 log still carried ``elo_per_point: 28`` when
+#: this landed, so the 2026 log already spanned two scales before it spanned three.
+FIRST_FITTED_SEASON = 2026
+
+
+def constants_for(season: int) -> ModelConstants:
+    """Which constants ``season`` runs under (SPEC-phase2 4.1).
+
+    Frozen within a season by construction: this is a function of the season and
+    of nothing else -- not of the current week, not of when it is called.
+    """
+    return FITTED if season >= FIRST_FITTED_SEASON else PHASE_1
 
 
 class Game(BaseModel):
@@ -252,7 +394,55 @@ class EloState(BaseModel):
     #: is either skipped forever or applied in the wrong order -- both of which put
     #: the chain permanently out of step with a rebuild.
     through_kickoff: datetime | None = None
+    #: The constants these ratings were produced under (SPEC-phase2 4.1).
+    #:
+    #: ``None`` only on a ``schema_version`` 1 document, which predates the block
+    #: entirely. Read it through ``constants_of`` rather than directly: the null
+    #: has a specific meaning -- ``PHASE_1`` -- and a caller that reads the field
+    #: raw is one ``or`` away from silently replaying a 20-scale state at 16.
+    model: ModelConstants | None = None
     ratings: Ratings
+
+    @model_validator(mode="after")
+    def the_block_matches_the_version(self) -> "EloState":
+        """A schema 2 document carries its constants; a schema 1 document cannot.
+
+        Both directions, because both are a writer and a reader disagreeing about
+        the schema. A version 2 state without the block is the document SPEC-phase2
+        4.1 exists to abolish, and it would read back as ``PHASE_1`` -- silently
+        claiming a scale it may never have been written on. A version 1 state
+        *with* one is a document some other writer produced under this project's
+        name, and guessing which half to believe is not this model's job.
+        """
+        if self.schema_version >= 2 and self.model is None:
+            raise ValueError(
+                f"schema_version {self.schema_version} state for season {self.season} "
+                f"week {self.week!r} carries no model block. Since SPEC-phase2 4.1 a state "
+                f"records the constants it was written under, and one that does not cannot "
+                f"be replayed: its ratings are on an unnamed scale"
+            )
+        if self.schema_version < 2 and self.model is not None:
+            raise ValueError(
+                f"schema_version {self.schema_version} state for season {self.season} "
+                f"week {self.week!r} carries a model block, which that version has no field "
+                f"for. The version and the document disagree about the schema"
+            )
+        return self
+
+
+def constants_of(state: EloState) -> ModelConstants:
+    """The constants ``state`` was written under (SPEC-phase2 4.1).
+
+    The one supported way to read ``EloState.model``. A ``schema_version`` 1
+    document has no block and resolves to ``PHASE_1``, which is a fact about when
+    it was written rather than a default -- see ``PHASE_1``.
+
+    **Never falls back to the current module constants.** That is the single
+    mistake this function exists to make unavailable: it would make every stored
+    state agree with every future refit by definition, and turn SPEC-phase1 11
+    step 5 from a check into a tautology.
+    """
+    return state.model or PHASE_1
 
 
 #: Second resolution and no colons, matching ``cfb.manifest``: the stamp is a
@@ -289,7 +479,7 @@ def state_key(*, season: int, week: str, generated_at: datetime) -> str:
     return f"{state_prefix(season=season, week=week)}{generated_at.strftime(_STAMP_FORMAT)}.json"
 
 
-def win_probability(predicted_margin: float) -> float:
+def win_probability(predicted_margin: float, *, constants: ModelConstants = FITTED) -> float:
     """The home team's win probability for a predicted margin (SPEC-phase1 3.1).
 
     Derived from the margin rather than computed alongside it, and that is the
@@ -298,10 +488,12 @@ def win_probability(predicted_margin: float) -> float:
     the other. A refactor that computed them from separate quantities would break
     ``test_margin_and_probability_cannot_disagree`` and nothing else.
     """
-    return 1 / (1 + 10 ** (-(predicted_margin * ELO_PER_POINT) / _LOGISTIC_DIVISOR))
+    return 1 / (1 + 10 ** (-(predicted_margin * constants.elo_per_point) / _LOGISTIC_DIVISOR))
 
 
-def predict(ratings: Ratings, game: Game, *, hfa: float) -> Prediction:
+def predict(
+    ratings: Ratings, game: Game, *, hfa: float, constants: ModelConstants = FITTED
+) -> Prediction:
     """The model's forecast for one game, from the home team's perspective.
 
     ``hfa`` is a keyword because it belongs to the Sagarin snapshot the run read
@@ -310,11 +502,16 @@ def predict(ratings: Ratings, game: Game, *, hfa: float) -> Prediction:
     ``Game`` would carry it into a document with no business asserting it.
     """
     gap = _rating(ratings, game.home, game) - _rating(ratings, game.away, game)
-    margin = gap / ELO_PER_POINT + _home_edge(game, hfa)
-    return Prediction(predicted_margin=margin, win_probability=win_probability(margin))
+    margin = gap / constants.elo_per_point + _home_edge(game, hfa)
+    return Prediction(
+        predicted_margin=margin,
+        win_probability=win_probability(margin, constants=constants),
+    )
 
 
-def update(ratings: Ratings, game: Game, *, hfa: float) -> Ratings:
+def update(
+    ratings: Ratings, game: Game, *, hfa: float, constants: ModelConstants = FITTED
+) -> Ratings:
     """Apply one completed game. Returns new ratings; ``ratings`` is untouched.
 
     Standard Elo with the margin-of-victory multiplier of SPEC-phase1 3.4::
@@ -359,7 +556,7 @@ def update(ratings: Ratings, game: Game, *, hfa: float) -> Ratings:
     home = _rating(ratings, game.home, game)
     away = _rating(ratings, game.away, game)
 
-    diff = home + _home_edge(game, hfa) * ELO_PER_POINT - away
+    diff = home + _home_edge(game, hfa) * constants.elo_per_point - away
     expected = 1 / (1 + 10 ** (-diff / _LOGISTIC_DIVISOR))
 
     margin = game.home_points - game.away_points
@@ -387,39 +584,47 @@ def update(ratings: Ratings, game: Game, *, hfa: float) -> Ratings:
     # the model validators of SPEC-phase0 4.7 -- if a later phase decides a clamped
     # update is acceptable and drops the raise, what is left is still correct
     # arithmetic rather than a silent sign flip.
-    unclamped = _raw_mov_denominator(signed)
-    denominator = mov_denominator(signed)
-    if unclamped < MOV_DENOMINATOR_FLOOR:
+    unclamped = _raw_mov_denominator(signed, constants=constants)
+    denominator = mov_denominator(signed, constants=constants)
+    if unclamped < constants.mov_denominator_floor:
+        clamped_move = (
+            constants.k
+            * math.log(abs(margin) + 1)
+            * (constants.mov_damping / constants.mov_denominator_floor)
+        )
         raise EloDomainError(
             f"game {game.cfbd_game_id} ({game.away} at {game.home}) was won from "
             f"{-signed:.0f} Elo of disadvantage, putting SPEC-phase1 3.4's multiplier "
-            f"denominator at {unclamped:.4f}, under the {MOV_DENOMINATOR_FLOOR} floor. "
-            f"Clamped it would still move a rating by up to "
-            f"{K * math.log(abs(margin) + 1) * (MOV_DAMPING / MOV_DENOMINATOR_FLOOR):.0f} "
+            f"denominator at {unclamped:.4f}, under the {constants.mov_denominator_floor} "
+            f"floor. Clamped it would still move a rating by up to {clamped_move:.0f} "
             f"Elo from one result; unclamped and below zero it would move it the wrong "
             f"way. Either the ratings have diverged or the scale needs refitting "
             f"(SPEC-phase1 12) -- neither is something to apply a game through"
         )
 
-    mov_mult = math.log(abs(margin) + 1) * (MOV_DAMPING / denominator)
-    delta = K * mov_mult * (actual - expected)
+    mov_mult = math.log(abs(margin) + 1) * (constants.mov_damping / denominator)
+    delta = constants.k * mov_mult * (actual - expected)
 
     # Zero-sum by construction. Elo that leaks or creates rating drifts the whole
     # scale, and the drift is invisible in any single game.
     return {**ratings, game.home: home + delta, game.away: away - delta}
 
 
-def _raw_mov_denominator(elo_diff_winner: float) -> float:
+def _raw_mov_denominator(
+    elo_diff_winner: float, *, constants: ModelConstants = FITTED
+) -> float:
     """SPEC-phase1 3.4's denominator exactly as written, floor and all removed.
 
     Split out so the formula appears once. ``update`` needs both this and the
     floored value -- one to decide whether to raise, one to divide by -- and two
     copies of an expression that must agree is how they stop agreeing.
     """
-    return elo_diff_winner * 0.001 + MOV_DAMPING
+    return elo_diff_winner * 0.001 + constants.mov_damping
 
 
-def mov_denominator(elo_diff_winner: float) -> float:
+def mov_denominator(
+    elo_diff_winner: float, *, constants: ModelConstants = FITTED
+) -> float:
     """The same denominator, floored (SPEC-phase1 3.4). Never inverts the multiplier.
 
     Public and separately tested because it is the half of the guard that
@@ -430,7 +635,10 @@ def mov_denominator(elo_diff_winner: float) -> float:
 
     Deleting the clamp fails ``test_the_clamp_holds_on_its_own``.
     """
-    return max(_raw_mov_denominator(elo_diff_winner), MOV_DENOMINATOR_FLOOR)
+    return max(
+        _raw_mov_denominator(elo_diff_winner, constants=constants),
+        constants.mov_denominator_floor,
+    )
 
 
 def _home_edge(game: Game, hfa: float) -> float:

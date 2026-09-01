@@ -66,7 +66,16 @@ from typing import NamedTuple
 
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo import SCHEMA_VERSION, EloState, Game, Ratings, update
+from cfb.elo import (
+    SCHEMA_VERSION,
+    EloState,
+    Game,
+    ModelConstants,
+    Ratings,
+    constants_for,
+    constants_of,
+    update,
+)
 from cfb.elo.seed import seed
 from cfb.elo.state import StoredState, load_state, newest_state_key, previous_state
 from cfb.errors import ReplayError, StateMismatchError
@@ -138,6 +147,14 @@ class Replay:
     applied: tuple[_Applied, ...]
     #: Every ``raw/cfbd/`` games key read, newest capture first.
     games_keys: tuple[str, ...]
+    #: The constants this rebuild used (SPEC-phase2 4.1).
+    #:
+    #: Required rather than defaulted, and that is deliberate: a rebuild that does
+    #: not know its own scale is the exact object this field exists to prevent, and
+    #: a default would let one be constructed. ``verify`` refuses to compare
+    #: against a state written on another scale rather than reporting a rescale as
+    #: 266 separate rating drifts.
+    constants: ModelConstants
     #: The earliest kickoff this rebuild folded, when the season's opening games
     #: could not be priced. ``None`` when it covered the season entire. See
     #: ``EloState.folded_from``.
@@ -168,6 +185,7 @@ class Replay:
             games_applied=self.games_applied,
             folded_from=self.folded_from,
             through_kickoff=self.through_kickoff,
+            model=self.constants,
             ratings=dict(self.ratings),
         )
 
@@ -179,6 +197,7 @@ def replay(
     through_week: str | None = None,
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
+    constants: ModelConstants | None = None,
 ) -> Replay:
     """Rebuild ``season``'s Elo ratings from stored snapshots. No network, no state.
 
@@ -189,12 +208,18 @@ def replay(
     The crosswalk is injected for the same reason the collectors inject it: the
     committed one is what production uses, and a test that could not substitute
     another could not exercise a mapping gap at all.
+
+    ``constants`` defaults to the set ``season`` runs under (SPEC-phase2 4.1).
+    Pass one explicitly to rebuild on the scale a *stored* state was written on,
+    which is what verifying a state from before a refit requires -- and is the
+    only reason this is a parameter rather than a lookup.
     """
     resolver = crosswalk or load_crosswalk(season, data_dir=crosswalk_dir)
+    constants = constants or constants_for(season)
 
     manifests = sagarin_manifests(store, season)
     seed_from = seed_manifest(manifests, season)
-    ratings = seed(sagarin_snapshot(store, seed_from), resolver)
+    ratings = seed(sagarin_snapshot(store, seed_from), resolver, constants=constants)
 
     cutoff = week_position(through_week, label="--through-week")
     applied, games_keys, folded_from = _applied_games(
@@ -206,10 +231,11 @@ def replay(
     )
 
     for entry in applied:
-        ratings = update(ratings, entry.game, hfa=entry.hfa)
+        ratings = update(ratings, entry.game, hfa=entry.hfa, constants=constants)
 
     return Replay(
         season=season,
+        constants=constants,
         # The furthest week reached, not the last game by kickoff -- see
         # `_Applied.order`. A season whose week 1 finished late still ran through
         # week 2, and naming it "01" would compare against the wrong stored state.
@@ -243,9 +269,11 @@ def seed_state(
     called from places that have not selected the snapshot.
     """
     seed_from = seed_manifest(sagarin_manifests(store, season), season)
+    constants = constants_for(season)
     ratings = seed(
         sagarin_snapshot(store, seed_from),
         crosswalk or load_crosswalk(season, data_dir=crosswalk_dir),
+        constants=constants,
     )
     return EloState(
         schema_version=SCHEMA_VERSION,
@@ -255,6 +283,7 @@ def seed_state(
         seeded_from=seed_from.snapshot_key,
         games_applied=0,
         through_kickoff=None,
+        model=constants,
         ratings=ratings,
     )
 
@@ -340,8 +369,17 @@ def advance(
     )
 
     ratings = dict(previous.state.ratings)
+
+    # The chain's scale, not the season's. `advance` builds on the previous state,
+    # so it must move those ratings the way they were built -- a refit that landed
+    # between two states would otherwise apply the new K to old-scale ratings and
+    # produce a state that is neither. `verify` catches the result; this stops it
+    # from being produced. A season whose states straddle a refit is a season to
+    # rebuild from the seed, which is what SPEC-phase2 4.1's freeze exists to make
+    # unnecessary.
+    constants = constants_of(previous.state)
     for entry in applied:
-        ratings = update(ratings, entry.game, hfa=entry.hfa)
+        ratings = update(ratings, entry.game, hfa=entry.hfa, constants=constants)
 
     return Advance(
         state=EloState(
@@ -349,6 +387,7 @@ def advance(
             season=season,
             week=week,
             generated_at=now,
+            model=constants,
             # Carried forward rather than re-derived. Every state in a season names
             # the one page the season was seeded from, and a chain whose seed
             # changed halfway is a chain that cannot be replayed.
@@ -471,6 +510,14 @@ def _applied_games(
     return applied, games_keys, folded_from
 
 
+def _scale(constants: ModelConstants) -> str:
+    """The constants a mismatch message needs, in the order they matter."""
+    return (
+        f"ELO_PER_POINT={constants.elo_per_point} K={constants.k} "
+        f"MOV_DENOMINATOR_FLOOR={constants.mov_denominator_floor}"
+    )
+
+
 def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
     """Raise ``StateMismatchError`` unless the rebuild reproduces the stored state.
 
@@ -495,6 +542,22 @@ def verify(rebuilt: Replay, stored: EloState, *, key: str) -> None:
             f"{key} is the state through week {stored.week!r} and the replay ran through "
             f"{rebuilt.week!r}. Comparing two different points of the season would report a "
             f"drift that is only a difference of scope"
+        )
+
+    # SPEC-phase2 4.1: a state is checked against the constants it was written
+    # under, never against whatever the module currently holds. Caught here rather
+    # than left to the rating comparison because a rescale disagrees on *every*
+    # rating, and 266 drift lines reporting a refit is a diagnosis nobody makes
+    # from the output. The caller rebuilds under `constants_of(stored)`.
+    written_under = constants_of(stored)
+    if written_under != rebuilt.constants:
+        raise StateMismatchError(
+            f"{key} was written under {_scale(written_under)} and the replay rebuilt under "
+            f"{_scale(rebuilt.constants)}. These are not the same model and their ratings are "
+            f"not comparable -- an ELO_PER_POINT of {written_under.elo_per_point} means a "
+            f"rating on that scale and nothing else. Rebuild with "
+            f"`constants=constants_of(stored)` to check this document, or regenerate the "
+            f"state if the season has been refitted (SPEC-phase2 4.1)"
         )
 
     problems = list(_rating_differences(rebuilt.ratings, stored.ratings))

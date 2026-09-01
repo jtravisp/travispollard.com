@@ -37,7 +37,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo import ELO_PER_POINT, SCHEMA_VERSION, Game, K
+from cfb.elo import SCHEMA_VERSION, Game, constants_of
 from cfb.elo import predict as forecast
 from cfb.elo.state import previous_state
 from cfb.errors import ReplayError, UnmappedTeamError
@@ -87,8 +87,12 @@ class ModelBlock(BaseModel):
     model_config = _STRICT
 
     name: Literal["elo"]
-    elo_per_point: int = Field(gt=0)
-    k: int = Field(gt=0)
+    #: ``float``, not ``int``, since SPEC-phase2 4.2 made these fitted: a grid
+    #: search has no reason to land on a whole number and 4.1's own example
+    #: carries 17.5. Stored logs holding integers still load -- pydantic's strict
+    #: mode accepts an int for a float -- so no written document changes meaning.
+    elo_per_point: float = Field(gt=0)
+    k: float = Field(gt=0)
     #: The value used for every game in this slate, and the manifest it came from.
     #: One per run rather than one per game -- see ``predict_week``.
     hfa: float
@@ -318,6 +322,14 @@ def predict_week(
     benchmark = _sagarin_margins(sagarin_snapshot(store, hfa_manifest), resolver)
     ratings = state.state.ratings
 
+    # The constants the *state* was written under, not the season's current set
+    # (SPEC-phase2 4.1). These ratings are on a scale, and a margin is an Elo gap
+    # divided by that scale -- read the gap on one and divide by another and the
+    # forecast is wrong by their ratio, silently and for every game. Reading it
+    # off the document makes the pairing impossible to get wrong, and the model
+    # block below then records what was actually used.
+    constants = constants_of(state.state)
+
     games = []
     for raw, _ in slate:
         home = resolver.from_cfbd(raw.home_team)
@@ -329,7 +341,7 @@ def predict_week(
             neutral_site=raw.neutral_site,
             kickoff=raw.start_date,
         )
-        prediction = forecast(ratings, game, hfa=hfa)
+        prediction = forecast(ratings, game, hfa=hfa, constants=constants)
         # Joined on the game id, for SPEC-phase1 5.1's reasons: a game moves week
         # for weather and the two sources disagree about who is home at a neutral
         # site, and the id survives both. A game no book priced is simply absent.
@@ -362,8 +374,8 @@ def predict_week(
             forecast_from=first_kickoff if played else None,
             model=ModelBlock(
                 name="elo",
-                elo_per_point=ELO_PER_POINT,
-                k=K,
+                elo_per_point=constants.elo_per_point,
+                k=constants.k,
                 hfa=hfa,
                 # The `.meta.json`, not the `.txt`: the HFA was read from the
                 # manifest, and naming the page would point at bytes this run
