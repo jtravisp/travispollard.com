@@ -11,6 +11,14 @@ it is also the preseason degenerate state of SPEC-phase0 4.5. Fixtures are
 marked ``-text`` in .gitattributes; without that, core.autocrlf rewrites the
 bytes on checkout and the capture stops being golden.
 
+``fixtures/sagarin_2026_week01.txt`` is the same page in-season, captured
+2026-09-01 by the collector itself and read back out of its immutable snapshot:
+178,410 bytes,
+sha256 55cc2274f9e82ebd7c40a9fa310da7b54bcbc440ebac7373a41574b2b1b900eb.
+It exists because the preseason capture has no date stamp, which left the only
+line that carries one with no golden bytes behind it until the Tuesday collector
+failed on the real format in production.
+
 ``fixtures/sagarin_malformed_row.txt`` is derived from it: the header block and
 ranks 1-10, with rank 5's rating value deleted while the ``=`` anchor and every
 other field on the line stay put. That is the shape a lenient parser turns into
@@ -290,6 +298,97 @@ def test_a_readable_stamp_parses(page, stamp, expected):
     raises on everything, which would take the collector down every Tuesday.
     """
     assert parse_page_date_stamp(retitled(page, f"ratings  through games of {stamp}")) == expected
+
+
+@pytest.mark.parametrize(
+    ("stamp", "expected"),
+    [
+        # The shape the live page actually prints: no year, weekday trailing.
+        ("August 29 Saturday", date(2026, 8, 29)),
+        ("September 5 Saturday", date(2026, 9, 5)),
+        # A season crosses the New Year, and the stamp still names no year. Read
+        # against the 2026 title line, a January date is 2027.
+        ("January 10 Saturday", date(2027, 1, 10)),
+        ("December 6 Saturday", date(2026, 12, 6)),
+        # Year-less without the weekday, and the weekday without the year in the
+        # other position. Neither has been seen; both are the same date.
+        ("August 29", date(2026, 8, 29)),
+        ("Saturday, August 29", date(2026, 8, 29)),
+        ("29 August", date(2026, 8, 29)),
+        # A stamp that carries its own year is read from the page, never from the
+        # season -- including when the two disagree.
+        ("August 29, 2026 Saturday", date(2026, 8, 29)),
+        ("August 29, 2019", date(2019, 8, 29)),
+    ],
+)
+def test_a_year_less_stamp_is_dated_from_the_season_on_the_title_line(page, stamp, expected):
+    """The live page omits the year and trails the weekday: "August 29 Saturday".
+
+    This is what took the Tuesday collector down on 2026-09-01 -- the first
+    in-season page the parser had ever been handed, against a set of accepted
+    formats that had only ever been guessed at. The year is not missing: the same
+    title line names the season, so it is derived rather than assumed.
+    """
+    assert parse_page_date_stamp(retitled(page, f"ratings  through games of {stamp}")) == expected
+
+
+def test_february_29_resolves_only_in_a_year_that_has_one(page):
+    """The leap day is where "append the year" and "default to 1900" diverge.
+
+    A year-less ``strptime`` cannot represent February 29 at all. Dating the text
+    before parsing it can, in whichever of the season's two years is a leap year
+    -- and must still reject the day in a season that spans neither.
+    """
+    leap = retitled(page, "ratings  through games of February 29").replace(
+        "2026 College Football", "2027 College Football"
+    )
+    assert parse_page_date_stamp(leap) == date(2028, 2, 29)
+
+    with pytest.raises(ParseError):
+        parse_page_date_stamp(retitled(page, "ratings  through games of February 29"))
+
+
+# --- the in-season page ---------------------------------------------------
+
+@pytest.fixture(scope="module")
+def in_season_page() -> str:
+    """The 2026-09-01 capture: 178,410 bytes, the first in-season page fetched.
+
+    Provenance is the collector's own immutable snapshot --
+    ``s3://travispollard-cfb-data/raw/sagarin/season=2026/week=01/2026-09-01T161731Z.txt``,
+    written before the parse that then failed on it. Bytes verbatim, CRLF intact.
+    """
+    return _read("sagarin_2026_week01.txt")
+
+
+def test_the_in_season_page_parses_end_to_end(in_season_page):
+    """The regression this fixture exists for.
+
+    Every earlier test in this file runs against the preseason capture, so the
+    in-season title line -- the only line that carries a date stamp -- had no
+    golden bytes behind it and the collector met the real format in production.
+    """
+    assert parse_season(in_season_page) == 2026
+    assert parse_page_state(in_season_page) == "in-season"
+    assert parse_page_date_stamp(in_season_page) == date(2026, 8, 29)
+    assert parse_hfa(in_season_page)["predictor"] == 2.41
+
+    teams = parse_ratings(in_season_page)
+    assert len(teams) == SECTION_1_TEAM_COUNT
+    assert Counter(t.division for t in teams) == {"A": FBS_COUNT, "AA": FCS_COUNT}
+    assert sorted(t.rank for t in teams) == list(range(1, SECTION_1_TEAM_COUNT + 1))
+
+
+def test_the_in_season_page_is_not_the_preseason_degenerate_state(in_season_page):
+    """What makes this capture worth keeping: games have been played in it.
+
+    On the preseason page all four columns are identical and every record is 0-0.
+    Pinning the difference here keeps a future fixture refresh from quietly
+    swapping in another STARTING page and restoring the blind spot.
+    """
+    teams = parse_ratings(in_season_page)
+    assert any(t.rating != t.predictor for t in teams)
+    assert any(t.wins or t.losses for t in teams)
 
 
 # --- FCS ------------------------------------------------------------------

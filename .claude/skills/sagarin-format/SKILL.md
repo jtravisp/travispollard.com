@@ -72,6 +72,8 @@ The title line is a usable state flag — it reads STARTING preseason and change
 
 The preseason page has no internal date stamp. Its title line is `2026 College Football STARTING ratings` — season and state, nothing else. In-season pages carry a "through games of <date>" stamp. So the parsed date stamp must be nullable, and a freshness check has nothing to compare until the first in-season page lands.
 
+**The in-season stamp carries no year and trails the weekday.** The 2026-09-01 capture reads `2026 College Football through games of August 29 Saturday` — month, day, then the weekday, unseparated. The year is not on the stamp and must be taken from the season on the same title line, which means a January stamp on a 2026 page is 2027. Do not reach for a year-less `strptime`: it defaults to 1900, cannot represent February 29, and is deprecated for exactly that. Append the year to the text before parsing instead.
+
 The predictions section
 
 At the bottom of the page there is a Predictions_with_Totals_and_Moneylines anchor: Sagarin's own game-by-game predictions with totals and moneylines, plus an experimental set adjusted for home/away tendencies.
@@ -80,7 +82,11 @@ Capture this section. It is more valuable than the ratings table — it is a pub
 
 It is printed twice, exactly like section 3. The regular set comes first, then a second full copy under EXPERIMENTAL NUMBERS INVOLVING HOME-AWAY ADJUSTMENTS FOR EACH TEAM. Take the first block only, or every game is duplicated. On the 2026 preseason page each block holds 53 games.
 
-Row shape is `rank [N|C] [@] FAVORITE  rating pred golden recent strong  [@] UNDERDOG  MONEY WIN% home away TOTAL pct%`. The `@` marks the nominal home team and is present even on neutral-site games; the flag after the rank is blank for a normal game, `N` for neutral, `C` for a classic, and the home/away split columns move with it.
+Row shape is `rank [N|C] [@] FAVORITE  rating pred golden recent strong  [@] UNDERDOG  MONEY WIN% home away TOTAL <tail>`. The `@` marks the nominal home team and is present even on neutral-site games; the flag after the rank is blank for a normal game, `N` for neutral, `C` for a classic, and the home/away split columns move with it.
+
+**The tail changes between preseason and in-season.** Preseason it is a single unlabelled percentage and the `home away TOTAL` columns are league constants (27.21 / 24.79 / 52.00) rather than game predictions. In-season the header grows `MARG WIN% MONEY` and every row grows three columns: the margin implied by that game's home/away split, signed from the home team's side, plus the win probability and moneyline that go with *it*. That trailing pair is not a restatement of the leading `MONEY WIN%` — on the 2026-09-01 capture San Jose State is favoured by 1.75 on rating (55%, 122) while the split has Eastern Michigan by 7.85 (70%, 233). The two disagree on roughly one row in twenty, so reading either as the other publishes a number the page never claimed.
+
+Match both tails as explicit alternatives rather than loosening the end-of-line anchor. Three columns appearing mid-season is precisely the format change the parser exists to catch, and it is what broke the collector on 2026-09-01.
 
 Team-name crosswalk
 
