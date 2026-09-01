@@ -76,6 +76,26 @@ _DATE_STAMP = re.compile(r"through\s+games\s+of\b(?P<stamp>.*?)\s*$", re.IGNOREC
 # a format change, and a format change is an alert.
 _DATE_FORMATS = ("%B %d, %Y", "%d %B %Y", "%Y %B %d", "%m/%d/%Y", "%B %d %Y")
 
+# The real in-season page omits the year: the 2026-09-01 capture stamps itself
+# "through games of August 29 Saturday". The year is not missing information --
+# the same title line carries the season -- so these are parsed year-less and the
+# year is supplied by ``_year_for``.
+_DATE_FORMATS_NO_YEAR = ("%B %d", "%d %B")
+
+# ...and it prints the weekday *after* the date, unseparated. A leading weekday
+# with a comma has also been assumed; both are stripped, because the weekday is
+# redundant with the date it decorates and pinning either position would make the
+# parser fail on a page that merely moved it.
+_WEEKDAYS = "monday|tuesday|wednesday|thursday|friday|saturday|sunday"
+_TRAILING_WEEKDAY = re.compile(r",?\s+(?:" + _WEEKDAYS + r")$", re.IGNORECASE)
+_LEADING_WEEKDAY = re.compile(r"^(?:" + _WEEKDAYS + r"),?\s+", re.IGNORECASE)
+
+# A season spans the New Year. Sagarin's year-less stamp is read against the
+# season on its own title line, so the 2026 page's "January 10" is 2027 and its
+# "August 29" is 2026. July is the split: no college football is played in it, so
+# no real stamp can land on the boundary itself.
+_SEASON_ROLLOVER_MONTH = 7
+
 # --- row shapes -----------------------------------------------------------
 
 # Anything that opens like a rank in the rank column. Tells "this is a row and it
@@ -307,7 +327,8 @@ def parse_page_date_stamp(text: str) -> date | None:
     treated as the page's own claim that a date is here, and the parser either
     reads it or fails loudly.
     """
-    stamp = _DATE_STAMP.search(_title(text)["rest"])
+    title = _title(text)
+    stamp = _DATE_STAMP.search(title["rest"])
     if stamp is None:
         return None
 
@@ -319,12 +340,49 @@ def parse_page_date_stamp(text: str) -> date | None:
             "a truncated or changed page, not a page without a stamp"
         )
 
-    # In-season stamps have carried a leading weekday; it adds nothing to the date.
-    for candidate in (found, found.split(",", 1)[-1].strip()):
+    # The weekday adds nothing the date does not already carry. The live page
+    # trails it ("August 29 Saturday"); a leading one has also been assumed.
+    bare = _TRAILING_WEEKDAY.sub("", _LEADING_WEEKDAY.sub("", found)).strip()
+
+    for candidate in (found, bare):
         for fmt in _DATE_FORMATS:
             try:
                 return datetime.strptime(candidate, fmt).date()
             except ValueError:
                 continue
 
+    # Year-less last, so a stamp that carries its own year is never overruled by
+    # the season we would have inferred for it.
+    season = int(title["season"])
+    for candidate in (found, bare):
+        for fmt in _DATE_FORMATS_NO_YEAR:
+            parsed = _dated(candidate, fmt, season)
+            if parsed is not None:
+                return parsed
+
     raise ParseError(f"page date stamp {found!r} matches no known date format")
+
+
+def _dated(candidate: str, fmt: str, season: int) -> date | None:
+    """``candidate`` read under year-less ``fmt``, dated against ``season``.
+
+    Sagarin's in-season stamp names a month and a day and no year, while its title
+    line names the season -- so the year is derived, not guessed. A season runs
+    August into January, so a month before the summer split belongs to the year
+    after the season: the 2026 page's "January 10" is 2027-01-10.
+
+    The year is appended to the text rather than substituted into the parsed date,
+    because a year-less ``strptime`` defaults to 1900, cannot represent February 29,
+    and is deprecated for exactly those reasons -- it is slated to change or raise
+    in Python 3.15. Both candidate years are tried and the one the season rule
+    wants is the one returned, so February 29 resolves in whichever of the two is
+    a leap year and is rejected when neither is.
+    """
+    for year in (season, season + 1):
+        try:
+            parsed = datetime.strptime(f"{candidate} {year}", f"{fmt} %Y").date()
+        except ValueError:
+            continue
+        if parsed.year == (season if parsed.month >= _SEASON_ROLLOVER_MONTH else season + 1):
+            return parsed
+    return None

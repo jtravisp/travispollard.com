@@ -19,15 +19,28 @@ Two traps, both live on the 2026 preseason capture:
 Row shape, anchored on structural tokens rather than column offsets::
 
     rank [N|C] [@] FAVORITE  rating pred golden recent strong  [@] UNDERDOG \\
-        MONEY WIN%  home away TOTAL  pct%
+        MONEY WIN%  home away TOTAL  <tail>
 
 The ``@`` marks the nominal home team, sits on exactly one of the two names, and is
 present even on neutral-site games. The flag after the rank is blank for an
 ordinary game, ``N`` for neutral, and ``C`` for a classic; it moves the home/away
 split columns, so it changes what ``home`` means and is carried, not discarded.
 
+**The tail has two shapes and the page switches between them.** Preseason it is a
+single unlabelled percentage. In-season the header grows ``MARG WIN% MONEY`` and
+the row grows with it: the margin implied by the home/away split, and the win
+probability and moneyline that go with *that* margin rather than with the rating
+columns. The two disagree on real rows -- on the 2026-09-01 capture San Jose State
+is favoured by 1.75 on rating while the split has Eastern Michigan by 7.85 -- so
+the trailing pair is not a restatement of the leading MONEY/WIN% and must not be
+read as one. None of the three is carried into ``GamePrediction``: SPEC-phase0 4.4
+names PREDICTOR as the column to benchmark against, and a second margin under the
+same name would be worse than no margin at all.
+
 Every column is matched, including the ones the model does not carry, so a shifted
-column is a parse failure rather than a plausible-looking wrong number.
+column is a parse failure rather than a plausible-looking wrong number. That is why
+the in-season tail is spelled out rather than absorbed by a loosened anchor: three
+new columns arriving is exactly the change this parser exists to notice.
 """
 
 from __future__ import annotations
@@ -63,7 +76,11 @@ _ROW = re.compile(
     rf"(?:(?P<underdog_home>@)\s+)?(?P<underdog>\S.*?)\s+"
     rf"(?P<moneyline>-?\d+)\s+(?P<win_pct>\d+)%\s+"
     rf"(?P<home_points>{_FLOAT})\s+(?P<away_points>{_FLOAT})\s+(?P<total>{_FLOAT})\s+"
-    rf"(?P<split_pct>\d+)%\s*$"
+    rf"(?:"
+    rf"(?P<split_pct>\d+)%"
+    rf"|"
+    rf"(?P<split_margin>{_FLOAT})\s+(?P<split_win_pct>\d+)%\s+(?P<split_moneyline>-?\d+)"
+    rf")\s*$"
 )
 
 # Anything opening like a rank in the rank column: tells "this is a row and it is

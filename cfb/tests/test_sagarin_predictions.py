@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 from cfb.errors import DuplicateRankError, ParseError
-from cfb.parsers.sagarin_predictions import parse_predictions
+from cfb.parsers.sagarin_predictions import _ROW, _first_block, parse_predictions
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -268,3 +268,80 @@ def test_preseason_totals_are_the_degenerate_constant(games):
     """
     assert {g.total for g in games} == {52.00}
     assert all(g.moneyline is not None for g in games)
+
+
+# --- in-season ------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def in_season_page() -> str:
+    """The 2026-09-01 capture -- see the provenance note in test_sagarin_parser."""
+    return _read("sagarin_2026_week01.txt")
+
+
+@pytest.fixture(scope="module")
+def in_season_games(in_season_page):
+    return parse_predictions(in_season_page)
+
+
+def test_the_in_season_tail_parses(in_season_page, in_season_games):
+    """The regression. In-season the header grows ``MARG WIN% MONEY`` and every
+    row grows three columns with it, which took the collector down on 2026-09-01.
+    """
+    assert "TOTAL   MARG WIN%  MONEY" in in_season_page
+    assert len(in_season_games) == 118
+
+
+def test_the_in_season_page_is_not_the_preseason_degenerate_state(in_season_games):
+    """Games have been played: the totals vary instead of all being 52.00."""
+    assert len({g.total for g in in_season_games}) > 1
+
+
+def test_the_new_columns_did_not_shift_the_old_ones(in_season_page):
+    """Three columns arriving is only safe if nothing slid left into them.
+
+    Checked against the page's own arithmetic rather than against fixed offsets:
+    the split scores must still sum to the total, and MARG must still be their
+    difference. A regex that let the underdog name or the leading moneyline
+    absorb a column would break both, while still returning a full row.
+    """
+    matched = [_ROW.match(line) for _, line in _first_block(in_season_page)]
+    rows = [m for m in matched if m is not None]
+    assert len(rows) == 118
+
+    for row in rows:
+        home, away, total = (float(row[c]) for c in ("home_points", "away_points", "total"))
+        assert home + away == pytest.approx(total, abs=0.011)
+        assert row["split_margin"] is not None, "every in-season row carries the new tail"
+        assert home - away == pytest.approx(float(row["split_margin"]), abs=0.011)
+
+
+def test_the_trailing_pair_belongs_to_the_split_margin_not_the_rating(in_season_page):
+    """The trailing WIN%/MONEY are not a restatement of the leading ones.
+
+    Rank 12 is the proof on this capture: San Jose State is favoured by 1.75 on
+    rating and gets 55% / 122, while the home/away split has Eastern Michigan by
+    7.85 and the tail reads 70% / 233. Reading either pair as the other would
+    publish a number the page never claimed.
+    """
+    row = next(
+        _ROW.match(line)
+        for _, line in _first_block(in_season_page)
+        if _ROW.match(line) and _ROW.match(line)["rank"] == "12"
+    )
+    assert (row["moneyline"], row["win_pct"]) == ("122", "55")
+    assert (row["split_moneyline"], row["split_win_pct"]) == ("233", "70")
+    assert float(row["split_margin"]) == -7.85
+
+
+def test_the_preseason_tail_is_still_rejected_when_truncated(in_season_page):
+    """The two tails are alternatives, not a loosened anchor.
+
+    Dropping the last column of an in-season row must not quietly fall through to
+    the preseason branch, which would leave MARG parsed as a score column.
+    """
+    row = next(line for _, line in _first_block(in_season_page) if _ROW.match(line))
+    broken = in_season_page.replace(row, row.rsplit(" ", 1)[0], 1)
+    assert broken != in_season_page
+
+    with pytest.raises(ParseError):
+        parse_predictions(broken)
