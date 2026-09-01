@@ -427,6 +427,8 @@ worst case is recoverable, but the discipline is the product.
 - **`docs/PRD.md`** — what this is for, and for whom
 - **`docs/SPEC-phase0.md`** — collection, storage, the crosswalk
 - **`docs/SPEC-phase1.md`** — the model, the prediction log, scoring, the JSON contract
+- **`docs/SPEC-phase2.md`** — the backfill, the refit, the second model, the bake-off
+- **`docs/SPEC-phase3.md`** — the challenger: a distributional model on the Elo baseline
 - **`docs/PHASE-0.md`, `docs/PHASE-1.md`** — progress against those specs, and every
   decision made along the way that the specs do not
 - **`CLAUDE.md`** — the hard rules, in the form an agent reads them
