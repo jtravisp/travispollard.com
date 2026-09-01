@@ -22,7 +22,7 @@ on the golden capture and be wrong on every page Sagarin publishes after it.
 import statistics
 
 from cfb.crosswalk import Crosswalk, crosswalk_path
-from cfb.elo import ELO_PER_POINT, Ratings
+from cfb.elo import FITTED, ModelConstants, Ratings
 from cfb.errors import ParseError, SeedStateError, UnmappedTeamError
 from cfb.models import SagarinSnapshot
 
@@ -33,7 +33,12 @@ __all__ = ["BASE_ELO", "seed"]
 BASE_ELO = 1500.0
 
 
-def seed(snapshot: SagarinSnapshot, crosswalk: Crosswalk) -> Ratings:
+def seed(
+    snapshot: SagarinSnapshot,
+    crosswalk: Crosswalk,
+    *,
+    constants: ModelConstants = FITTED,
+) -> Ratings:
     """Every team on a preseason page, keyed by canonical id.
 
     Centring on the FBS mean rather than the all-266 mean puts the FBS field
@@ -78,7 +83,7 @@ def seed(snapshot: SagarinSnapshot, crosswalk: Crosswalk) -> Ratings:
         if canonical in ratings:
             collided.append(f"{canonical} (rank {team.rank}, {team.name})")
             continue
-        ratings[canonical] = BASE_ELO + (team.rating - fbs_mean) * ELO_PER_POINT
+        ratings[canonical] = BASE_ELO + (team.rating - fbs_mean) * constants.elo_per_point
 
     if unmapped:
         raise UnmappedTeamError(

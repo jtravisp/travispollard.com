@@ -28,7 +28,20 @@ export type CfbDocumentState<T> =
   /** Nothing loaded: no network, a 404, or bytes that are not JSON. */
   | { status: 'error'; message: string };
 
-export function useCfbDocument<T extends Envelope>(name: string): CfbDocumentState<T> {
+/**
+ * `supported` is per document, not per site.
+ *
+ * The four documents version independently (SPEC-phase1 6.2, SPEC-phase2 6.2):
+ * `models.json` starts at 3 while the other three are on 2, because it is a new
+ * document rather than a change to them. A single shared list would either
+ * reject `models.json` outright or accept a version 3 `next-game.json` that
+ * nothing has ever published -- and the second is worse, because it is the
+ * rollback case this check exists to catch.
+ */
+export function useCfbDocument<T extends Envelope>(
+  name: string,
+  supported: number[] = SUPPORTED_SCHEMA_VERSIONS,
+): CfbDocumentState<T> {
   const [state, setState] = useState<CfbDocumentState<T>>({ status: 'loading' });
 
   useEffect(() => {
@@ -48,11 +61,11 @@ export function useCfbDocument<T extends Envelope>(name: string): CfbDocumentSta
       })
       .then((document) => {
         if (!live) return;
-        if (!SUPPORTED_SCHEMA_VERSIONS.includes(document.schema_version)) {
+        if (!supported.includes(document.schema_version)) {
           setState({
             status: 'stale',
             found: document.schema_version,
-            supported: SUPPORTED_SCHEMA_VERSIONS,
+            supported,
           });
           return;
         }
@@ -69,7 +82,7 @@ export function useCfbDocument<T extends Envelope>(name: string): CfbDocumentSta
     return () => {
       live = false;
     };
-  }, [name]);
+  }, [name, supported]);
 
   return state;
 }

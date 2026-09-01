@@ -17,20 +17,32 @@ Three rules are pinned here because each of them is invisible when broken:
 """
 
 from datetime import UTC, datetime
+from pathlib import Path
+from tempfile import mkdtemp
 
 import pytest
 
 from cfb.crosswalk import load as load_crosswalk
-from cfb.elo.scoring import score_week, write_scored
+from cfb.elo import SCHEMA_VERSION as ELO_SCHEMA_VERSION
+from cfb.elo.scoring import (
+    Accuracy,
+    AtsRecord,
+    ScoredGame,
+    ScoredWeek,
+    score_week,
+    write_scored,
+)
 from cfb.elo.state import write_state
 from cfb.predict import predict_week, write_predictions
 from cfb.publish import (
     ACCURACY_KEY,
+    MODELS_KEY,
     NEXT_GAME_KEY,
     PROBABILITY_CEILING,
     PROBABILITY_FLOOR,
     SLATE_KEY,
     build_accuracy,
+    build_models,
     build_next_game,
     build_slate,
     clamp,
@@ -38,7 +50,7 @@ from cfb.publish import (
 )
 from cfb.replay import advance, seed_state
 from cfb.sources import week_slate
-from cfb.storage import MemorySnapshotStore
+from cfb.storage import FileSnapshotStore, MemorySnapshotStore
 from test_replay import (
     PRESEASON_AT,
     PRESEASON_HFA,
@@ -467,11 +479,11 @@ class TestPublish:
         with_predictions(store, crosswalk)
         return store
 
-    def test_it_writes_all_three_documents(self, store, crosswalk):
+    def test_it_writes_all_four_documents(self, store, crosswalk):
         written = publish(
             store=store, season=SEASON, week="01", now=PUBLISHED_AT, crosswalk=crosswalk
         )
-        assert set(written) == {NEXT_GAME_KEY, SLATE_KEY, ACCURACY_KEY}
+        assert set(written) == {NEXT_GAME_KEY, SLATE_KEY, ACCURACY_KEY, MODELS_KEY}
 
     def test_republishing_overwrites_rather_than_adding_keys(self, store, crosswalk):
         """**The mutable end of the pipeline**, unlike everything it is derived
@@ -486,7 +498,7 @@ class TestPublish:
             crosswalk=crosswalk,
         )
         assert set(store.list_keys("cfb/data/")) == before
-        assert len(before) == 3
+        assert len(before) == 4
 
     def test_a_week_with_no_predictions_refuses_to_publish(self, crosswalk):
         """The Friday SLO failing loudly. A page published without a forecast
@@ -707,3 +719,194 @@ class TestPredictingOnlyWhatIsAhead:
         the entire week -- taking eight days of forecastable games with it."""
         _, log = self.week_one(crosswalk, now=datetime(2026, 8, 30, 12, tzinfo=UTC))
         assert log.model.hfa == PRESEASON_HFA
+
+
+# --- models.json (SPEC-phase2 6.2) --------------------------------------------
+
+
+class TestTheModelsDocument:
+    """§6.2's leaderboard, and §6.3's rule that the rows share a denominator."""
+
+    def scored_game(self, game_id, *, abs_error, brier, market, sagarin):
+        """One graded game, with each benchmark present or absent independently.
+
+        Built directly rather than through ``score_week`` because the property
+        under test is which games each system priced, and the join that produces
+        that is exercised at length in ``test_scoring``. Here it is the input.
+        """
+        return ScoredGame(
+            cfbd_game_id=game_id,
+            kickoff=SATURDAY,
+            home="texas",
+            away="ohio-state",
+            neutral_site=False,
+            predicted_margin=7.0,
+            win_probability=0.66,
+            actual_margin=7,
+            home_won=True,
+            error=0.0,
+            abs_error=abs_error,
+            brier=brier,
+            market_line=-7.0 if market is not None else None,
+            market_line_source="draftkings" if market is not None else None,
+            market_margin=7.0 if market is not None else None,
+            market_abs_error=market,
+            market_pick=None,
+            beat_market=None,
+            market_push=None,
+            sagarin_predictor_margin=7.0 if sagarin is not None else None,
+            sagarin_abs_error=sagarin,
+        )
+
+    def week_of(self, games, *, week="01"):
+        empty = Accuracy(
+            games=0, mae=None, brier=None, market_games=0, market_mae=None,
+            sagarin_games=0, sagarin_mae=None,
+            ats=AtsRecord(wins=0, losses=0, pushes=0,
+                          excluded_no_line=0, excluded_no_edge=0),
+        )
+        return ScoredWeek(
+            schema_version=ELO_SCHEMA_VERSION,
+            season=SEASON,
+            week=week,
+            generated_at=datetime(2026, 9, 8 + int(week), 12, tzinfo=UTC),
+            predictions_generated_at=PULLED_AT,
+            results_fetched_at=PLAYED_AT,
+            games=games,
+            unplayed=0,
+            texas=empty,
+            full_slate=empty,
+            calibration=[],
+            sagarin_r=None,
+        )
+
+    def store_with(self, weeks):
+        store = FileSnapshotStore(Path(mkdtemp()))
+        for week in weeks:
+            write_scored(store, week)
+        return store
+
+    def test_an_unscored_season_publishes_a_document_saying_so(self):
+        """The state this document was in for the whole week it shipped.
+
+        ``build_accuracy`` has the same property and for the same reason: the run
+        is on a schedule, and the absence of results nobody could have had is not
+        a failure to publish.
+        """
+        document = build_models(
+            store=self.store_with([]), season=SEASON, week="05", now=PUBLISHED_AT
+        )
+        assert document.schema_version == 3
+        assert document.through_week is None
+        assert document.shared_denominator.games == 0
+        assert [row.mae for row in document.systems] == [None, None, None]
+        assert document.by_week == []
+
+    def test_the_headline_row_is_computed_on_the_intersection(self):
+        """§6.3. Three games, and only one was priced by everybody.
+
+        The unpriced two are where our model looks best, so a document that
+        averaged us over the union and the benchmarks over their own subsets would
+        publish a flattering number and a table implying it was comparable. That is
+        the specific failure 6.3 exists to prevent.
+        """
+        store = self.store_with([self.week_of([
+            self.scored_game(1, abs_error=10.0, brier=0.2, market=8.0, sagarin=9.0),
+            self.scored_game(2, abs_error=1.0, brier=0.1, market=None, sagarin=None),
+            self.scored_game(3, abs_error=1.0, brier=0.1, market=4.0, sagarin=None),
+        ])])
+        document = build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT)
+
+        assert document.shared_denominator.games == 1
+        rows = {row.id: row for row in document.systems}
+        assert rows["elo"].mae == 10.0
+        assert rows["market"].mae == 8.0
+        assert rows["sagarin"].mae == 9.0
+
+    def test_coverage_says_what_the_shared_denominator_hides(self):
+        """§6.3's second half: same MAE, visibly different reach.
+
+        The market priced two of three here and Sagarin one of three, and the
+        headline row cannot show that because it is computed on the one game both
+        reached. Without ``coverage`` the two rows are indistinguishable.
+        """
+        store = self.store_with([self.week_of([
+            self.scored_game(1, abs_error=10.0, brier=0.2, market=8.0, sagarin=9.0),
+            self.scored_game(2, abs_error=1.0, brier=0.1, market=None, sagarin=None),
+            self.scored_game(3, abs_error=1.0, brier=0.1, market=4.0, sagarin=None),
+        ])])
+        rows = {row.id: row for row in
+                build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT).systems}
+
+        assert (rows["market"].coverage.priced, rows["market"].coverage.of) == (2, 3)
+        assert (rows["sagarin"].coverage.priced, rows["sagarin"].coverage.of) == (1, 3)
+        assert (rows["elo"].coverage.priced, rows["elo"].coverage.of) == (1, 3)
+
+    def test_only_our_model_carries_a_brier(self):
+        """A point spread is not a win probability.
+
+        Deriving one for the market so the column looks full would be this project
+        inventing a number and attributing it to somebody else, which is the whole
+        thing it is built not to do.
+        """
+        store = self.store_with([self.week_of([
+            self.scored_game(1, abs_error=10.0, brier=0.2, market=8.0, sagarin=9.0),
+        ])])
+        rows = {row.id: row for row in
+                build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT).systems}
+
+        assert rows["elo"].brier == 0.2
+        assert rows["market"].brier is None
+        assert rows["sagarin"].brier is None
+
+    def test_the_ridge_model_is_absent_because_it_failed_the_gate(self):
+        """§6.4 makes clearing §5.6's gate the condition for appearing here.
+
+        The ridge model failed all three criteria on held-out 2024-2025, and 5.6 is
+        explicit that shipping it anyway "would make the rule decorative". Pinned
+        as a test because a row appearing later would be a decision, and this is
+        where it has to be argued rather than merged.
+        """
+        store = self.store_with([self.week_of([
+            self.scored_game(1, abs_error=10.0, brier=0.2, market=8.0, sagarin=9.0),
+        ])])
+        document = build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT)
+
+        assert [row.id for row in document.systems] == ["elo", "market", "sagarin"]
+        assert document.systems[0].is_ours is True
+        assert [row.id for row in document.systems if row.is_benchmark] == [
+            "market", "sagarin"
+        ]
+
+    def test_each_week_of_the_series_uses_its_own_intersection(self):
+        """§6.2's ``by_week``, on the week's denominator rather than the season's.
+
+        Week 2 here has a game Sagarin never priced. Computing the series over the
+        season-wide intersection would drop it from the week entirely; computing it
+        over the union would compare our error on two games against the market's on
+        one. Narrowing per week is the only reading that keeps the row comparable.
+        """
+        store = self.store_with([
+            self.week_of([
+                self.scored_game(1, abs_error=10.0, brier=0.2, market=8.0, sagarin=9.0),
+            ], week="01"),
+            self.week_of([
+                self.scored_game(2, abs_error=4.0, brier=0.1, market=6.0, sagarin=5.0),
+                self.scored_game(3, abs_error=20.0, brier=0.4, market=2.0, sagarin=None),
+            ], week="02"),
+        ])
+        document = build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT)
+
+        assert document.through_week == "02"
+        assert [(w.week, w.games) for w in document.by_week] == [("01", 1), ("02", 1)]
+        assert document.by_week[1].mae == {"elo": 4.0, "market": 6.0, "sagarin": 5.0}
+
+    def test_a_week_nobody_shared_is_left_out_rather_than_published_empty(self):
+        """A week with no intersection is not a week with an MAE of zero."""
+        store = self.store_with([self.week_of([
+            self.scored_game(1, abs_error=10.0, brier=0.2, market=None, sagarin=None),
+        ])])
+        document = build_models(store=store, season=SEASON, week="05", now=PUBLISHED_AT)
+
+        assert document.by_week == []
+        assert document.shared_denominator.games == 0

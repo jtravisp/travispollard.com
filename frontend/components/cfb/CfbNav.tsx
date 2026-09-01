@@ -9,7 +9,7 @@
  * not offering it. The link back to the rest of the site is what it replaces.
  *
  * Marking the current page is done with `aria-current` as well as colour,
- * because "which of these three am I on" should not depend on distinguishing two
+ * because "which of these am I on" should not depend on distinguishing two
  * shades of orange.
  */
 
@@ -20,6 +20,7 @@ const SECTIONS = [
   { href: '/cfb', label: 'Next game' },
   { href: '/cfb/slate', label: 'Full slate' },
   { href: '/cfb/accuracy', label: 'Accuracy' },
+  { href: '/cfb/models', label: 'Models' },
 ];
 
 export default function CfbNav() {

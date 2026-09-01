@@ -110,6 +110,15 @@ PUBLISHED_SCHEMA_VERSION = 2
 NEXT_GAME_KEY = "cfb/data/next-game.json"
 ACCURACY_KEY = "cfb/data/accuracy.json"
 SLATE_KEY = "cfb/data/slate.json"
+MODELS_KEY = "cfb/data/models.json"
+
+#: SPEC-phase2 6.2. ``models.json`` alone, not the documents beside it.
+#:
+#: A new document, so the number it starts at is free; 3 is what 6.2 names, one
+#: past ``PUBLISHED_SCHEMA_VERSION`` at the time, so the two are never confused
+#: for each other in a log line. It moves independently from here -- the other
+#: three routes are untouched by anything this document does.
+MODELS_SCHEMA_VERSION = 3
 
 #: §3.7. A model that prints 100% claims a certainty no model has, and the first
 #: time it is wrong the page had no way to have been right.
@@ -813,6 +822,228 @@ def build_slate(
     )
 
 
+# --- models.json --------------------------------------------------------------
+
+
+class SharedDenominator(BaseModel):
+    """The games every listed system priced (SPEC-phase2 6.3)."""
+
+    model_config = _STRICT
+
+    games: int = Field(ge=0)
+    description: str = Field(min_length=1)
+
+
+class SystemCoverage(BaseModel):
+    """How much of the scored season one system actually priced.
+
+    Beside the headline MAE, never instead of it. Two systems with the same MAE on
+    the same 402 games are still different things when one priced 402 of 402 and
+    the other 402 of 900, and 6.3 makes that visible rather than inferable.
+    """
+
+    model_config = _STRICT
+
+    priced: int = Field(ge=0)
+    of: int = Field(ge=0)
+
+
+class SystemRow(BaseModel):
+    """One row of the leaderboard (SPEC-phase2 6.2).
+
+    ``mae`` and ``brier`` are nullable for different reasons and the difference
+    matters. ``mae`` is null only when the shared denominator is empty -- nobody
+    has been scored yet. ``brier`` is null whenever a system publishes no win
+    probability, which is every system here except ours: a point spread is not a
+    probability, and deriving one for the market so the column looks full would be
+    this project inventing a number and attributing it to somebody else.
+    """
+
+    model_config = _STRICT
+
+    id: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    mae: float | None
+    brier: float | None
+    ats: AtsSummary | None
+    coverage: SystemCoverage
+    #: Ours, so the page can mark it. Both flags default false, and nothing is
+    #: both: the market is a benchmark and not ours, this model is ours and not a
+    #: benchmark.
+    is_ours: bool = False
+    is_benchmark: bool = False
+
+
+class WeekMae(BaseModel):
+    """One week of the per-week series (SPEC-phase2 6.2).
+
+    ``mae`` maps system id to that week's figure **on that week's own shared
+    denominator**, which is not the season's. A week where the market priced fewer
+    games has a smaller intersection, and computing the series on the season-wide
+    set would silently drop those weeks instead of narrowing them.
+    """
+
+    model_config = _STRICT
+
+    week: str = Field(min_length=1)
+    games: int = Field(ge=0)
+    mae: dict[str, float]
+
+
+class ModelsDocument(BaseModel):
+    """``cfb/data/models.json`` (SPEC-phase2 6.2), rendered by ``/cfb/models``.
+
+    **A different question from ``accuracy.json``, which is why it is a different
+    route** (6.1). That document is one model's record over time; this one is a
+    systems-by-metric matrix on a single set of games. 6.1 forbids duplicating a
+    leaderboard into the accuracy page for the ordinary reason: two places to keep
+    correct is one place to be wrong.
+    """
+
+    model_config = _STRICT
+
+    schema_version: int = Field(ge=1)
+    generated_at: datetime
+    season: int = Field(ge=1869)
+    #: The publish run's week, carried so this document has the same envelope as
+    #: the other three (SPEC-phase1 6.2). It is not where the numbers stop --
+    #: ``through_week`` is -- and the two differ whenever a week has been forecast
+    #: but not yet scored, which is most of any given week.
+    week: str = Field(min_length=1)
+    #: The last week with a scored game in it, or ``None`` when none has been
+    #: scored. Matches ``accuracy.json``'s field of the same name.
+    through_week: str | None
+    shared_denominator: SharedDenominator
+    systems: list[SystemRow]
+    by_week: list[WeekMae]
+
+
+#: The systems this pipeline can honestly price.
+#:
+#: **Ridge is absent, and its absence is the finding.** SPEC-phase2 6.4 makes
+#: clearing 5.6's gate the condition for appearing here at all, and the ridge
+#: model failed all three criteria on held-out 2024-2025: MAE 13.76 against Elo's
+#: 13.08, Brier 0.2125 against 0.1915, and a calibration slope of 0.5287 against a
+#: required [0.90, 1.10]. 5.6 is explicit that failing is a legitimate outcome and
+#: that shipping anyway "would make the rule decorative", so the row is not built.
+#:
+#: **SP+ is absent because nothing ingests it.** 6.2 lists a ``cfbd-sp`` row and
+#: this pipeline has never captured one, so the row would have to be invented. The
+#: shared denominator is computed over the systems actually present, which is 6.3's
+#: rule rather than an exception to it.
+_ELO = "elo"
+_MARKET = "market"
+_SAGARIN = "sagarin"
+
+
+def _mae_of(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
+def _shared(games: list[ScoredGame]) -> list[ScoredGame]:
+    """The games every listed system priced (SPEC-phase2 6.3).
+
+    The intersection, not the union, and this is the whole point of the document.
+    Phase 1 §5.3 already forbids averaging a benchmark over games it never priced;
+    a leaderboard makes it worse, because the comparison is *between rows* and a
+    table puts two different denominators beside each other implying they are one.
+    """
+    return [
+        game
+        for game in games
+        if game.market_abs_error is not None and game.sagarin_abs_error is not None
+    ]
+
+
+def build_models(
+    *,
+    store: SnapshotStore,
+    season: int,
+    week: str,
+    now: datetime,
+) -> ModelsDocument:
+    """§6.2, from every scored week of the season.
+
+    An empty season is legal and produces a document saying so -- zero games, every
+    mean ``None`` -- for the same reason ``build_accuracy`` does: the run happens on
+    a schedule, and the absence of results nobody could have had is not a failure.
+    That is this document's state for the whole of the week this landed in.
+    """
+    weeks = scored_weeks(store, season=season)
+    games = [game for scored in weeks for game in scored.games]
+    shared = _shared(games)
+
+    systems = [
+        SystemRow(
+            id=_ELO,
+            label="This model (Elo)",
+            mae=_mae_of([game.abs_error for game in shared]),
+            brier=_mae_of([game.brier for game in shared]),
+            ats=_record(shared).ats,
+            coverage=SystemCoverage(priced=len(shared), of=len(games)),
+            is_ours=True,
+        ),
+        SystemRow(
+            id=_MARKET,
+            label="The market",
+            mae=_mae_of([game.market_abs_error for game in shared]),
+            brier=None,
+            # The market has no record against itself. The line is the thing our
+            # ATS is measured against, so a row here would be 0-0 by construction
+            # and read as "never wins" rather than as "not a question".
+            ats=None,
+            coverage=SystemCoverage(
+                priced=sum(1 for game in games if game.market_abs_error is not None),
+                of=len(games),
+            ),
+            is_benchmark=True,
+        ),
+        SystemRow(
+            id=_SAGARIN,
+            label="Sagarin PREDICTOR",
+            mae=_mae_of([game.sagarin_abs_error for game in shared]),
+            brier=None,
+            ats=None,
+            coverage=SystemCoverage(
+                priced=sum(1 for game in games if game.sagarin_abs_error is not None),
+                of=len(games),
+            ),
+            is_benchmark=True,
+        ),
+    ]
+
+    by_week = []
+    for scored in weeks:
+        week_shared = _shared(scored.games)
+        if not week_shared:
+            continue
+        by_week.append(
+            WeekMae(
+                week=scored.week,
+                games=len(week_shared),
+                mae={
+                    _ELO: _mae_of([g.abs_error for g in week_shared]),
+                    _MARKET: _mae_of([g.market_abs_error for g in week_shared]),
+                    _SAGARIN: _mae_of([g.sagarin_abs_error for g in week_shared]),
+                },
+            )
+        )
+
+    with validating(f"models document for season {season}"):
+        return ModelsDocument(
+            schema_version=MODELS_SCHEMA_VERSION,
+            generated_at=now,
+            season=season,
+            week=week,
+            through_week=weeks[-1].week if weeks else None,
+            shared_denominator=SharedDenominator(
+                games=len(shared), description="games every system priced"
+            ),
+            systems=systems,
+            by_week=by_week,
+        )
+
+
 def build_accuracy(
     *,
     store: SnapshotStore,
@@ -869,13 +1100,13 @@ def publish(
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
 ) -> dict[str, str]:
-    """Build both documents and write them. Returns ``{key: what it describes}``.
+    """Build every document and write them. Returns ``{key: what it describes}``.
 
-    **Both are built before either is written.** They are read by two routes of
-    one site and they name the same season and week, so a run that wrote the
-    forecast and then failed on the record would leave the site showing a new
-    prediction beside last week's accuracy -- two documents from two runs, with
-    nothing on either page saying so.
+    **All are built before any is written.** They are read by four routes of one
+    site and they name the same season and week, so a run that wrote the forecast
+    and then failed on the record would leave the site showing a new prediction
+    beside last week's accuracy -- documents from two runs, with nothing on any
+    page saying so.
 
     ``put_json``, not ``put_bytes``: these are the derived, mutable end of the
     pipeline. Everything they are derived *from* is write-once, which is what
@@ -899,13 +1130,20 @@ def publish(
         crosswalk_dir=crosswalk_dir,
     )
     accuracy = build_accuracy(store=store, season=season, week=week, now=now)
+    models = build_models(store=store, season=season, week=week, now=now)
 
     store.put_json(
         NEXT_GAME_KEY, next_game.model_dump(mode="json"), cache_control=CACHE_CONTROL
     )
     store.put_json(SLATE_KEY, slate.model_dump(mode="json"), cache_control=CACHE_CONTROL)
     store.put_json(ACCURACY_KEY, accuracy.model_dump(mode="json"), cache_control=CACHE_CONTROL)
-    return {NEXT_GAME_KEY: "next-game", SLATE_KEY: "slate", ACCURACY_KEY: "accuracy"}
+    store.put_json(MODELS_KEY, models.model_dump(mode="json"), cache_control=CACHE_CONTROL)
+    return {
+        NEXT_GAME_KEY: "next-game",
+        SLATE_KEY: "slate",
+        ACCURACY_KEY: "accuracy",
+        MODELS_KEY: "models",
+    }
 
 
 # --- the pieces ---------------------------------------------------------------

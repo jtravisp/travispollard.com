@@ -367,6 +367,70 @@ by this constant.
 never touched until the constants are frozen. A constant fitted on the games it is then evaluated on
 is a description of those games.
 
+#### What the fit returned, and what shipped
+
+Grid search over 2017–2023 with 2015–2016 as burn-in, held out on 2024–2025, recorded in
+`research/experiments/elo-2026-08-31T0034Z.json` in the `cfb-model` repo.
+
+| Parameter | Phase 1 | Fitted | Shipped |
+|---|---|---|---|
+| `ELO_PER_POINT` | 20 | **16.0** | 16.0 |
+| `K` | 20 | **30.0** | 30.0 |
+| `K / ELO_PER_POINT` | 1.00 | **1.875** | 1.875 |
+| `MOV_DAMPING` | 2.2 | not fitted | 2.2 |
+| `MOV_DENOMINATOR_FLOOR` | 0.25 | **0.05** | 0.05 |
+| `REGRESSION_TO_MEAN` | 1/3 | 1/3 (pinned) | *no live counterpart* (§4.4) |
+| HFA | Sagarin per-snapshot | 3.0 (history) | Sagarin per-snapshot (§3.3) |
+
+Held-out: **MAE 13.20, Brier 0.1939** over 2024–2025; **MAE 13.08, Brier 0.1915** on the
+1,696-game intersection §5.5 regenerates for the bake-off. Both are quoted because they are
+different denominators and neither is the other.
+
+**§4.4's tie-break did not have to fire.** The sensitivity fit excluding weeks 1–3 returned the
+same four constants exactly, so the two sets do not disagree at all, let alone by 0.25 held-out
+MAE. That also settles §4.4's diagnostic: `ELO_PER_POINT` is the constant Phase 1 §3.2 proves
+cancels between `seed()` and `predict()`, so a large move between the two fits would have meant the
+September seeding contamination was worse than §4.4 models. It did not move.
+
+**`MOV_DENOMINATOR_FLOOR` did fit, against the expectation above.** §4.2 predicted a flat gradient
+and said the finding would then be that the floor is an invariant guard rather than a tunable. The
+grid found 0.05. What moved is not the guard's reachability — no 2026 seed pairing reaches either
+value — but which upsets `update` *refuses*: the raise stands in front of the clamp, so lowering the
+floor narrows the band in which a legitimate result is rejected rather than admitting a larger
+update.
+
+#### The freeze, and the two days it missed by
+
+§4.1 above says a refit lands between seasons and never within one. **This one landed on
+2026-08-31, two days after the season's first Saturday, and shipped to 2026 anyway.**
+
+The rule protects a record from being measured under two models at once. At the moment of the
+switch that record had not begun:
+
+- `scored/` did not exist and `accuracy.json` read `games: 0, through_week: null`.
+- `elo/` held only two `week=preseason` states, so `K` and `MOV_DENOMINATOR_FLOOR` had never
+  touched a stored rating — every update 2026 ever applies uses the fitted pair.
+- Week 2 was still ahead of its kickoffs and is regenerated on the new constants before them.
+
+**The cost, stated rather than buried: week 1's Brier.** Week 1's 144 forecasts are logged at 20
+and cannot be reforecast — the games are played and the log is append-only (§4.1 of Phase 1). Their
+*margins* are exactly what the refit would have produced, because §3.2 proves the scale cancels
+between `seed()` and `predict()`, so the season's MAE is untouched. A win probability is not a
+margin: it is the logistic of one *times this constant*, so those 144 probabilities sit ~3.2 points
+from where 16 would have put them (max 5.0). The 2026 Brier therefore blends one week at 20 with
+the rest at 16.
+
+That is the whole of the harm, and it is smaller than running the season entire on constants the
+backfill says are worse. Phase 1 §3.2 records the same manoeuvre being made once before, for the
+same reason, when the scale went 28 to 20 in-season — and the week 2 prediction log still carried
+`elo_per_point: 28` when this landed, so the 2026 log already spanned two scales before it spanned
+three.
+
+**This is a one-time exception and is not precedent.** It is available only because nothing had
+been scored and no week had been advanced, which is a state that exists for about one week a year.
+The next refit lands in an off-season.
+
+
 ### 4.3 §3.1's plausibility table is replaced with measured rates
 
 Phase 1 §3.1 published this, and was explicit that the right-hand column is **a reference curve, not
@@ -375,14 +439,22 @@ nothing this project currently holds can produce observed rates.*
 
 The backfill is what it was waiting for. The table is regenerated with a column that is:
 
-| Margin | Elo gap | Model at fitted scale | **Observed win rate, 2017–2025** | n |
+| Margin | Elo gap | Model at fitted scale | **Observed win rate** | n |
 |---|---|---|---|---|
-| 1 | | | | |
-| 3 | | | | |
-| 7 | | | | |
-| 10 | | | | |
-| 14 | | | | |
-| 21 | | | | |
+| 1 | 16 | 0.523 | | |
+| 3 | 48 | 0.569 | | |
+| 7 | 112 | 0.656 | **0.659** (fit window) / 0.713 (held out) | 284 / 101 |
+| 10 | 160 | 0.715 | | |
+| 14 | 224 | 0.784 | | |
+| 21 | 336 | 0.874 | | |
+
+**Only the 7-point bucket is filled, and the blanks are honest rather than pending.** The grid
+search recorded a measured rate for that bucket alone, because it is the one §4.3 names as the
+check. The remaining rows are the model's own curve at the fitted scale with no measurement beside
+them; filling them would need a bucketed pass over the backfill that has not been run. They are
+left empty rather than back-filled from the σ = 15 column this table replaced — a reference curve
+presented as corroboration is the exact failure this section closes, and it does not become
+acceptable by being in a narrower column.
 
 Read as: among games this model predicted by *m* points, what fraction did the favourite actually
 win. Bucketed by predicted margin with the count attached, per Phase 1 §5.3's rule that a sample
@@ -398,6 +470,13 @@ this phase closes.
 **One published figure to check the fit against.** A college 7-point favourite wins outright roughly
 **67%** of the time. If the fitted model's 7-point bucket lands far from that, the fit is wrong
 before any of it reaches a page.
+
+**It passes.** At `ELO_PER_POINT = 16` the model says **65.6%**, and the backfill measured **65.9%**
+over the 2017–2023 fit window (n = 284) — agreement to a third of a point, against a scale that was
+chosen by minimising margin error and never saw this comparison. `test_the_seven_point_bucket_matches_the_backfill`
+pins it. The held-out figure is 71.3% on n = 101; the interval on 101 games is several points wide,
+so it is quoted rather than pinned and the two are not in tension (Phase 1 §5.3: a sample size
+always travels with a rate).
 
 ### 4.4 What the refit does not measure, stated plainly
 

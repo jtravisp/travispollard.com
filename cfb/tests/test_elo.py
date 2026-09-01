@@ -82,29 +82,29 @@ from cfb.errors import EloDomainError
 FAVOURITE = {
     "elo_home": 1700.0, "elo_away": 1500.0, "hfa": 2.5,
     "home_points": 31, "away_points": 21,          # home by 10
-    "expected": 0.8083176725494586,
-    "mov_mult": 2.153212081696496,
-    "delta": 8.254654066284193,
+    "expected": 0.7992399910868982,
+    "mov_mult": 2.16203672137558,
+    "delta": 13.02151534361444,
 }
 
 UPSET = {
     "elo_home": 1500.0, "elo_away": 1900.0, "hfa": 2.5,
-    "home_points": 24, "away_points": 21,          # home by 3, as a 330-Elo underdog
-    "expected": 0.11766170295305857,
-    "mov_mult": 1.6485662672777077,
-    "delta": 29.091863056776912,
+    "home_points": 24, "away_points": 21,          # home by 3, as a 360-Elo underdog
+    "expected": 0.11181576977811694,
+    "mov_mult": 1.6575258665563908,
+    "delta": 44.16565007580743,
     #: What the absolute reading would produce on this same game.
-    "delta_if_absolute": 21.10586143334795,
+    "delta_if_absolute": 31.744060991986586,
 }
 
 BLOWOUT = {
     "elo_home": 2000.0, "elo_away": 1400.0, "hfa": 3.0,
     "home_points": 56, "away_points": 14,          # home by 42
-    "expected": 0.9781030013517666,
-    "mov_mult": 2.893230858225817,
-    "delta": 1.267061443831955,
+    "expected": 0.9765736302784175,
+    "mov_mult": 2.9054214376846335,
+    "delta": 2.0419043038863616,
     #: The same matchup decided by 3 instead of 42, to show the multiplier bites.
-    "delta_if_margin_3": 0.46701055002301173,
+    "delta_if_margin_3": 0.7526003231290775,
 }
 
 
@@ -127,19 +127,22 @@ def run(case: dict, **overrides) -> dict[str, float]:
 
 
 class TestTheConstants:
-    def test_the_scale_is_20_elo_per_point(self):
-        """§3.1. The seed, the margin formula and the update all read this.
+    def test_the_scale_is_16_elo_per_point(self):
+        """§3.1, refitted by SPEC-phase2 4.2. The seed, the margin formula and the
+        update all read this.
 
-        **Was 28, on reasoning that inverted.** The spec argued for a value above
-        the NFL's conventional 25 because college margins scatter more widely --
-        but with the 400 divisor fixed, a higher value here makes the model *more*
-        confident per point, so wider scatter argues downward. At 28 the model
-        implied a scatter of about 10.5 points against a real 14 to 16.
+        **Third value, and the first one measured.** 28 came from reasoning that
+        inverted -- a higher value here makes the model *more* confident per point,
+        so college's wider scatter argued downward rather than up. 20 came from the
+        correct version of that argument against a reference curve. 16 comes from a
+        grid search over 2015-2025 minimising mean absolute error of predicted
+        margin, and lands at the wide end of the 14-to-16 scatter the previous
+        argument was reaching for.
         """
-        assert ELO_PER_POINT == 20
+        assert ELO_PER_POINT == 16.0
 
     def test_only_the_ratio_to_the_divisor_is_meaningful(self):
-        """``(20, 400)``, ``(10, 200)`` and ``(40, 800)`` are the same model.
+        """``(16, 400)``, ``(8, 200)`` and ``(32, 800)`` are the same model.
 
         Pinned because the two constants live in different places and read as
         independent. Anyone changing one is changing the other's meaning.
@@ -150,25 +153,27 @@ class TestTheConstants:
             return 1 / (1 + 10 ** (-(margin * scale) / divisor))
 
         here = probability(7, ELO_PER_POINT, _LOGISTIC_DIVISOR)
-        assert here == pytest.approx(probability(7, 10, 200), abs=1e-12)
-        assert here == pytest.approx(probability(7, 40, 800), abs=1e-12)
+        assert here == pytest.approx(probability(7, 8, 200), abs=1e-12)
+        assert here == pytest.approx(probability(7, 32, 800), abs=1e-12)
 
-    def test_k_is_20(self):
-        assert K == 20
+    def test_k_is_30(self):
+        assert K == 30.0
 
-    def test_k_moves_one_point_of_margin_per_unit(self):
-        """**The coupling that rode along unnamed when the scale changed.**
+    def test_k_moves_1_875_points_of_margin_per_unit(self):
+        """**The coupling that rode along unnamed when the scale last changed.**
 
         K controls Elo movement, but what matters to anyone reasoning about the
         model is points of predicted margin moved, which is ``K / ELO_PER_POINT``.
-        At the old scale of 28 that was 0.71 points; at 20 it is a full point, so
-        the model became ~40% more responsive per game without K itself moving.
+        It was 0.71 points at 28, a full point at 20, and 1.875 now -- so the refit
+        made the model substantially more responsive per game.
 
-        Probably the right direction for college -- shorter season, more
-        volatility -- but a consequence rather than a decision, and this is where
-        it stops being invisible.
+        This time it is a decision rather than a side effect: both constants were
+        fitted together, and SPEC-phase2 4.4 argues at length about the one bias
+        this ratio is exposed to (K fitted on a uniform-1500 seed moves faster than
+        a Sagarin-seeded model needs). The sensitivity fit returning the same 30.0
+        is what bounds it.
         """
-        assert K / ELO_PER_POINT == pytest.approx(1.0)
+        assert K / ELO_PER_POINT == pytest.approx(1.875)
 
 
 class TestAFavouriteWinningAsExpected:
@@ -187,18 +192,18 @@ class TestAFavouriteWinningAsExpected:
         )
 
     def test_the_move_is_modest_because_the_result_was_expected(self):
-        """80.8% expected, so a win is worth ~8.3 Elo. The number is small on
-        purpose: Elo should barely react to what it already predicted.
+        """79.9% expected, so a win is worth ~13 Elo. Still small on purpose: Elo
+        should barely react to what it already predicted.
 
-        The band moved with the scale. At 28 this was ~7.5 Elo out of a 200-Elo
-        gap; at 20 it is ~8.3 out of the same gap, because the same 200 Elo is now
-        a wider margin and therefore a slightly less certain result. **In points
-        of margin** -- the unit that means anything -- the move went from 0.27 to
-        0.41, which is the responsiveness change `test_k_moves_one_point_of_margin_per_unit`
-        names.
+        The band has moved with every rescale, and the raw Elo figure is the least
+        informative way to watch it -- 7.5 at scale 28, 8.3 at 20, 13.0 at 16, on
+        the same 200-Elo gap. **In points of margin**, the unit that means
+        anything, that is 0.27, then 0.41, then 0.81. The jump here is the refit's
+        K doing what it was fitted to do, and
+        ``test_k_moves_1_875_points_of_margin_per_unit`` is where it is named.
         """
         after = run(FAVOURITE)
-        assert 8 < after["home-team"] - FAVOURITE["elo_home"] < 9
+        assert 12.5 < after["home-team"] - FAVOURITE["elo_home"] < 13.5
 
 
 class TestAnUpset:
@@ -264,7 +269,7 @@ class TestABlowoutWhereTheMultiplierWorks:
         up scores, and the top of the table would inflate.
         """
         moved = run(BLOWOUT)["home-team"] - BLOWOUT["elo_home"]
-        assert 1.1 < moved < 1.4
+        assert 1.9 < moved < 2.2
 
     def test_margin_still_matters_between_two_blowouts(self):
         """The multiplier damps; it does not flatten.
@@ -325,17 +330,22 @@ class TestPrediction:
 
     @pytest.mark.parametrize(
         ("margin", "probability"),
-        [(1, 0.529), (3, 0.585), (7, 0.691), (10, 0.760), (14, 0.834), (21, 0.918)],
+        [(1, 0.523), (3, 0.569), (7, 0.656), (10, 0.715), (14, 0.784), (21, 0.874)],
     )
-    def test_the_spec_3_1_calibration_table(self, margin, probability):
-        """The table §3.1 uses to justify the scale.
+    def test_the_spec_4_3_measured_table(self, margin, probability):
+        """§3.1's table at the fitted scale, which SPEC-phase2 4.3 rebuilt.
 
-        It is the closest thing this model has to a claim about the real world,
-        so it is pinned: if the scale or the divisor changes, these move and the
+        Still the closest thing this model has to a claim about the real world, so
+        it stays pinned: if the scale or the divisor moves, these move and the
         spec's argument has to be rewritten rather than quietly invalidated.
 
-        These are the figures at 20. The previous set -- 7 points at 75.6% -- was
-        the model asserting a confidence the sport does not support.
+        What changed is what the table is *for*. At 20 it was the model's own
+        output beside a reference curve, because nothing this project held could
+        produce observed rates. The backfill produces them, and 4.3 deletes the
+        reference column rather than keeping it alongside -- a curve imported from
+        another sport, presented as corroboration, is the specific failure that
+        phase closes. The measurement now lives in
+        ``test_the_seven_point_bucket_matches_the_backfill``.
         """
         elo_gap = margin * ELO_PER_POINT
         prediction = predict(
@@ -343,30 +353,32 @@ class TestPrediction:
         )
         assert prediction.win_probability == pytest.approx(probability, abs=0.001)
 
-    @pytest.mark.parametrize(
-        ("margin", "normal"),
-        [(1, 0.527), (3, 0.579), (7, 0.680), (10, 0.748), (14, 0.825), (21, 0.919)],
-    )
-    def test_it_tracks_a_normal_with_sigma_15(self, margin, normal):
-        """**The argument for 20, stated as a test rather than a paragraph.**
+    def test_the_seven_point_bucket_matches_the_backfill(self):
+        """**SPEC-phase2 4.3's one published figure, and the fit passes it.**
 
-        Margins scatter around a good prediction with a standard deviation of
-        roughly 14 to 16 points in college football. If the model's probabilities
-        are honest, its logistic should sit close to the normal that scatter
-        implies. At sigma 15 it does, within about a point across the range.
+        4.3: "A college 7-point favourite wins outright roughly 67% of the time.
+        If the fitted model's 7-point bucket lands far from that, the fit is wrong
+        before any of it reaches a page."
 
-        At the old scale of 28 the same comparison needed sigma ~10.5 to fit,
-        which is a claim about the sport that nothing supports.
+        At the fitted scale the model says 65.6%. The grid search measured 65.9%
+        over its 2017-2023 window (n=284) and 71.3% on held-out 2024-2025 (n=101),
+        recorded in ``research/experiments/elo-2026-08-31T0034Z.json`` in the
+        ``cfb-model`` repo. The model's own curve and the sport's observed rate
+        agree to a third of a point on the fit window, which is the check 4.3 asks
+        for and the reason 16.0 is defensible where 28 never was.
+
+        The held-out figure sits higher, and n=101 is why it is quoted rather than
+        pinned: the interval on 101 games is several points wide and the two are
+        not in tension. A sample size always travels with a rate (SPEC-phase1 5.3).
         """
-        from statistics import NormalDist
+        measured_on_the_fit_window = 0.6585
 
         prediction = predict(
-            {"home-team": 1500.0 + margin * ELO_PER_POINT, "away-team": 1500.0},
+            {"home-team": 1500.0 + 7 * ELO_PER_POINT, "away-team": 1500.0},
             game(FAVOURITE),
             hfa=0.0,
         )
-        assert prediction.win_probability == pytest.approx(normal, abs=0.013)
-        assert NormalDist(0, 15).cdf(margin) == pytest.approx(normal, abs=0.001)
+        assert prediction.win_probability == pytest.approx(measured_on_the_fit_window, abs=0.005)
 
     def test_margin_and_probability_cannot_disagree(self):
         """The PRD's requirement, stated as an identity rather than a hope.
@@ -475,21 +487,25 @@ class TestTheMovDenominatorFloor:
         )
 
     def test_the_floor_is_a_stated_constant(self):
-        assert MOV_DENOMINATOR_FLOOR == 0.25
+        assert MOV_DENOMINATOR_FLOOR == 0.05
 
     def test_an_upset_just_inside_the_floor_still_applies(self):
-        """1940 Elo of disadvantage: denominator 0.26, and an ordinary update.
+        """2140 Elo of disadvantage: denominator 0.06, and an ordinary update.
 
         The control. Without it the guard is satisfied by refusing every upset,
         which would drop exactly the games §3.4 says count most.
+
+        The crossing moved from 1950 to 2150 when SPEC-phase2 4.2 refitted the
+        floor, which is the point of the refit rather than a side effect: the
+        quarter-point floor was refusing upsets that belong in the signal.
         """
-        ratings, game = self.game_won_from(1940)
+        ratings, game = self.game_won_from(2140)
         after = update(ratings, game, hfa=0.0)
         assert after["home-team"] > 1500.0
 
     def test_an_upset_past_the_floor_raises(self):
-        """1960 Elo of disadvantage: denominator 0.24, under the floor."""
-        ratings, game = self.game_won_from(1960)
+        """2160 Elo of disadvantage: denominator 0.04, under the floor."""
+        ratings, game = self.game_won_from(2160)
         with pytest.raises(EloDomainError):
             update(ratings, game, hfa=0.0)
 
@@ -505,27 +521,27 @@ class TestTheMovDenominatorFloor:
             update(ratings, game, hfa=0.0)
 
     def test_the_message_names_the_gap_the_floor_and_what_to_look_at(self):
-        ratings, game = self.game_won_from(1960)
+        ratings, game = self.game_won_from(2160)
         with pytest.raises(EloDomainError) as excinfo:
             update(ratings, game, hfa=0.0)
         message = str(excinfo.value)
-        assert "1960" in message
-        assert "0.25" in message
+        assert "2160" in message
+        assert "0.05" in message
         assert "refitting" in message
 
     def test_hfa_counts_toward_the_gap(self):
         """The gap is the HFA-adjusted one, so the floor sits where the formula does.
 
-        A guard that read the raw rating difference would sit ~67 Elo away from
-        where the multiplier actually crosses, and would let through the games it
-        exists to catch.
+        A guard that read the raw rating difference would sit ~39 Elo away from
+        where the multiplier actually crosses (2.41 HFA at 16 Elo per point), and
+        would let through the games it exists to catch.
         """
-        inside, game = self.game_won_from(1940)
-        update(inside, game, hfa=0.0)  # 0.26: inside the floor with no HFA
+        inside, game = self.game_won_from(2140)
+        update(inside, game, hfa=0.0)  # 0.06: inside the floor with no HFA
 
-        # Same 1940 gap, but the winner is on the road, so HFA widens what it
-        # overcame instead of narrowing it: 0.24, and now under the floor.
-        ratings = {"home-team": 1500.0 + 1940, "away-team": 1500.0}
+        # Same 2140 gap, but the winner is on the road, so HFA widens what it
+        # overcame instead of narrowing it: 0.0214, and now under the floor.
+        ratings = {"home-team": 1500.0 + 2140, "away-team": 1500.0}
         away_wins = Game(
             cfbd_game_id=10, home="home-team", away="away-team",
             home_points=14, away_points=24,
@@ -545,7 +561,7 @@ class TestTheMovDenominatorFloor:
             update(ratings, game, hfa=0.0)
         assert ratings == {"home-team": 1500.0, "away-team": 3800.0}
 
-    @pytest.mark.parametrize("gap", [-1960, -2200, -2300, -10_000])
+    @pytest.mark.parametrize("gap", [-2160, -2200, -2300, -10_000])
     def test_the_clamp_holds_on_its_own(self, gap):
         """The half of the guard `update` cannot demonstrate.
 

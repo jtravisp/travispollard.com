@@ -225,7 +225,7 @@ class TestScore:
 
 
 class TestPublishCommand:
-    def test_it_writes_the_three_documents(self, store, store_url, crosswalk):
+    def test_it_writes_the_four_documents(self, store, store_url, crosswalk):
         seed(store, crosswalk)
         put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
         predict(store, crosswalk)
@@ -234,6 +234,7 @@ class TestPublishCommand:
                    "--store", store_url, now=GENERATED_AT) == 0
         assert sorted(store.list_keys("cfb/data/")) == [
             "cfb/data/accuracy.json",
+            "cfb/data/models.json",
             "cfb/data/next-game.json",
             "cfb/data/slate.json",
         ]

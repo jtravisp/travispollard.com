@@ -48,19 +48,30 @@ GOLDEN = FIXTURES / "sagarin_2026_preseason.txt"
 
 #: The three §3.2 publishes, and the FCS median it names alongside them.
 #:
-#: **These moved when ``ELO_PER_POINT`` went from 28 to 20**, because a seed is
+#: **These move every time ``ELO_PER_POINT`` does**, because a seed is
 #: ``1500 + (rating - mean) * ELO_PER_POINT`` and the scale is the whole of it.
-#: Ohio State was 2486, Texas 2358, Massachusetts 605, the FCS median 701. Every
-#: *gap* is 20/28 of what it was and every *predicted margin* is unchanged, which
-#: is the identity `test_the_seed_identity_survives_any_scale` pins.
-OHIO_STATE = 2204
-TEXAS = 2113
-MASSACHUSETTS = 861
-FCS_MEDIAN = 929
+#: Across the three scales this project has shipped:
+#:
+#: =============  ====  ====  ====
+#: at             28    20    16
+#: =============  ====  ====  ====
+#: Ohio State     2486  2204  2063
+#: Texas          2358  2113  1990
+#: Massachusetts  605   861   989
+#: FCS median     701   929   1043
+#: =============  ====  ====  ====
+#:
+#: Every *gap* scales with the constant and every *predicted margin* is unchanged,
+#: which is the identity `test_the_seed_identity_survives_any_scale` pins and the
+#: reason SPEC-phase1 3.2 calls an in-season rescale safe to make.
+OHIO_STATE = 2063
+TEXAS = 1990
+MASSACHUSETTS = 989
+FCS_MEDIAN = 1043
 
 #: What centring on the all-266 mean would produce instead. Present so the test
 #: that rules it out names the number it is ruling out.
-OHIO_STATE_IF_ALL_266_CENTRED = 2467
+OHIO_STATE_IF_ALL_266_CENTRED = 2273
 
 
 @pytest.fixture(scope="module")

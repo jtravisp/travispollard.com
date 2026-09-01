@@ -281,3 +281,72 @@ export interface SlateDocument extends Envelope {
   next_week_forecast?: string | null;
   games: SlateGame[];
 }
+
+/**
+ * The versions `/cfb/models` can read (SPEC-phase2 6.2).
+ *
+ * **Its own line, deliberately not shared with the other three.** `models.json`
+ * is a new document and starts at 3, one past what the rest were on when it
+ * shipped, so the two numbers are never mistaken for each other in a log. It
+ * moves independently from here: nothing this document does can oblige
+ * `next-game.json` to bump, and vice versa.
+ */
+export const MODELS_SCHEMA_VERSIONS = [3];
+
+/** The games every listed system priced (SPEC-phase2 6.3). */
+export interface SharedDenominator {
+  games: number;
+  description: string;
+}
+
+/**
+ * How much of the scored season one system actually priced.
+ *
+ * Beside the headline MAE, never instead of it: two systems with the same MAE on
+ * the same games are still different things when one reached all of them and the
+ * other a third.
+ */
+export interface SystemCoverage {
+  priced: number;
+  of: number;
+}
+
+/** One row of the leaderboard (SPEC-phase2 6.2). */
+export interface SystemRow {
+  id: string;
+  label: string;
+  /** Null only when nothing has been scored yet. */
+  mae: number | null;
+  /**
+   * Null for every system that publishes no win probability, which is all of
+   * them except ours. A point spread is not a probability, and the generator
+   * refuses to derive one on a vendor's behalf.
+   */
+  brier: number | null;
+  /** Null for the benchmarks: the market has no record against itself. */
+  ats: AtsSummary | null;
+  coverage: SystemCoverage;
+  is_ours?: boolean;
+  is_benchmark?: boolean;
+}
+
+/** One week of the per-week series, on that week's own intersection. */
+export interface WeekMae {
+  week: string;
+  games: number;
+  /**
+   * System id to that week's MAE.
+   *
+   * An index signature rather than `Record<string, number>`: this module exports
+   * its own `Record` (the win-loss kind, §6.4), which shadows the built-in here.
+   */
+  mae: { [id: string]: number };
+}
+
+export interface ModelsDocument extends Envelope {
+  /** Where the numbers stop, which is not the envelope's `week`. */
+  through_week: string | null;
+  shared_denominator: SharedDenominator;
+  systems: SystemRow[];
+  by_week: WeekMae[];
+}
