@@ -211,13 +211,26 @@ class ModelConstants(BaseModel):
     hfa_source: str = Field(min_length=1)
 
 
-#: What every state written before SPEC-phase2 4.1 was produced under.
+#: The Phase 1 constants, and what ``constants_of`` reports for a state written
+#: before SPEC-phase2 4.1 gave documents a ``model`` block.
 #:
-#: A ``schema_version`` 1 document carries no ``model`` block, and this is what it
-#: means -- not a guess. Only one set of constants had ever been shipped when
-#: those documents were written, and ``git log`` on this file is the evidence.
-#: ``constants_of`` returns this for any state that predates the block, which is
-#: what keeps the 2026 preseason states replayable across the refit.
+#: **It is the best available answer for such a state, not a certain one, and the
+#: difference is worth stating.** A ``schema_version`` 1 document records no
+#: scale, so nothing in it can be interrogated; this is an assumption about when
+#: it was written. The assumption is already known to be wrong for at least one
+#: real object: ``elo/season=2026/week=preseason/2026-08-28T223403Z.json`` was
+#: written at ``ELO_PER_POINT`` 28, before SPEC-phase1 3.1's rescale to 20, and
+#: reports as ``PHASE_1`` here. That is the cost of the field not having existed.
+#:
+#: Nothing reads it wrongly today, and the reason is structural rather than lucky.
+#: ``newest_state_key`` and ``previous_state`` both select the newest state for a
+#: week, so a superseded document is never the target of a verify and never the
+#: base of a prediction. If one ever were, ``verify`` refuses the comparison and
+#: names both scales rather than reporting a rescale as 266 rating drifts -- which
+#: is the whole reason that guard is a separate check ahead of the ratings.
+#:
+#: The lesson is the one 4.1 draws: a rating on an unnamed scale cannot be read,
+#: and no amount of care afterwards recovers what the document did not record.
 PHASE_1 = ModelConstants(
     elo_per_point=20.0,
     k=20.0,
