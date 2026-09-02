@@ -431,6 +431,9 @@ worst case is recoverable, but the discipline is the product.
 - **`docs/SPEC-phase3.md`** — the challenger: a distributional model on the Elo baseline
 - **`docs/PHASE-0.md`, `docs/PHASE-1.md`** — progress against those specs, and every
   decision made along the way that the specs do not
+- **`docs/PHASE-3.md`** — the Phase 3 plan: three tracks, which repo owns each, and
+  what actually blocks what. Phase 2 has no file of its own; its record is the spec,
+  the experiment JSONs and `git log`
 - **`CLAUDE.md`** — the hard rules, in the form an agent reads them
 
 The phase documents are the interesting ones. They record what was found by
