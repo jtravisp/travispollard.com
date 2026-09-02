@@ -144,6 +144,41 @@ shipping. The back-of-envelope is a sanity check on the fit, never a substitute 
 **No schema bump.** An optional field whose absence reproduces prior behaviour exactly is additive
 under Phase 1 §6.2's rule. A test pins `None → elo_per_point` so that stays true.
 
+### 3.1a A published Elo number cannot name its own scale
+
+§4.1 put the constants inside `EloState` so a stored rating could be read. **The published contract
+never gained the same thing**, and one layer further out the identical defect is still live.
+
+`next-game.json` carries two Elo values for the same team and the same week, from two different
+selections:
+
+| Field | Source | Selection |
+|---|---|---|
+| `as_of.elo` | `load_state(store, log.model.elo_state)` | the state the published **forecast** named |
+| `history[].elo` | `season_states`, newest per week | the **newest** state for that week |
+
+Both are correct on their own basis and neither is wrong. Before 2026-09-01 they resolved to the same
+object, so the difference could not appear. The mid-season re-seed at the refitted scale wrote a third
+preseason state that no prediction references, and the two selections split: `as_of.elo` reported
+2112.90 on scale 20 while `history[0].elo` reported 1990.32 on scale 16 — **the same rating, in the
+same document, on two scales, with nothing in the document able to say so.**
+
+It went unseen because `RatingChart` has `MINIMUM_POINTS = 2` and renders nothing below it, so only
+the headline number reached a page. That is luck, not a guard.
+
+**The condition self-heals** — the next `cfb-predict` names the newest state and the two converge —
+which is exactly why it is specified here rather than patched. The transient goes away; the inability
+of a published document to name a rating's scale does not.
+
+**The change is additive**: `AsOf` and `RatingPoint` each gain an optional reference to the constants
+their number was produced under — the `elo_state` key is enough, since that document records its own
+`model` block. No field is renamed or removed, so `PUBLISHED_SCHEMA_VERSION` does not move (Phase 1
+§6.2), and the routes deploy before the publisher emits it.
+
+**And the page has to use it.** A document that records the scale while the page prints two numbers
+from different ones has moved the defect rather than fixed it. `/cfb` either shows one basis or says
+which is which.
+
 ### 3.2 Thursday-knowable roster capture
 
 Elo's largest single blind spot is that it does not know who is playing. A quarterback change is

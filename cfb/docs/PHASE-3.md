@@ -54,6 +54,7 @@ Bounded, fully specified, no research risk. **Contains both of the phase's clock
 | `[ ]` | **A2** Shadow slot: `models: list[ModelBlock]`, `SCHEMA_VERSION` → 3 | prod | §3.3 | The phase's one schema bump. Blocks C2 |
 | `[ ]` | **A3** `cfb fetch roster`, `cfb shadow`, `cfb calibrate` | prod | §8 | `calibrate` reports and never fits |
 | `[ ]` | **A4** `RosterBasisError`, `ShadowRoleError`, `CalibrationError` | prod | §9 | Lands with the code that raises each |
+| `[ ]` | **A5** `AsOf` and `RatingPoint` name the constants behind their number | prod | §3.1a | Found 2026-09-01: one document, two Elo values, two scales. Additive; no version bump |
 
 **A1 is the only genuinely urgent item in the phase.** Every Thursday that passes uncaptured is a
 Thursday the news layer will never cover, and unlike everything else here that cost is
