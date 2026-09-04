@@ -19,6 +19,20 @@ two more things to keep in sync with the first.
 can be pointed at a fixture, so each grew one keyword argument -- ``data_dir`` on
 the loader, ``calendar`` on the other two. Nothing else about them changed, and
 if the injection should look different, these tests are where to say so.
+
+**The synthetic fixture models a calendar CFBD does not return, and that gap
+shipped a bug.** It gives each week a realistic first and last kickoff -- week 1
+opening 08-29 16:00Z and closing 09-01 00:00Z, four clear days before week 2 --
+so no week ever spans the Thursday `cfb-predict` run. CFBD's real 2026 calendar
+is contiguous partitions whose `firstGameStart` and `lastGameStart` are boundary
+stamps, exactly ``07:00:00.000Z`` and ``06:59:00.000Z``, opening on the Monday.
+Every Thursday therefore sits *inside* a week.
+
+`coming_week` keyed on `first_game_start` and was correct under this fixture and
+wrong under the real calendar on every Thursday of the season. `TestComingWeek`
+at the bottom of this file is pointed at `data/calendar/2026.json` for that
+reason. Anything that depends on where a week's edges fall relative to a run
+belongs there rather than here.
 """
 
 import json
@@ -29,6 +43,7 @@ import pytest
 
 from cfb.calendar import (
     PRESEASON_LEAD,
+    coming_week,
     in_season,
     last_completed_week,
     load_calendar,
@@ -557,3 +572,88 @@ class TestResolutionFailureKeepsTheSnapshot:
         assert manifest.week_resolution == "calendar"
         assert "/week=04/" in manifest.snapshot_key
         assert store.get_bytes(manifest.snapshot_key) == page
+
+
+class TestComingWeek:
+    """`coming_week` picks the imminent slate, not the next partition to open.
+
+    **There was no test here, and that is how it shipped wrong for a season.**
+    The function keyed on `first_game_start`, whose name promises a kickoff; CFBD
+    returns the partition boundary instead -- every 2026 value is exactly
+    ``07:00:00.000Z`` to open and ``06:59:00.000Z`` to close. A CFBD week opens on
+    the Monday, so by the Thursday run the current week had always "begun" under
+    that reading and was skipped.
+
+    The consequence was not a wrong week on a page. It was that a forecast written
+    nine days early has nothing to be compared against: week 2 of 2026 was
+    forecast on 09-03 carrying 0 Sagarin margins and 7 market lines out of 120
+    games, against 25 and 116 for week 1.
+    """
+
+    @pytest.fixture(scope="class")
+    @staticmethod
+    def calendar():
+        """The **real** committed calendar, not the synthetic fixture.
+
+        This class exists because of a bug the synthetic fixture cannot express.
+        That fixture gives week 1 a first game at 08-29 16:00Z and a last at
+        09-01 00:00Z, with four clear days before week 2 -- weeks that never span
+        the Thursday run. CFBD's actual 2026 calendar is contiguous partitions
+        opening Monday 07:00Z, so every Thursday sits *inside* a week. Under the
+        fixture the old reading was right; under the real data it was wrong every
+        week of the season.
+        """
+        return load_calendar(2026)
+
+    def thursday(self, day: int) -> datetime:
+        """A Thursday 12:00 UTC, the moment `cfb-predict` fires."""
+        return datetime(2026, 9, day, 12, 0, tzinfo=UTC)
+
+    def test_a_thursday_run_picks_that_saturday_not_the_next_one(self, calendar):
+        """The regression, on the live calendar rather than a constructed one.
+
+        09-10 is inside CFBD week 2, whose Saturday is 09-12. The old reading
+        returned "03", whose Saturday is 09-19.
+        """
+        assert coming_week(self.thursday(10), calendar=calendar) == "02"
+
+    def test_it_holds_across_the_season_rather_than_only_in_week_one(self, calendar):
+        """Week 1 of 2026 is a ten-day partition and was the visible symptom, so
+        the fix has to be checked somewhere the calendar is ordinary."""
+        assert coming_week(self.thursday(17), calendar=calendar) == "03"
+        assert coming_week(self.thursday(24), calendar=calendar) == "04"
+        assert coming_week(datetime(2026, 11, 5, 12, 0, tzinfo=UTC), calendar=calendar) == "10"
+
+    def test_a_week_already_under_way_is_still_the_answer(self, calendar):
+        """SPEC-phase1 8.1's case, and the one the old reading got backwards.
+
+        November MACtion plays Tuesday and Wednesday inside the same CFBD week,
+        roughly 36 hours before the Thursday run. 8.1 expects that week to be
+        forecast anyway -- the deadline is missed and says so -- which only makes
+        sense if "about to be played" means the imminent slate.
+
+        Games already under way are dropped by `predict_week`, not here. That is
+        the guard that keeps a forecast honest; this function only decides which
+        partition to look at.
+        """
+        entry = next(e for e in calendar.entries if not e.is_postseason and e.week == 10)
+        during = entry.first_game_start + timedelta(days=2)
+
+        assert during > entry.first_game_start
+        assert coming_week(during, calendar=calendar) == "10"
+
+    def test_it_moves_on_once_the_week_closes(self, calendar):
+        """The boundary is the close, so the answer changes exactly there and not
+        four days early."""
+        entry = next(e for e in calendar.entries if not e.is_postseason and e.week == 2)
+
+        assert coming_week(entry.last_game_start - timedelta(minutes=1), calendar=calendar) == "02"
+        assert coming_week(entry.last_game_start, calendar=calendar) == "03"
+
+    def test_none_once_the_regular_season_is_over(self, calendar):
+        """Not a failure. Every December Thursday would otherwise be a red run,
+        and postseason is excluded because nothing here can express a bowl slate
+        as a CFBD week number.
+        """
+        assert coming_week(datetime(2026, 12, 10, 12, 0, tzinfo=UTC), calendar=calendar) == "15"
+        assert coming_week(datetime(2026, 12, 15, 12, 0, tzinfo=UTC), calendar=calendar) is None

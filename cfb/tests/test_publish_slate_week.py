@@ -291,12 +291,13 @@ class TestTheLogLine:
     for the forecast time.
     """
 
-    def published(self, crosswalk, tmp_path, capsys, *, later=None):
+    def published(self, crosswalk, tmp_path, capsys, *, later=None, week=None):
         overlapping(crosswalk, later=later, store=FileSnapshotStore(tmp_path))
         assert (
             main(
                 [
                     "publish", "--season", "2026", "--force",
+                    *(["--week", week] if week is not None else []),
                     "--store", f"file://{tmp_path.as_posix()}",
                 ],
                 now=PUBLISHED_AT,
@@ -312,9 +313,16 @@ class TestTheLogLine:
     def test_it_names_the_published_week_beside_the_requested_one(
         self, crosswalk, tmp_path, capsys
     ):
-        """**The regression.** `coming_week` resolves this moment to week 2 and
-        the board is held on week 1, so the line has to say both."""
-        line = self.published(crosswalk, tmp_path, capsys)
+        """**The regression.** A run asked for week 2 while week 1 still has games
+        ahead publishes week 1, so the line has to say both.
+
+        The overlap is now constructed with an explicit `--week` rather than
+        arriving for free. It used to arrive for free because `coming_week` was a
+        week ahead of the games on every Thursday of the season -- which was the
+        bug fixed in `calendar.coming_week`, not a property to build a test on.
+        The held board is still real: any run that names a week the calendar has
+        not reached yet lands here."""
+        line = self.published(crosswalk, tmp_path, capsys, week="2")
 
         assert "requested_week=02" in line
         assert "slate_week=01" in line
@@ -325,7 +333,7 @@ class TestTheLogLine:
     ):
         """Greppable and alertable. "These two fields differ" is neither, and
         counting games requires already knowing the right answer."""
-        line = self.published(crosswalk, tmp_path, capsys)
+        line = self.published(crosswalk, tmp_path, capsys, week="2")
 
         assert "board_held=True" in line
 
@@ -349,8 +357,11 @@ class TestTheLogLine:
     def test_an_ordinary_week_says_the_board_is_not_held(
         self, crosswalk, tmp_path, capsys
     ):
-        """The pair. With week 1 finished the board moves on, and the flag has to
-        move with it -- a field that is always True is not a signal."""
+        """The pair. When the requested week is the week being played the flag has
+        to say so -- a field that is always True is not a signal.
+
+        This is the ordinary case after the `coming_week` fix: the run asks for the
+        week whose games are imminent, and the board publishes it unheld."""
         line = self.published(
             crosswalk,
             tmp_path,
@@ -358,6 +369,6 @@ class TestTheLogLine:
             later=played(week_one_games(), (13, 45, 10), (14, 21, 20)),
         )
 
-        assert "requested_week=02" in line
-        assert "slate_week=02" in line
+        assert "requested_week=01" in line
+        assert "slate_week=01" in line
         assert "board_held=False" in line
