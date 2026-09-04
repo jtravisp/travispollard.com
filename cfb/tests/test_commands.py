@@ -179,11 +179,19 @@ class TestScore:
         assert scored["predictions_generated_at"].startswith("2026-09-03")
         assert honest.endswith(".json")
 
-    def test_a_week_whose_every_generation_postdates_its_slate_writes_nothing(
+    def test_a_week_whose_every_generation_postdates_its_games_writes_nothing(
         self, store, store_url, crosswalk, capsys
     ):
         """Exit 1, and **nothing written** -- not even the Elo state, because the
-        command reads every input before writing anything."""
+        command reads every input before writing anything.
+
+        The wording moved from "slate" to "games" when the rule did.
+        `predictions_to_score` used to reject a generation written after its
+        slate's *first* kickoff; it now keeps one that was early for any of its
+        games and uses it only for those. A generation written after every game
+        had started is early for none, which is this case, and it is still
+        refused entire.
+        """
         seed(store, crosswalk)
         put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
         predict_late(store, crosswalk, stamped=datetime(2026, 9, 7, 0, 0, tzinfo=UTC))
@@ -192,7 +200,7 @@ class TestScore:
         before = set(store.list_keys("elo/"))
         fails(capsys, "score", "--season", "2026", "--week", "1", "--force",
               "--store", store_url, now=RAN_AT,
-              saying="after its own slate had started")
+              saying="after its own games had started")
         assert set(store.list_keys("elo/")) == before
         assert store.list_keys("scored/") == []
 
