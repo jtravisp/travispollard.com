@@ -218,23 +218,49 @@ def coming_week(now: datetime, *, calendar: Calendar) -> str | None:
     same reason -- a ``--week`` expression in YAML would be calendar arithmetic in
     the one place nothing tests it.
 
-    The first week whose first game has not kicked off yet, so a Thursday run
-    picks that Saturday's slate rather than the one three days gone. At exactly
-    ``first_game_start`` the week has begun and predicting it is too late, which
-    is what SPEC-phase1 8 means by the Friday publish deadline being first
-    kickoff.
+    The first week that has not yet **closed**, so a Thursday run picks that
+    Saturday's slate rather than the one nine days out.
 
-    **``None`` is a normal answer**, not a failure: from the last regular week's
-    first kickoff onward there is no next week to predict, and every December
-    Thursday would otherwise be a red run. Postseason is excluded for the same
-    reason ``last_completed_week`` excludes it -- nothing here knows how to express
-    a bowl slate as a CFBD week number, and inventing one would file real
-    predictions under a wrong partition.
+    **This used to key on ``first_game_start`` and was wrong every week of the
+    season.** The name promises a kickoff and CFBD does not deliver one: for 2026
+    every value it returns is the *partition boundary*, exactly ``07:00:00.000Z``
+    to open and ``06:59:00.000Z`` to close. A CFBD week opens on the Monday, so by
+    the Thursday run the current week had always "begun" under that reading and
+    was skipped -- and the function returned the week after the coming Saturday's.
+    Measured on the live calendar, every Thursday from 09-03 onward resolved to a
+    slate nine days out.
+
+    The damage was not a wrong week on a page; ``publish`` already corrects for
+    that (``_next_fixture``, and the slate's own week). It was that **a forecast
+    written nine days early has nothing to be compared against.** Sagarin
+    publishes for the imminent weekend, and books price it; week 2 was forecast on
+    09-03 with 0 of 120 games carrying a Sagarin margin and 7 carrying a line,
+    against 25 and 116 for week 1. That starves ``sagarin_mae``, the
+    ``models.json`` shared denominator, and §3.6's correlation series, all of which
+    would have gone quietly empty rather than red.
+
+    SPEC-phase1 8.1 settles which reading was intended: it reasons about November
+    MACtion playing "inside the same CFBD week and roughly 36 hours *before* the
+    Thursday run". A week whose Tuesday games precede the run is a week already
+    under way, and 8.1 expects it to be forecast anyway -- so "about to be played"
+    means the imminent slate, not the next partition to open.
+
+    **Nothing is lost by dropping the old guard**, because it was the second one.
+    ``predict_week`` filters games that have already kicked off and raises when
+    none remain, which is the check that actually keeps a forecast honest; this
+    one only decided which partition to look at.
+
+    **``None`` is a normal answer**, not a failure: once the last regular week has
+    closed there is no week left to predict, and every December Thursday would
+    otherwise be a red run. Postseason is excluded for the same reason
+    ``last_completed_week`` excludes it -- nothing here knows how to express a bowl
+    slate as a CFBD week number, and inventing one would file real predictions
+    under a wrong partition.
     """
     upcoming = [
         entry
         for entry in calendar.entries
-        if not entry.is_postseason and now < entry.first_game_start
+        if not entry.is_postseason and now < entry.last_game_start
     ]
     if not upcoming:
         return None
