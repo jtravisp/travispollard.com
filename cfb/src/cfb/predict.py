@@ -29,6 +29,7 @@ what the vendor said. ``sources.market_home_margin`` is the single place the two
 conventions meet.
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -65,6 +66,7 @@ __all__ = [
     "predict_week",
     "prediction_generations",
     "prediction_key",
+    "merge_generations",
     "predictions_to_score",
     "read_predictions",
     "rebuild_index",
@@ -512,6 +514,40 @@ def predictions_to_score(
         f"Grading one would publish accuracy for a forecast made with the results in "
         f"hand; run `cfb predict` before kickoff, not after"
     )
+
+
+def merge_generations(
+    logs: Sequence[PredictionLog],
+) -> list[tuple[PredictedGame, datetime]]:
+    """Every game a week was honestly forecast for, with when it was forecast.
+
+    One rule, two callers. ``score_week`` grades against this and ``build_slate``
+    draws the board from it, so the record and the page can never disagree about
+    which forecast stands for a game.
+
+    Newest generation first, and the first that was written strictly before a
+    game's own kickoff wins it. A generation contributes only the games it was
+    early for; one written after every game it holds contributes nothing.
+
+    **Why the board wants this too.** ``next-game.json`` shows the newest thing the
+    model said about one fixture, which is right for a headline. A board is a
+    record of the week, and taking only the newest generation shrinks it every time
+    a week is regenerated -- the 2026 week 1 re-run would have cut it from 96 games
+    to 82 and dropped every played marker, because the newer log can only hold the
+    games still ahead.
+
+    Returned in kickoff order, which is the order both callers want and neither
+    should have to restate.
+    """
+    chosen: dict[int, tuple[PredictedGame, datetime]] = {}
+    for log in sorted(logs, key=lambda log: log.generated_at, reverse=True):
+        for game in log.games:
+            if game.cfbd_game_id in chosen:
+                continue
+            if log.generated_at < game.kickoff:
+                chosen[game.cfbd_game_id] = (game, log.generated_at)
+
+    return sorted(chosen.values(), key=lambda pair: (pair[0].kickoff, pair[0].cfbd_game_id))
 
 
 def index_entries(store: SnapshotStore) -> list[IndexEntry]:

@@ -27,6 +27,7 @@ rebuildable from the evidence at any time, and a page that had to list a prefix
 to find the newest one would be doing the composition the PRD forbids it.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
@@ -51,7 +52,9 @@ from cfb.predict import (
     PredictedGame,
     PredictionLog,
     index_entries,
+    merge_generations,
     prediction_generations,
+    predictions_to_score,
     read_predictions,
 )
 from cfb.sources import results_capture, week_position, week_slate
@@ -677,7 +680,9 @@ def build_next_game(
     )
 
 
-def _on_the_board(log: PredictionLog, resolver: Crosswalk) -> list[PredictedGame]:
+def _on_the_board(
+    games: Sequence[PredictedGame], resolver: Crosswalk
+) -> list[PredictedGame]:
     """The games this page would list: at least one FBS team.
 
     ``division`` is the crosswalk's, the same source ``is_modelled`` selects the
@@ -690,7 +695,7 @@ def _on_the_board(log: PredictionLog, resolver: Crosswalk) -> list[PredictedGame
     """
     return [
         game
-        for game in log.games
+        for game in games
         if "FBS" in (resolver.division(game.home), resolver.division(game.away))
     ]
 
@@ -744,7 +749,7 @@ def _slate_week(
         log = _newest_predictions(store, season=season, week=candidate)
         finished, _ = _finished(store, season=season, week=candidate)
         if not any(
-            game.cfbd_game_id not in finished for game in _on_the_board(log, resolver)
+            game.cfbd_game_id not in finished for game in _on_the_board(log.games, resolver)
         ):
             continue
         later = next(
@@ -785,8 +790,20 @@ def build_slate(
     log = _newest_predictions(store, season=season, week=week)
     finished, results_known_at = _finished(store, season=season, week=week)
 
-    shown = _on_the_board(log, resolver)
-    excluded = len(log.games) - len(shown)
+    # **The board is the week's record, not the newest document.** `log` above
+    # still supplies the envelope -- which week, which run, what it was forecast
+    # from -- but the games come from every generation that was honest for them.
+    # Taking only the newest shrinks the board each time a week is regenerated:
+    # a re-run can only hold the games still ahead, so 2026 week 1 would have gone
+    # from 96 games to 82 and lost every played marker. `merge_generations` is the
+    # same rule `score_week` grades by, so the page and the record cannot disagree
+    # about which forecast stands for a game.
+    forecast = [game for game, _ in merge_generations(
+        predictions_to_score(store, season=season, week=week)
+    )]
+
+    shown = _on_the_board(forecast, resolver)
+    excluded = len(forecast) - len(shown)
 
     games = [
         SlateGame(

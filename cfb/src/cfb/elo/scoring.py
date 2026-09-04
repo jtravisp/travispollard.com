@@ -38,7 +38,7 @@ from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION
 from cfb.errors import ReplayError, UnscoredGameError
 from cfb.models import validating
-from cfb.predict import PredictedGame, PredictionLog
+from cfb.predict import PredictedGame, PredictionLog, merge_generations
 from cfb.sources import RawGame, market_home_margin, week_position
 from cfb.storage import SnapshotStore
 
@@ -323,15 +323,10 @@ def score_week(
         only = logs[0]
         chosen = {game.cfbd_game_id: (game, only.generated_at) for game in only.games}
     else:
-        # Newest first, and the first generation that was early for a given game
-        # wins it. `predictions_to_score` already returns them newest-first;
-        # sorting here rather than trusting that keeps the rule true of any caller.
-        for log in sorted(logs, key=lambda log: log.generated_at, reverse=True):
-            for game in log.games:
-                if game.cfbd_game_id in chosen:
-                    continue
-                if log.generated_at < game.kickoff:
-                    chosen[game.cfbd_game_id] = (game, log.generated_at)
+        # `merge_generations` is the single definition of this rule, shared with
+        # the board so the record and the page cannot disagree about which
+        # forecast stands for a game.
+        chosen = {game.cfbd_game_id: (game, at) for game, at in merge_generations(logs)}
 
         if not chosen:
             raise ReplayError(
