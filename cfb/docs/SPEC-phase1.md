@@ -715,8 +715,27 @@ choice.** One of them can have been written on Sunday. Grading it would publish 
 a forecast made with the results in hand, which is the one overclaim §1.1 gives up git in order not to
 make.
 
-**The rule: the newest generation written strictly before its own slate's first kickoff.** If none
-qualifies, the week is not scored and the run goes red.
+**The rule: for each game, the newest generation that holds it and was written strictly before *that
+game's* kickoff.** If no generation was early for any game, the week is not scored and the run goes red.
+
+**It was a week-level rule and that punished the honest re-run it was meant to permit.** Picking one
+generation per week means a mid-week regenerate — which can only cover the games still ahead — is
+newest, is honest about its own slate, and wins outright, taking the games already played out of the
+record with it. Measured on 2026 week 1: a re-run on the evening of 09-03 would have benchmarked the
+107 games still ahead and dropped the 37 already played, because all 25 of the week's Sagarin
+benchmarks sat among those 37.
+
+Asking per game keeps both and gives up nothing. A generation contributes only the games it was early
+for; one written after every game it holds is early for none and never contributes. The protection
+this section exists for — never grading a forecast made with the results in hand — is unchanged and
+now applies at the resolution the claim is actually made at, which is the game.
+
+**So a re-run is a normal tool rather than a cost.** Regenerating a week with a fresher Sagarin page
+or fuller market lines improves every game it is still early for and cannot damage the ones it is not.
+
+`ScoredGame.forecast_generated_at` records which generation each row came from, because the
+document's single `predictions_generated_at` can no longer answer it. It is optional: `scored/` is
+write-once and every week already stored predates the field.
 
 The boundary comes from each candidate document's own slate rather than from the week's results. The
 two are the same number in the ordinary week and they come apart in the case that matters: a game

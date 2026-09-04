@@ -64,7 +64,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from cfb.elo.scoring import AtsRecord, ScoredWeek, score_week
-from cfb.errors import UnscoredGameError
+from cfb.errors import ReplayError, UnscoredGameError
 from cfb.predict import ModelBlock, PredictedGame, PredictionLog
 from cfb.sources import RawGame, market_home_margin
 
@@ -827,3 +827,118 @@ class TestARealWeek:
 
     def test_a_real_slate_scores_end_to_end(self):
         raise NotImplementedError
+
+
+# --- an honest re-run keeps both generations ----------------------------------
+
+
+SATURDAY = datetime(2026, 9, 5, 19, 0, tzinfo=UTC)
+FRIDAY = datetime(2026, 9, 4, 23, 0, tzinfo=UTC)
+
+
+def generation(generated_at: datetime, *games: PredictedGame) -> PredictionLog:
+    return log(*games).model_copy(update={"generated_at": generated_at})
+
+
+class TestAnHonestRerunKeepsBothGenerations:
+    """A week is graded per game, not per generation (SPEC-phase1 5.4).
+
+    **The case is the live one.** Week 1 of 2026 was forecast on 08-29 covering
+    144 games. By the evening of 09-03, 37 had kicked off and the remaining 107
+    carried no Sagarin benchmark, because the page covering them was not captured
+    until 09-01. Regenerating would have benchmarked the 107 -- and under the old
+    week-level rule the new log, being newest and honest about its own slate,
+    would have won outright and taken the 37 played games out of the record.
+
+    So the question is asked per game: the newest generation that holds it and was
+    written before *its* kickoff. Both survive, and nothing is graded against a
+    forecast made after it began.
+    """
+
+    @pytest.fixture
+    def generations(self):
+        """Two honest generations overlapping on one game.
+
+        Game 1 kicks off Saturday and appears in both. Game 2 kicks off Friday,
+        before the second run, so only the first was ever early for it.
+        """
+        first = generation(
+            datetime(2026, 9, 3, 12, 0, tzinfo=UTC),
+            predicted(1, margin=7.0, kickoff=SATURDAY),
+            predicted(2, margin=3.0, kickoff=FRIDAY),
+        )
+        second = generation(
+            datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
+            predicted(1, margin=10.0, kickoff=SATURDAY),
+        )
+        return [second, first]
+
+    @pytest.fixture
+    def week(self, generations):
+        return score(
+            generations,
+            [result(1, kickoff=SATURDAY), result(2, kickoff=FRIDAY)],
+        )
+
+    def test_no_game_is_lost_to_the_rerun(self, week):
+        """**The regression.** Under the week-level rule this scored one game."""
+        assert {game.cfbd_game_id for game in week.games} == {1, 2}
+
+    def test_the_overlapping_game_takes_the_newer_forecast(self, week):
+        """Newer *and* still honest -- the second run preceded this kickoff."""
+        one = next(game for game in week.games if game.cfbd_game_id == 1)
+        assert one.predicted_margin == 10.0
+        assert one.forecast_generated_at == datetime(2026, 9, 5, 12, 0, tzinfo=UTC)
+
+    def test_a_game_the_rerun_was_too_late_for_keeps_the_older_forecast(self, week):
+        """Game 2 kicked off before the second run, so only the first is eligible
+        -- and it is used rather than the game being dropped."""
+        two = next(game for game in week.games if game.cfbd_game_id == 2)
+        assert two.predicted_margin == 3.0
+        assert two.forecast_generated_at == datetime(2026, 9, 3, 12, 0, tzinfo=UTC)
+
+    def test_every_row_names_the_moment_it_was_forecast(self, week):
+        """The document's single ``predictions_generated_at`` cannot answer this
+        once two generations contribute, so each row has to."""
+        assert all(game.forecast_generated_at is not None for game in week.games)
+        assert len({game.forecast_generated_at for game in week.games}) == 2
+
+    def test_a_generation_written_after_every_game_contributes_nothing(self):
+        """The protection 5.4 exists for, unchanged.
+
+        A Sunday log is early for nothing. With a second generation present the
+        selection simply never reaches it, and the honest one is graded instead --
+        the late document cannot displace the early one by being newer.
+        """
+        honest = generation(
+            datetime(2026, 9, 3, 12, 0, tzinfo=UTC), predicted(1, margin=7.0, kickoff=SATURDAY)
+        )
+        sunday = generation(
+            datetime(2026, 9, 6, 12, 0, tzinfo=UTC), predicted(1, margin=99.0, kickoff=SATURDAY)
+        )
+        graded = score([sunday, honest], [result(1, kickoff=SATURDAY)])
+
+        assert graded.games[0].predicted_margin == 7.0
+        assert graded.games[0].forecast_generated_at == datetime(2026, 9, 3, 12, 0, tzinfo=UTC)
+
+    def test_nothing_early_enough_raises_rather_than_grading_hindsight(self):
+        """Every generation postdates the game, so there is nothing to grade."""
+        late = [
+            generation(datetime(2026, 9, 6, 12, 0, tzinfo=UTC),
+                       predicted(1, margin=99.0, kickoff=SATURDAY)),
+            generation(datetime(2026, 9, 7, 12, 0, tzinfo=UTC),
+                       predicted(1, margin=98.0, kickoff=SATURDAY)),
+        ]
+        with pytest.raises(ReplayError):
+            score(late, [result(1, kickoff=SATURDAY)])
+
+    def test_one_generation_still_behaves_exactly_as_before(self):
+        """The single-log path is untouched, which is what keeps `cfb backtest`
+        possible -- it grades a week the model was not live for, on purpose, and
+        says so in where it stores the result."""
+        only = generation(
+            datetime(2026, 9, 6, 12, 0, tzinfo=UTC), predicted(1, margin=7.0, kickoff=SATURDAY)
+        )
+        graded = score(only, [result(1, kickoff=SATURDAY)])
+
+        assert graded.games[0].predicted_margin == 7.0

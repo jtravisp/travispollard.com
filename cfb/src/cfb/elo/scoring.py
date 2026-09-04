@@ -27,6 +27,7 @@ entered as a push would be invisible in a win-loss count.
 """
 
 import statistics
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -35,7 +36,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION
-from cfb.errors import UnscoredGameError
+from cfb.errors import ReplayError, UnscoredGameError
 from cfb.models import validating
 from cfb.predict import PredictedGame, PredictionLog
 from cfb.sources import RawGame, market_home_margin, week_position
@@ -158,6 +159,17 @@ class ScoredGame(BaseModel):
     away: str = Field(min_length=1)
     neutral_site: bool
 
+    #: When the forecast this row was graded against was written.
+    #:
+    #: Optional because ``scored/`` is write-once and every week already stored
+    #: predates the field. It exists because a week is no longer graded against
+    #: one generation: ``predictions_to_score`` returns every honest generation
+    #: and each game takes the newest that preceded *its own* kickoff, so the
+    #: document's single ``predictions_generated_at`` can no longer answer "when
+    #: was this particular forecast made". A row that cannot name the moment it
+    #: was written is the same defect as a rating that cannot name its scale.
+    forecast_generated_at: datetime | None = None
+
     predicted_margin: float
     #: Unclamped, as stored. §3.7's clamp is presentational and applied at
     #: publish; grading against it would score the model on what the page showed
@@ -242,7 +254,7 @@ class ScoredWeek(BaseModel):
 
 
 def score_week(
-    predictions: PredictionLog,
+    predictions: PredictionLog | Sequence[PredictionLog],
     results: list[RawGame],
     *,
     results_fetched_at: datetime,
@@ -269,17 +281,75 @@ def score_week(
     reason -- a wall clock cannot be replayed.
 
     ``now`` stamps the document and nothing else.
+
+    **``predictions`` may be several generations, newest first**, which is how an
+    honest re-run stops costing coverage. Each game is graded against the newest
+    generation that holds it *and* was written strictly before that game's own
+    kickoff; a generation contributes only the games it was early for. One log is
+    still accepted and behaves exactly as before.
+
+    The per-game boundary is the point. A week-level rule has to choose one
+    document, so a mid-week regenerate -- which can only cover the games still
+    ahead -- displaces the earlier one and takes the games already played out of
+    the record with it. Asking the question per game keeps both and still never
+    grades a forecast written after its game began.
     """
+    logs = [predictions] if isinstance(predictions, PredictionLog) else list(predictions)
+    if not logs:
+        raise ReplayError(
+            "score_week was given no prediction generations. A week with results and "
+            "nothing forecast is a `cfb predict` run that never happened, not an empty "
+            "scoring run"
+        )
+
+    weeks = {(log.season, log.week) for log in logs}
+    if len(weeks) != 1:
+        raise ReplayError(
+            f"score_week was given generations from more than one season-week: "
+            f"{sorted(weeks)}. Grading them as one would file a game under a partition "
+            f"it was never forecast for"
+        )
+
+    predictions = max(logs, key=lambda log: log.generated_at)
     resolver = crosswalk or load_crosswalk(predictions.season, data_dir=crosswalk_dir)
 
-    predicted_by_id = {game.cfbd_game_id: game for game in predictions.games}
+    chosen: dict[int, tuple[PredictedGame, datetime]] = {}
+    if len(logs) == 1:
+        # Nothing to choose between, so nothing is filtered. The honesty gate for
+        # the scoring path lives in `predictions_to_score`, and `cfb backtest`
+        # deliberately steps around it -- it grades a week the model was not live
+        # for and says so in its own prefix. Applying a per-game cutoff here would
+        # make that command impossible rather than merely honest about itself.
+        only = logs[0]
+        chosen = {game.cfbd_game_id: (game, only.generated_at) for game in only.games}
+    else:
+        # Newest first, and the first generation that was early for a given game
+        # wins it. `predictions_to_score` already returns them newest-first;
+        # sorting here rather than trusting that keeps the rule true of any caller.
+        for log in sorted(logs, key=lambda log: log.generated_at, reverse=True):
+            for game in log.games:
+                if game.cfbd_game_id in chosen:
+                    continue
+                if log.generated_at < game.kickoff:
+                    chosen[game.cfbd_game_id] = (game, log.generated_at)
+
+        if not chosen:
+            raise ReplayError(
+                f"no generation stored for week {predictions.week} of season "
+                f"{predictions.season} was written before the game it forecast, so "
+                f"there is nothing that can be honestly scored"
+            )
+
+    forecast = sorted(chosen.values(), key=lambda pair: (pair[0].kickoff, pair[0].cfbd_game_id))
+    written_at = {game.cfbd_game_id: at for game, at in chosen.values()}
+    predicted_by_id = {game.cfbd_game_id: game for game, _ in chosen.values()}
     results_by_id = {game.id: game for game in results}
 
     _refuse_unpredicted_results(results, predicted_by_id, predictions)
 
     scored: list[ScoredGame] = []
     unplayed = 0
-    for prediction in predictions.games:
+    for prediction, _ in forecast:
         outcome = results_by_id.get(prediction.cfbd_game_id)
         if outcome is None or not outcome.is_complete:
             # The result's own kickoff wins when there is one: a game that moved
@@ -298,7 +368,11 @@ def score_week(
             continue
 
         _refuse_mismatched_teams(prediction, outcome, resolver)
-        scored.append(_score_game(prediction, outcome))
+        scored.append(
+            _score_game(prediction, outcome).model_copy(
+                update={"forecast_generated_at": written_at[prediction.cfbd_game_id]}
+            )
+        )
 
     return ScoredWeek(
         schema_version=SCHEMA_VERSION,
@@ -307,7 +381,13 @@ def score_week(
         generated_at=now,
         predictions_generated_at=predictions.generated_at,
         results_fetched_at=results_fetched_at,
-        forecast_from=predictions.forecast_from,
+        # The earliest point the merged set has coverage from, which is the
+        # oldest contributor's -- not the newest document's, whose own
+        # `forecast_from` describes only its slice.
+        forecast_from=min(
+            (log.forecast_from for log in logs if log.forecast_from is not None),
+            default=None,
+        ),
         games=scored,
         unplayed=unplayed,
         texas=accuracy_of(

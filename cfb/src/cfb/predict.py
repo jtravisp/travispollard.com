@@ -439,9 +439,25 @@ def prediction_generations(
 
 def predictions_to_score(
     store: SnapshotStore, *, season: int, week: str
-) -> PredictionLog:
-    """The generation a scoring run is allowed to grade: the newest one written
-    before its own slate had started.
+) -> list[PredictionLog]:
+    """Every generation a scoring run may draw on, newest first.
+
+    **A list, not one document, and that is what makes an honest re-run safe.**
+    The rule used to pick a single generation -- the newest written before its own
+    slate opened -- which quietly punished the re-run it was meant to permit.
+    Regenerating a week partway through produces a log covering only the games
+    still ahead; being newest and honest, it won outright and the games already
+    played fell out of the record. 37 of week 1's 144 would have gone that way.
+
+    So the choice moves from the week to the game. ``score_week`` walks these
+    newest-first and takes, for each game, the first generation that both holds it
+    and was written strictly before *that game's* kickoff. Nothing is graded
+    against a forecast made after it started, and nothing is dropped for having
+    been forecast early.
+
+    A generation is kept when it is honest for **any** of its games and is used
+    only for those, which is stricter than it sounds: one written after every game
+    had started is honest for none and never appears.
 
     **Not simply the newest.** A week can hold several generations -- write-once
     means a regenerate adds a key rather than replacing one (§4.1) -- and some of
@@ -471,7 +487,7 @@ def predictions_to_score(
             f"run that never happened, not an empty scoring run"
         )
 
-    rejected = []
+    usable, rejected = [], []
     for generated_at, key in reversed(generations):
         candidate = read_predictions(store, key)
         if not candidate.games:
@@ -480,15 +496,19 @@ def predictions_to_score(
                 f"in which nothing was forecast and nothing was missed, which is the "
                 f"one shape §5.2's join failures cannot see"
             )
-        first_kickoff = min(game.kickoff for game in candidate.games)
-        if generated_at < first_kickoff:
-            return candidate
-        rejected.append(f"{key} (slate opened {first_kickoff.isoformat()})")
+        if any(generated_at < game.kickoff for game in candidate.games):
+            usable.append(candidate)
+            continue
+        last = max(game.kickoff for game in candidate.games)
+        rejected.append(f"{key} (every game had started by {last.isoformat()})")
+
+    if usable:
+        return usable
 
     listed = "\n  ".join(rejected)
     raise ReplayError(
         f"every generation stored for week {week} of season {season} was written after "
-        f"its own slate had started, so none of them can be scored:\n  {listed}\n"
+        f"its own games had started, so none of them can be scored:\n  {listed}\n"
         f"Grading one would publish accuracy for a forecast made with the results in "
         f"hand; run `cfb predict` before kickoff, not after"
     )
