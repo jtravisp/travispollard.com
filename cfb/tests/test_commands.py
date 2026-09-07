@@ -38,6 +38,9 @@ PULLED_AT = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
 GENERATED_AT = datetime(2026, 9, 3, 12, 0, tzinfo=UTC)
 CAPTURED_AT = datetime(2026, 9, 8, 12, 0, tzinfo=UTC)
 RAN_AT = datetime(2026, 9, 8, 12, 30, tzinfo=UTC)
+#: Past week 1's partition close (09-08 06:59Z), where `coming_week` has
+#: already moved to a week nobody forecasts until Thursday.
+MONDAY_AFTER_CLOSE = datetime(2026, 9, 8, 13, 0, tzinfo=UTC)
 
 THURSDAY = datetime(2026, 9, 3, 23, 0, tzinfo=UTC)
 SATURDAY = datetime(2026, 9, 5, 19, 0, tzinfo=UTC)
@@ -416,3 +419,95 @@ class TestNote:
             store.list_keys("notes/season=2026/week=01/")[0]
         ).decode("utf-8")
         assert markdown.count("TODO") >= 2
+
+
+class TestTheSundayAndMondayRefresh:
+    """`cfb publish --refresh` (SPEC-phase1 8.3).
+
+    **The page went stale from Friday to Thursday, and the front page lied while
+    it did.** `/cfb` is only built Thursday and Friday, and a week's results are
+    only captured once its partition closes -- the Monday after. So `_finished`
+    had nothing fresh for the week on the board, `_next_fixture` could not know
+    Saturday's game had been played, and on 2026-09-07 the headline still named
+    Texas State from two days earlier.
+
+    A refresh run cannot resolve its week the way the SLO run does. A CFBD week
+    closes on the Monday, so by Monday midday `coming_week` has already moved to a
+    week nobody forecasts until Thursday -- and the SLO's "raise when that week has
+    no predictions" would redden every Monday for a pipeline that is fine.
+    """
+
+    def refresh(self, store, store_url, capsys, *, now):
+        assert run("publish", "--season", "2026", "--refresh", "--force",
+                   "--store", store_url, now=now) == 0
+        return next(
+            (line for line in capsys.readouterr().out.splitlines()
+             if "event=published" in line),
+            "",
+        )
+
+    def test_a_monday_run_publishes_the_week_that_just_finished(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """**The regression.** The partition has closed, so `coming_week` says the
+        next week -- which nobody has forecast. The SLO rule would raise here."""
+        seed(store, crosswalk)
+        put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+        predict(store, crosswalk)
+
+        line = self.refresh(store, store_url, capsys, now=MONDAY_AFTER_CLOSE)
+
+        assert "requested_week=01" in line
+        assert "result=ok" in line
+
+    def test_the_slo_run_still_raises_on_the_same_data(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """The pair, and the reason `--refresh` is a flag rather than the default.
+
+        A Thursday publish that quietly showed last week's board when `cfb predict`
+        had failed would remove the signal §8 exists to give. Same store, same
+        moment, no flag -- and it fails.
+        """
+        seed(store, crosswalk)
+        put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+        predict(store, crosswalk)
+
+        assert run("publish", "--season", "2026", "--force",
+                   "--store", store_url, now=MONDAY_AFTER_CLOSE) == 1
+
+    def test_nothing_forecast_yet_is_a_skip_and_says_which_kind(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """Before the season's first Thursday there is no board to refresh.
+
+        The reason is `nothing_forecast` rather than `no_coming_week`: one says the
+        calendar ran out of weeks and the other says nobody has forecast one yet,
+        and sending someone to the calendar for a date is how a log line wastes an
+        afternoon.
+        """
+        seed(store, crosswalk)
+
+        assert run("publish", "--season", "2026", "--refresh", "--force",
+                   "--store", store_url, now=GENERATED_AT) == 0
+        printed = capsys.readouterr().out
+        assert "reason=nothing_forecast" in printed, printed
+        assert "no_coming_week" not in printed
+
+    def test_it_never_reaches_past_the_week_being_played(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """`coming_week` stays the ceiling.
+
+        A refresh only ever looks *back* for a week that has a forecast. One that
+        could also run forward would publish a slate before its week, which is the
+        single thing the SLO is about.
+        """
+        seed(store, crosswalk)
+        put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+        predict(store, crosswalk)
+
+        line = self.refresh(store, store_url, capsys, now=GENERATED_AT)
+
+        assert "requested_week=01" in line
+        assert "requested_week=02" not in line

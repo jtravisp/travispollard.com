@@ -54,6 +54,7 @@ from cfb.logging import (
     REASON_NO_STORED_STATE,
     REASON_NOT_A_CDN_ORIGIN,
     REASON_NOT_IN_SEASON,
+    REASON_NOTHING_FORECAST,
     RESULT_OK,
     RESULT_SKIP,
     log,
@@ -105,6 +106,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="games and lines only; defaults to the week that just completed",
     )
     cfbd.add_argument("--season", type=int)
+    cfbd.add_argument(
+        "--in-progress",
+        action="store_true",
+        dest="in_progress",
+        help="games and lines only; the week being played rather than the last one "
+             "to finish, so a board published mid-week can mark the games that have gone",
+    )
     cfbd.add_argument(
         "--force",
         action="store_true",
@@ -217,6 +225,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--week",
         metavar="N",
         help="1-15; defaults to the week about to be played",
+    )
+    publish.add_argument(
+        "--refresh",
+        action="store_true",
+        help="republish the newest week that has a forecast, for a Sunday or Monday "
+             "run after the games; never the SLO run, and never raises for a week "
+             "nobody has forecast yet",
     )
     publish.add_argument(
         "--force",
@@ -368,7 +383,14 @@ def _fetch_cfbd(args, *, moment: datetime, fetch) -> int:
             source="cfbd",
             resource=args.resource,
             result=RESULT_SKIP,
-            reason=REASON_NO_COMPLETED_WEEK,
+            # `--in-progress` runs out of weeks at the other end of the season:
+            # once the last regular week has closed there is none being played,
+            # which is a different fact from none having finished.
+            reason=(
+                REASON_NO_COMING_WEEK
+                if getattr(args, "in_progress", False)
+                else REASON_NO_COMPLETED_WEEK
+            ),
         )
         return 0
 
@@ -681,17 +703,18 @@ def _publish(args, *, moment: datetime) -> int:
         )
         return 0
 
-    week = (
-        _week_partition(args.week, flag="--week")
-        if args.week is not None
-        else coming_week(moment, calendar=calendar)
-    )
+    if args.week is not None:
+        week = _week_partition(args.week, flag="--week")
+    elif args.refresh:
+        week = _refresh_week(_store(args.store), season=season, moment=moment, calendar=calendar)
+    else:
+        week = coming_week(moment, calendar=calendar)
     if week is None:
         log(
             EVENT_PUBLISHED,
             season=season,
             result=RESULT_SKIP,
-            reason=REASON_NO_COMING_WEEK,
+            reason=REASON_NOTHING_FORECAST if args.refresh else REASON_NO_COMING_WEEK,
         )
         return 0
 
@@ -1186,7 +1209,58 @@ def _cfbd_week(args, *, calendar, moment: datetime) -> str | None:
         return "season"
     if args.week is not None:
         return _week_arg(args)
+    if getattr(args, "in_progress", False):
+        # The week being played, not the last one to finish. A week's results are
+        # otherwise only captured once its partition closes -- the Monday after --
+        # so the board published on Thursday and Friday can never mark a game that
+        # has gone, and `_next_fixture` keeps naming a fixture that has kicked off.
+        # SPEC-phase1 8.3.
+        return coming_week(moment, calendar=calendar)
     return last_completed_week(moment, calendar=calendar)
+
+
+def _refresh_week(
+    store, *, season: int, moment: datetime, calendar
+) -> str | None:
+    """The week a `--refresh` run publishes: the newest one that has a forecast.
+
+    **A refresh is not the SLO run and must not resolve like one.** The Thursday
+    and Friday publishes take `coming_week` and raise when it has no predictions,
+    because that is the SLO failing out loud (§8). A Sunday or Monday run cannot
+    use the same rule: a CFBD week closes on the Monday, so by Monday midday
+    `coming_week` has already moved to a week nobody forecasts until Thursday, and
+    the same raise would turn every Monday red for a week that has not gone wrong.
+
+    So the ceiling is `coming_week` -- or `last_completed_week` once the regular
+    season has run out of weeks -- and the answer is the newest week at or below it
+    that actually has predictions stored. On a Sunday that is the week just played;
+    on a Monday, after the partition closed, it is still the week just played.
+
+    `None` when nothing has been forecast at all, which is a skip rather than a
+    failure: before the season's first Thursday there is no board to refresh, and a
+    red run then would be an alert about the calendar rather than about the
+    pipeline.
+
+    **This is the one resolver allowed to fall back**, and only because the caller
+    said `--refresh`. A Thursday publish that quietly showed last week's board when
+    `cfb predict` had failed would remove the signal §8 exists to give.
+    """
+    from cfb.predict import index_entries
+    from cfb.sources import week_position
+
+    ceiling = coming_week(moment, calendar=calendar) or last_completed_week(
+        moment, calendar=calendar
+    )
+    if ceiling is None:
+        return None
+
+    limit = week_position(ceiling)
+    forecast = sorted(
+        {entry.week for entry in index_entries(store) if entry.season == season},
+        key=week_position,
+    )
+    eligible = [week for week in forecast if week_position(week) <= limit]
+    return eligible[-1] if eligible else None
 
 
 def _week_arg(args) -> str:
