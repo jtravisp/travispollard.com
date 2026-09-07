@@ -1,0 +1,89 @@
+# SPEC-phase1 §8.3. Put the weekend on the page.
+#
+# **The site went stale from Friday to Thursday and the front page lied while it
+# did.** `/cfb` was only built Thursday and Friday, so whatever it said on Friday
+# stood for six days -- and after Saturday's games it was naming a fixture that
+# had already been played. On 2026-09-07 the headline still read Texas State,
+# from two days earlier.
+#
+# Sunday runs after `cfb-score`, so the page picks up the week's record and
+# `last_result` stops being null. Monday catches the Sunday and Monday games that
+# a Sunday-morning run cannot see -- CFBD weeks carry them, and 2026 week 1 ended
+# on a Monday night.
+#
+# **This is not the SLO run and must not resolve its week like one.** A CFBD week
+# closes on the Monday, so by Monday midday `coming_week` has moved to a week
+# nobody forecasts until Thursday; publishing that would raise, and every Monday
+# would be red for a pipeline that is fine. `--refresh` looks back instead --
+# never forward -- for the newest week that has a forecast. The Thursday and
+# Friday publishes keep the strict rule, because a publish that quietly showed
+# last week's board when `cfb predict` had failed would remove the signal §8
+# exists to give.
+name: cfb-refresh
+
+on:
+  schedule:
+    - cron: "0 13 * * 0" # Sunday 13:00 UTC, after cfb-score
+    - cron: "0 13 * * 1" # Monday 13:00 UTC
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # **Both fetches, unconditionally, because the two days need different
+      # weeks and a cron test in YAML is the calendar arithmetic §11 keeps out of
+      # here.** On Sunday the week is still open, so `--in-progress` is the one
+      # that lands and the plain fetch re-pulls a week already captured. On Monday
+      # the partition has closed, so it is the other way round. Each run therefore
+      # spends one useful call and one redundant one -- four a week against the
+      # 1,000-a-month tier of SPEC-phase0 §5.1, which is the cheapest way to buy
+      # an ordering guarantee.
+      #
+      # Both are allowed to find no week and say so; neither failing is a reason
+      # to skip the publish, which has its own guard.
+      - name: Capture the week being played
+        run: uv run cfb fetch cfbd --resource games --in-progress
+
+      - name: Capture the week that has finished
+        run: uv run cfb fetch cfbd --resource games
+
+      - name: Rebuild /cfb/data/*
+        run: uv run cfb publish --refresh
+
+      # The same outside check `cfb-publish` runs. A refresh that wrote to the
+      # bucket while the CDN kept serving Friday's page would be worse than not
+      # running: the log would say the weekend was published and the reader would
+      # still be looking at a game from before it.
+      - name: Confirm the site is serving what was just published
+        run: |
+          for doc in next-game slate accuracy models; do
+            url="https://travispollard.com/cfb/data/$doc.json"
+            code=$(curl -sS -o /tmp/$doc.json -w '%{http_code}' "$url")
+            echo "$url -> $code"
+            [ "$code" = "200" ] || { echo "::error::$url returned $code"; exit 1; }
+            python -c "import json,sys; json.load(open('/tmp/$doc.json'))" \
+              || { echo "::error::$url is not valid JSON"; exit 1; }
+          done

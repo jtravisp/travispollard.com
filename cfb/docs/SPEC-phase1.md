@@ -1026,8 +1026,10 @@ answering a question they did not ask.
 | Sun 12:30 UTC | `cfb-score.yml` | update Elo, score last week's predictions, write `scored/` |
 | Tue 12:00 UTC | `cfb-sagarin.yml` *(exists)* | snapshot, freshness check |
 | Thu 12:00 UTC | `cfb-predict.yml` | generate and write `predictions/` for the coming slate |
-| Thu 12:30 UTC | `cfb-publish.yml` | build `/cfb/data/*`, upload, invalidate |
-| Fri 12:00 UTC | `cfb-publish.yml` | again, for lines that moved |
+| Thu 12:30 UTC | `cfb-publish.yml` | capture results for the week, build `/cfb/data/*`, upload, invalidate |
+| Fri 12:00 UTC | `cfb-publish.yml` | again, for lines that moved and Thursday's games |
+| Sun 13:00 UTC | `cfb-refresh.yml` | after scoring: put the week's record on the page |
+| Mon 13:00 UTC | `cfb-refresh.yml` | again, for Sunday and Monday games |
 
 Every step is a command a human runs locally, per Phase 0 §11. All of them gate on `calendar.in_season`.
 
@@ -1099,6 +1101,43 @@ first and last kickoff, with four clear days between weeks, so no week ever span
 Under that fixture the old reading is correct. The fixture encoded an assumption the real source does
 not hold — the same shape of failure as a Sagarin fixture that only ever covered the preseason page.
 `TestComingWeek` is pointed at the committed real calendar for that reason.
+
+### 8.3 The page went stale from Friday to Thursday, and lied while it did
+
+`/cfb` was built on Thursday and Friday only, so whatever it said on Friday stood for six days. After
+Saturday's games it was naming a fixture that had already been played: on 2026-09-07 the headline
+still read Texas State, from two days earlier, and the board showed **0 of 98** games played.
+
+**Two mechanics combined, and neither was wrong on its own.** `cfb-cfbd` captures a week's results
+once its partition *closes* — the Monday after — so `_finished` had nothing fresher than a capture
+taken before the games. `_next_fixture` asks for "the next unplayed game" and decides *played* on that
+evidence rather than a clock (§3.3's rule, and the right one), so with stale evidence it kept naming a
+game that had gone.
+
+Two changes, in the places that fix the two mechanics:
+
+**Results are captured in the publish job, as a step.** `cfb fetch cfbd --resource games
+--in-progress` takes the week being played rather than the last to finish. It is a step and not a
+neighbouring job because **ordering by cron offset does not hold**: §8.1 assumed 5–15 minutes of
+Actions drift and over three hours has been measured since, so two jobs half an hour apart are not
+ordered. Two steps are.
+
+**A Sunday and Monday refresh** (`cfb-refresh.yml`) rebuilds the page after the games. Sunday runs
+after `cfb-score`, so the record reaches the page and `last_result` stops being null; Monday catches
+the Sunday and Monday games a Sunday-morning run cannot see — CFBD weeks carry them, and 2026 week 1
+ended on a Monday night.
+
+**A refresh cannot resolve its week the way the SLO run does.** A CFBD week closes on the Monday, so
+by Monday midday `coming_week` has already moved to a week nobody forecasts until Thursday. The SLO's
+"raise when that week has no predictions" is right for Thursday and would redden every Monday. So
+`cfb publish --refresh` takes the newest week at or below that ceiling which actually has a forecast —
+looking back only, never forward, because publishing a slate before its week is the one thing the SLO
+is about. It skips with `nothing_forecast` when there is no board yet, which is the ordinary state
+before the season's first Thursday.
+
+**The strict rule is unchanged for Thursday and Friday**, and that is why `--refresh` is a flag rather
+than the default. A publish that quietly showed last week's board when `cfb predict` had failed would
+remove the signal §8 exists to give.
 
 ---
 

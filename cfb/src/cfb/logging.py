@@ -44,6 +44,7 @@ __all__ = [
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
     "REASON_NO_COMING_WEEK",
+    "REASON_NOTHING_FORECAST",
     "REASON_NO_STORED_STATE",
     "RESULT_OK",
     "RESULT_SKIP",
@@ -134,6 +135,15 @@ REASON_NO_STORED_STATE = "no_stored_state"
 #: kickoff onward, and a skip rather than an error for the same reason
 #: `no_completed_week` is: every December Thursday would otherwise be red.
 REASON_NO_COMING_WEEK = "no_coming_week"
+
+#: A ``--refresh`` publish found no week with a forecast at or below its ceiling.
+#:
+#: Distinct from ``no_coming_week`` on purpose. That one says the calendar has run
+#: out of weeks; this one says nothing has been forecast yet, which is the ordinary
+#: state of the Sunday and Monday runs before the season's first Thursday. Reading
+#: one as the other would send someone to the calendar for a problem that is only
+#: a date.
+REASON_NOTHING_FORECAST = "nothing_forecast"
 
 # --- why a publish did not invalidate (SPEC-phase1 6.5) -----------------------
 #: The store is not the bucket the CDN reads. A `file://` publish has no edge

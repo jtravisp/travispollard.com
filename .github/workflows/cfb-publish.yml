@@ -78,6 +78,22 @@ jobs:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1
 
+      # **Results first, in this job rather than a neighbouring one.** The board
+      # marks a game played from the newest `/games` capture, and `cfb-cfbd` only
+      # captures a week once its partition has closed -- the Monday after. So
+      # without this the Friday board could never mark Thursday's games, and
+      # `_next_fixture` kept naming a fixture that had already kicked off.
+      #
+      # A step rather than a scheduled job because ordering by cron offset does not
+      # hold: Actions drift was 5-15 minutes when SPEC-phase1 8.1 was written and
+      # has been measured at over three hours since. Two jobs half an hour apart
+      # are not ordered; two steps are. SPEC-phase1 8.3.
+      #
+      # It is allowed to find nothing -- out of season, or before the first week --
+      # and says so rather than failing.
+      - name: Capture results for the week being published
+        run: uv run cfb fetch cfbd --resource games --in-progress
+
       # Same week default as `cfb predict`, and that is not a coincidence:
       # Thursday's forecast and Friday's page are two halves of one week, so a
       # publish that resolved the week differently would put a slate on the site
