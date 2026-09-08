@@ -72,6 +72,12 @@ The title line is a usable state flag — it reads STARTING preseason and change
 
 The preseason page has no internal date stamp. Its title line is `2026 College Football STARTING ratings` — season and state, nothing else. In-season pages carry a "through games of <date>" stamp. So the parsed date stamp must be nullable, and a freshness check has nothing to compare until the first in-season page lands.
 
+**The stamp's tail changes, and it has changed twice.** On 2026-09-08 it began carrying a week label past the weekday: `2026 College Football through games of September 7 Monday - Week 1`. Strip it; never read it. **Sagarin's week numbering is not CFBD's** — that page sits inside CFBD week 2 and calls itself Week 1, because Sagarin counts the weeks that have been *played* and CFBD partitions the ones being played. A label used as a partition key misfiles every snapshot from there to January, under a name that looks entirely reasonable. The week comes from the committed calendar; the only thing the stamp is wanted for is the date.
+
+Order matters when stripping. The label sits past the weekday, so an anchored trailing-weekday pattern matches nothing while the label is there: take the label off first, then the weekday.
+
+Keep the strip explicit — a week number, not "everything after the weekday". Two format changes have now landed on this one line in eight days, and both were found because an unrecognised tail raised: a red Tuesday, a stored-but-unparsed snapshot, and a person who looked. A permissive tail would have read both and reported neither.
+
 **The in-season stamp carries no year and trails the weekday.** The 2026-09-01 capture reads `2026 College Football through games of August 29 Saturday` — month, day, then the weekday, unseparated. The year is not on the stamp and must be taken from the season on the same title line, which means a January stamp on a 2026 page is 2027. Do not reach for a year-less `strptime`: it defaults to 1900, cannot represent February 29, and is deprecated for exactly that. Append the year to the text before parsing instead.
 
 The predictions section
