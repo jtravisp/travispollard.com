@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>College Football Ratings Page</title>
+<script language="javascript">
+<!--
+   if (window != window.top)
+     top.location.href = location.href;
+  / -->
+</script>
+</head>
+<body>
+<br>
+<body bgcolor="#ffffff" text="#000000" link="#0000FF"
+vlink="#551A8B" alink="#FF0000">
+<a href="http:/aa.usno.navy.mil/data/docs/RS_OneDay.html"> <img border=0 width=200
+height=200 src="http://sagarin.com/sports/AAlogo.jpg"></a>&nbsp;
+<p>
+<font size=6> <a href="http:/tycho.usno.navy.mil/"><b>United States Naval
+Observatory</b></a></font>
+<p>&nbsp; <br>
+<table border=3><tr><th bgcolor=000000>
+<img border=0 width=113 height=20
+src="http:/tycho.usno.navy.mil/cgi-bin/nph-usnoclock.gif?zone=UTC;ticks=60"
+alt="Clock requires Netscape"></th></tr></table> <p>
+<font size=2 color="#0000ff">note: clock runs for 30 seconds; it may skip
+seconds; to restart click reload</font><br>
+<p></p>
+</td></tr>
+<center><hr></center>
+<h2><font size=+3>Jeff Sagarin's<sup><font size=1>tm</font></sup> College Football Ratings - Indiana: Bring Back Dane Fife!</font></h2>
+<center><hr></center>
+<p></p><center><strong><font color="#bb0000">[ <a
+href="http://sagarin.com/sports/computer.jpg">My Computer Room</a>
+</font><font color="#bb0000"> ]</font></strong></center>
+<p>
+</p><p></p><center><strong><font color="#bb0000">[ <a
+href="http://sagarin.com/sports/sports.html"><font size=6>Jeff's Sports Ratings</font> - <font size=4>the only place to find my updated ratings</font></a>]
+</strong></center></font color>
+<p></p><center><b>my ratings are no longer updated on the USA Today website</b></center>
+<p>
+<center><b>Email:</b>
+<a href="mailto:Jeff Sagarin<jsagarin@attglobal.net>">Jeff Sagarin</center></a></p>
+<p>
+<center>All Contents Copyright &copy; 2026 Jeff Sagarin<sup><font size=1>tm</font></sup>. All Rights
+Reserved.</center></p>
+<pre>
+<p>
+<center>
+"I particularly condemn the way our political leaders supplied the
+manpower for that war.  The policies - determining who would be
+drafted and who would be deferred, who would serve and who would
+escape, who would die and who would live - were an antidemocratic
+disgrace.  I can never forgive a leadership that said, in effect: These
+young men - poorer, less educated, less privileged - are expendable
+(someone described them as 'economic cannon fodder'), but the rest are
+too good to risk.  <b>I am angry that so many of the sons of the powerful
+and well placed and so many professional athletes (who were probably
+healthier than any of us) managed to wangle slots in Reserve and
+National Guard units.</b>  Of the many tragedies of <b>Vietnam</b>, this raw
+class discrimination strikes me as the most damaging to the ideal that
+all Americans are created equal and owe equal allegiance to their country."
+</center>
+</pre>
+<p>
+<center>page 148  <b>"MY AMERICAN JOURNEY"</b> by <b>Colin Powell</b></center>
+<center>Copyright 1995 by <b>Colin L. Powell</b></center>
+<center>published by Random House</center>
+<center>ISBN 0-679-43296-5</center>
+</p>
+<pre>
+<b>
+2026 COLLEGE FOOTBALL through results of SEPTEMBER 7 MONDAY - WEEK 1
+</b>
+this output has three parts: (1) teams listed by RATING top-to-bottom
+                             (2) CONFERENCE AVERAGES
+                                 (listed top-to-bottom & alphabetically)
+                             (3) teams listed by CONFERENCE
+                                 (listed in order within conferences)
+The SCHEDULE ratings represent what the rating would have to be for a
+hypothetical team to have a mathematical expectation of winning precisely 50%
+of their games against the schedule played by the team in question in the games
+that it has played so far.  The schedule difficulty of each given game takes
+into account the rating of the opponent and the location of the game. This
+is the same concept that is used in computing the WIN50% conference ratings.
+In COLLEGE FOOTBALL the W-L records include ALL games, but ONLY
+games between the <b>266 TEAMS RATED</b> here are used for RATING and SCHEDULE
+STRENGTH computations.
+To make predictions for upcoming games, simply compare the RATINGS of
+the teams in question and allow an ADDITIONAL  3  points for the home
+team.  Thus, for example, a HOME team with a rating of 92 would be
+favored by  5  points over a VISITING team having a rating of 90.
+Or a VISITING team with a rating of 89 would be favored by  7  points
+over a HOME team having a rating of 79.
+NOTE: Use whatever home advantage is listed in the output below.
+      In the example just above, a home edge of 3 was shown for
+      illustrative purposes. The home edge will vary during the season.
+<b>Several different home edges are shown, one for each of the several different type of ratings
+directly over their respective columns.</b>
+<h3><font size=+2>The numbers to the right of a team's schedule strength
+are its rank of schedule - (in parentheses) - and its
+record versus teams in <b><font color="#0000ff">these rating's</font> <font color="#9900ff">CURRENT</font> top 10</b>
+and <b>top 30</b> respectively.</font></h3>
+<b>Teams that appear to be tied to two decimal places in a given column are actually
+different when carried to more decimal places in the computer's internal arithmetic.</b>
+----------------------------------------------------------------------------------------------------------------
+The <b><font color="#0000ff">PREDICTOR</font></b>, is such that the <b>score</b> is the <b>only thing</b> that <b>matters</b>.
+<b><font color="#0000ff">PREDICTOR</font></b> is also known as <b><font color="#0000ff">PURE_POINTS</font>, BALLANTINE, RHEINGOLD, WHITE OWL</b>
+and is a very good <b><font color="#0000ff">PREDICTOR</font></b> of <b>future games</b>.
+----------------------------------------------------------------------------------------------------------------
+<b><font color="#bb0000">GOLDEN_MEAN</font></b> also utilizes the <b>actual SCORES</b> of the games in a different way but is also <b>completely SCORE BASED</b>
+and thus should be a good match for the <b><font color="#0000ff">PURE POINTS</font></b> in terms of predictive accuracy for upcoming games.
+----------------------------------------------------------------------------------------------------------------
+The <b><font color="#006B3C">RECENT</font></b>, is <b>score-based</b> and weights <b><font color="#006B3C">RECENT</font></b> play more heavily than earlier games. Its effect will become
+more pronounced the longer a season goes if a given team happens to have an upward or downward trend.
+----------------------------------------------------------------------------------------------------------------
+The overall <b><font color="#9900ff">RATING</font></b> is a <b>synthesis</b> of the three different <b>SCORE-BASED</b> methods, <b><font color="#0000ff">PREDICTOR(PURE_POINTS)</font></b>, <b><font color="#bb0000">GOLDEN_MEAN</font></b>,
+and <b><font color="#006B3C">RECENT</font></b> and thus should be a good predictor in its own right.
+<h2>These ratings reflect a score of Western Michigan defeating Michigan 12-7.
+<a name="Top_of_Page"></a>
+<h2><font size=+2><a href="#Predictions_with_Totals_and_Moneylines"><b>Predictions_with_Totals_and_Moneylines</b></a></h2></font>
+<b>just click on "Predictions_with_Totals_and_Moneylines" and it will take you to the daily predictions at the bottom of the file
+   where you'll also see the additional set of EXPERIMENTAL predictions which are the basic predictions that are adjusted to take into
+   account each team's tendencies of performance at home and away along with the extra picks column of <font size=+2>STRONG RECENT</font></b>
+</pre>
+<b>
+<pre>
+_________________________________________________________________________________________________________________________________________________
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   1  Notre Dame           A  =  98.11    1   0   79.83(  26)    0   0  |    0   0  |   98.37    2 |  100.02    2 |   96.73    1 |  103.03    2  I-A IND.            (A)
+   2  Texas                A  =  96.00    1   0   59.73(  94)    0   0  |    0   0  |   96.27    5 |   96.81    5 |   95.16    3 |  102.62    3  SEC                 (A)
+   3  Ohio State           A  =  94.82    1   0   47.47( 181)    0   0  |    0   0  |   99.51    1 |  100.55    1 |   89.82    4 |   87.90   24  BIG TEN             (A)
+   4  LSU                  A  =  93.46    1   0   73.09(  43)    0   0  |    0   0  |   91.40    8 |   92.77    8 |   96.72    2 |  106.32    1  SEC                 (A)
+   5  Indiana              A  =  93.17    1   0   59.33(  97)    0   0  |    0   0  |   97.29    4 |   98.29    4 |   88.28    8 |   85.62   28  BIG TEN             (A)
+   6  Miami-Florida        A  =  92.28    1   0   67.27(  61)    0   0  |    0   0  |   93.92    7 |   94.73    7 |   89.29    5 |   96.26    6  ACC                 (A)
+   7  Georgia              A  =  91.57    1   0   41.06( 222)    0   0  |    0   0  |   94.79    6 |   95.44    6 |   87.21    9 |   89.09   19  SEC                 (A)
+   8  Oregon               A  =  90.36    1   0   72.03(  48)    0   0  |    0   0  |   97.74    3 |   99.32    3 |   83.56   19 |   74.82   57  BIG TEN             (A)
+   9  Texas A&M            A  =  89.67    1   0   49.69( 163)    0   0  |    0   0  |   91.17    9 |   91.51    9 |   86.84   11 |   90.78   17  SEC                 (A)
+  10  Oklahoma             A  =  89.44    1   0   48.51( 171)    0   0  |    0   0  |   90.98   10 |   91.30   10 |   86.56   14 |   90.41   18  SEC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  11  Alabama              A  =  89.33    1   0   60.03(  92)    0   0  |    0   0  |   90.31   11 |   90.77   12 |   87.04   10 |   91.43   14  SEC                 (A)
+  12  Mississippi          A  =  87.62    1   0   81.75(  20)    0   0  |    1   0  |   89.52   12 |   90.79   11 |   83.72   18 |   80.78   39  SEC                 (A)
+  13  Florida              A  =  87.36    1   0   56.02( 120)    0   0  |    0   0  |   87.23   14 |   87.34   15 |   86.80   12 |   93.63    9  SEC                 (A)
+  14  Penn State           A  =  87.23    1   0   56.04( 119)    0   0  |    0   0  |   87.05   16 |   87.15   16 |   86.75   13 |   93.65    8  BIG TEN             (A)
+  15  Tennessee            A  =  84.67    1   0   44.33( 200)    0   0  |    0   0  |   86.62   17 |   86.91   17 |   80.92   26 |   81.75   35  SEC                 (A)
+  16  South Carolina       A  =  84.44    1   0   44.40( 199)    0   0  |    0   0  |   84.09   21 |   83.79   23 |   84.39   16 |   91.87   12  SEC                 (A)
+  17  Iowa                 A  =  83.33    1   0   49.97( 160)    0   0  |    0   0  |   84.59   20 |   84.79   19 |   80.31   27 |   82.34   31  BIG TEN             (A)
+  18  Utah                 A  =  82.71    1   0   49.23( 168)    0   0  |    0   0  |   81.99   27 |   81.64   27 |   83.33   20 |   91.53   13  BIG 12              (A)
+  19  Southern California  A  =  82.69    2   0   56.85( 111)    0   0  |    0   0  |   85.52   19 |   87.91   14 |   76.97   38 |   76.91   49  BIG TEN             (A)
+  20  Washington           A  =  82.67    1   0   63.57(  81)    0   0  |    0   0  |   85.84   18 |   86.85   18 |   77.17   36 |   71.44   69  BIG TEN             (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  21  UCLA                 A  =  82.03    1   0   73.02(  44)    0   0  |    0   0  |   80.04   30 |   81.80   26 |   83.08   21 |   90.87   16  BIG TEN             (A)
+  22  Kansas State         A  =  81.90    1   0   42.04( 218)    0   0  |    0   0  |   79.26   36 |   78.37   41 |   89.14    7 |   98.99    4  BIG 12              (A)
+  23  Louisville           A  =  81.75    0   1   87.62(  12)    0   0  |    0   1  |   82.14   26 |   80.31   31 |   81.57   25 |   84.51   30  ACC                 (A)
+  24  Auburn               A  =  81.57    1   0   76.02(  35)    0   0  |    0   0  |   83.37   23 |   84.24   20 |   77.35   35 |   73.14   63  SEC                 (A)
+  25  Virginia             A  =  81.26    1   0   70.55(  53)    0   0  |    0   0  |   78.67   39 |   80.33   30 |   83.78   17 |   92.52   10  ACC                 (A)
+  26  Pittsburgh           A  =  81.01    1   0   53.58( 133)    0   0  |    0   0  |   79.65   32 |   79.39   35 |   82.77   22 |   91.04   15  ACC                 (A)
+  27  Minnesota            A  =  80.74    1   0   42.04( 217)    0   0  |    0   0  |   79.70   31 |   79.37   36 |   81.81   24 |   87.85   25  BIG TEN             (A)
+  28  Virginia Tech        A  =  80.49    1   0   33.89( 247)    0   0  |    0   0  |   78.42   40 |   77.69   43 |   84.81   15 |   93.84    7  ACC                 (A)
+  29  SMU                  A  =  80.20    1   0   76.93(  32)    0   0  |    0   0  |   82.51   25 |   83.73   24 |   75.10   46 |   73.70   62  ACC                 (A)
+  30  Kentucky             A  =  79.93    1   0   54.49( 127)    0   0  |    0   0  |   79.56   34 |   79.72   34 |   79.10   31 |   82.22   32  SEC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  31  Wisconsin            A  =  79.83    0   1   98.11(   2)    0   1  |    0   1  |   81.81   28 |   80.29   32 |   76.69   40 |   70.38   76  BIG TEN             (A)
+  32  Mississippi State    A  =  79.67    1   0   46.02( 189)    0   0  |    0   0  |   78.98   38 |   78.55   40 |   80.00   29 |   87.20   26  SEC                 (A)
+  33  Nebraska             A  =  79.21    1   0   54.39( 128)    0   0  |    0   0  |   80.22   29 |   80.58   29 |   76.02   44 |   76.27   53  BIG TEN             (A)
+  34  Northwestern         A  =  79.13    1   0   66.69(  63)    0   0  |    0   0  |   78.00   42 |   78.91   37 |   78.93   32 |   81.44   36  BIG TEN             (A)
+  35  Arizona State        A  =  78.98    1   0   36.87( 239)    0   0  |    0   0  |   78.08   41 |   77.40   44 |   79.94   30 |   88.51   21  BIG 12              (A)
+  36  Michigan             A  =  78.81    0   1   65.66(  66)    0   0  |    0   0  |   87.22   15 |   83.89   21 |   70.48   66 |   60.29  116  BIG TEN             (A)
+  37  Vanderbilt           A  =  78.79    1   0   56.27( 114)    0   0  |    0   0  |   79.08   37 |   79.94   33 |   76.23   43 |   71.47   68  SEC                 (A)
+  38  Missouri             A  =  78.66    1   0   36.40( 242)    0   0  |    0   0  |   82.65   24 |   83.85   22 |   71.79   57 |   64.91  100  SEC                 (A)
+  39  BYU                  A  =  78.28    1   0   37.15( 237)    0   0  |    0   0  |   83.38   22 |   83.43   25 |   70.90   62 |   76.38   52  BIG 12              (A)
+  40  Texas Tech           A  =  77.20    1   0   51.11( 150)    0   0  |    0   0  |   89.03   13 |   90.42   13 |   65.58   85 |   58.12  131  BIG 12              (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  41  Arizona              A  =  77.15    1   0   52.34( 144)    0   0  |    0   0  |   77.62   44 |   77.97   42 |   74.53   48 |   74.60   59  BIG 12              (A)
+  42  Illinois             A  =  76.94    1   0   52.72( 142)    0   0  |    0   0  |   79.61   33 |   80.65   28 |   71.10   61 |   64.97   99  BIG TEN             (A)
+  43  Maryland             A  =  76.30    1   0   33.34( 248)    0   0  |    0   0  |   75.39   48 |   74.63   47 |   77.09   37 |   85.09   29  BIG TEN             (A)
+  44  Houston              A  =  76.08    1   0   58.63( 104)    0   0  |    0   0  |   77.84   43 |   78.83   38 |   71.18   60 |   66.26   93  BIG 12              (A)
+  45  Baylor               A  =  76.02    0   1   81.57(  22)    0   0  |    0   1  |   75.74   47 |   73.90   52 |   76.63   41 |   80.84   38  BIG 12              (A)
+  46  Kansas               A  =  75.98    1   0   40.80( 224)    0   0  |    0   0  |   74.73   50 |   74.49   48 |   76.90   39 |   81.23   37  BIG 12              (A)
+  47  Arkansas             A  =  75.88    1   0   51.37( 148)    0   0  |    0   0  |   74.01   51 |   75.55   46 |   76.25   42 |   69.33   79  SEC                 (A)
+  48  Central Florida(UCF) A  =  75.54    1   0   33.93( 246)    0   0  |    0   0  |   73.73   52 |   72.64   58 |   78.80   33 |   88.26   22  BIG 12              (A)
+  49  Clemson              A  =  75.50    0   1   95.88(   4)    0   1  |    0   1  |   79.41   35 |   78.62   39 |   69.10   72 |   59.50  119  ACC                 (A)
+  50  Syracuse             A  =  74.95    1   0   42.80( 210)    0   0  |    0   0  |   71.87   61 |   70.76   63 |   82.18   23 |   92.44   11  ACC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  51  Florida State        A  =  74.52    1   1   66.06(  64)    0   0  |    0   1  |   75.08   49 |   75.80   45 |   71.23   59 |   70.04   77  ACC                 (A)
+  52  Boise State          A  =  74.44    0   1   92.77(   6)    0   1  |    0   1  |   72.25   58 |   70.11   64 |   80.28   28 |   89.02   20  PAC-12              (A)
+  53  North Carolina       A  =  74.18    1   0   74.04(  39)    0   0  |    0   0  |   72.34   57 |   73.95   50 |   74.25   49 |   79.60   41  ACC                 (A)
+  54  TCU                  A  =  74.04    0   1   74.18(  38)    0   0  |    0   0  |   76.38   45 |   73.73   53 |   70.67   63 |   65.32   98  BIG 12              (A)
+  55  Georgia Tech         A  =  73.96    0   1   70.59(  52)    0   0  |    0   0  |   75.91   46 |   73.91   51 |   70.63   64 |   65.80   94  ACC                 (A)
+  56  Duke                 A  =  73.67    1   0   62.09(  89)    0   0  |    0   0  |   73.16   54 |   74.07   49 |   71.86   56 |   73.84   61  ACC                 (A)
+  57  Cincinnati           A  =  73.55    1   0   62.31(  86)    0   0  |    0   0  |   71.94   60 |   72.86   57 |   73.77   51 |   79.60   42  BIG 12              (A)
+  58  Colorado             A  =  73.01    1   0   76.37(  33)    0   0  |    0   0  |   71.45   64 |   72.37   59 |   73.07   52 |   77.89   46  BIG 12              (A)
+  59  Wake Forest          A  =  72.18    1   0   50.41( 159)    0   0  |    0   0  |   72.75   56 |   73.36   55 |   68.74   76 |   66.75   91  ACC                 (A)
+  60  Michigan State       A  =  71.49    1   0   58.12( 106)    0   0  |    0   0  |   72.05   59 |   73.13   56 |   67.64   79 |   64.08  102  BIG TEN             (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  61  Army West Point      A  =  71.47    1   0   42.56( 213)    0   0  |    0   0  |   66.22   71 |   64.98   78 |   89.23    6 |   98.72    5  AMERICAN            (A)
+  62  California           A  =  70.61    0   1   79.62(  27)    0   0  |    0   1  |   73.03   55 |   70.88   62 |   66.32   83 |   58.53  125  ACC                 (A)
+  63  NC State             A  =  70.55    0   1   81.26(  23)    0   0  |    0   1  |   73.53   53 |   71.74   60 |   65.17   86 |   56.43  140  ACC                 (A)
+  64  West Virginia        A  =  70.42    1   0   55.20( 124)    0   0  |    0   0  |   71.86   62 |   73.40   54 |   64.83   87 |   58.22  129  BIG 12              (A)
+  65  Iowa State           A  =  70.40    1   0   47.16( 182)    0   0  |    0   0  |   69.60   66 |   69.89   65 |   69.38   69 |   71.07   72  BIG 12              (A)
+  66  Montana State        AA =  69.78    2   0   42.84( 209)    0   0  |    0   0  |   67.43   69 |   66.85   68 |   72.92   53 |   75.90   54  BIG SKY             (AA)
+  67  North Dakota State   A  =  69.13    2   0   48.90( 170)    0   0  |    0   0  |   66.08   72 |   65.29   74 |   74.23   50 |   80.30   40  MOUNTAIN WEST       (A)
+  68  South Dakota State   AA =  69.10    1   1   53.28( 136)    0   0  |    0   0  |   68.10   67 |   67.49   67 |   69.21   70 |   71.77   67  MISSOURI VALLEY     (AA)
+  69  San Diego State      A  =  69.00    1   0   44.83( 194)    0   0  |    0   0  |   66.35   70 |   66.25   70 |   72.15   55 |   76.85   50  PAC-12              (A)
+  70  Purdue               A  =  68.99    1   0   44.05( 201)    0   0  |    0   0  |   70.18   65 |   70.99   61 |   64.07   90 |   61.39  109  BIG TEN             (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  71  Memphis              A  =  68.33    2   0   62.13(  88)    0   0  |    0   0  |   65.29   77 |   64.91   79 |   72.70   54 |   76.81   51  AMERICAN            (A)
+  72  Western Michigan     A  =  68.07    1   0   81.22(  24)    0   0  |    0   0  |   62.21   84 |   65.16   76 |   75.79   45 |   85.98   27  MAC                 (A)
+  73  Oklahoma State       A  =  67.96    0   1   67.87(  58)    0   0  |    0   0  |   71.75   63 |   69.01   66 |   61.73  105 |   52.69  157  BIG 12              (A)
+  74  New Mexico           A  =  67.92    1   0   50.48( 158)    0   0  |    0   0  |   65.58   75 |   65.58   73 |   70.10   67 |   77.62   48  MOUNTAIN WEST       (A)
+  75  UTSA                 A  =  67.31    1   0   46.97( 183)    0   0  |    0   0  |   65.88   74 |   65.92   71 |   67.44   80 |   72.47   65  AMERICAN            (A)
+  76  UNLV                 A  =  66.43    1   1   63.66(  80)    0   0  |    0   0  |   65.15   79 |   64.70   80 |   66.68   82 |   68.10   86  MOUNTAIN WEST       (A)
+  77  Washington State     A  =  65.98    0   1   85.08(  17)    0   0  |    0   1  |   64.31   81 |   62.16   85 |   68.88   73 |   74.61   58  PAC-12              (A)
+  78  Tulsa                A  =  65.46    1   0   65.55(  70)    0   0  |    0   0  |   60.73   89 |   63.20   83 |   70.02   68 |   79.06   44  AMERICAN            (A)
+  79  James Madison        A  =  65.11    1   0   57.86( 107)    0   0  |    0   0  |   63.88   82 |   65.17   75 |   63.46   96 |   63.66  103  SUN BELT EAST       (A)
+  80  Stanford             A  =  64.86    1   1   73.22(  42)    0   1  |    0   1  |   65.95   73 |   66.59   69 |   59.65  121 |   55.94  144  ACC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  81  Boston College       A  =  64.72    0   1   75.96(  36)    0   0  |    0   0  |   65.53   76 |   63.99   81 |   61.89  103 |   56.07  142  ACC                 (A)
+  82  South Florida        A  =  64.67    1   0   53.24( 137)    0   0  |    0   0  |   63.83   83 |   65.12   77 |   62.25   99 |   60.64  114  AMERICAN            (A)
+  83  Appalachian State    A  =  64.57    1   0   41.30( 220)    0   0  |    0   0  |   58.61  102 |   57.56  107 |   78.02   34 |   88.18   23  SUN BELT EAST       (A)
+  84  Tulane               A  =  64.50    0   1   76.08(  34)    0   0  |    0   0  |   64.44   80 |   62.60   84 |   63.57   95 |   61.59  107  AMERICAN            (A)
+  85  Louisiana-Lafayette  A  =  64.19    1   0   46.82( 184)    0   0  |    0   0  |   58.46  103 |   58.49   98 |   74.59   47 |   81.78   34  SUN BELT WEST       (A)
+  86  Louisiana Tech       A  =  63.61    1   0   25.69( 253)    0   0  |    0   0  |   59.73   93 |   57.73  106 |   71.36   58 |   81.99   33  SUN BELT WEST       (A)
+  87  Navy                 A  =  63.23    1   0   42.20( 216)    0   0  |    0   0  |   65.25   78 |   65.80   72 |   56.25  136 |   58.79  123  AMERICAN            (A)
+  88  Connecticut          A  =  63.15    1   0   39.00( 233)    0   0  |    0   0  |   59.53   96 |   58.53   97 |   68.81   75 |   78.57   45  I-A IND.            (A)
+  89  Temple               A  =  63.14    1   0   49.74( 162)    0   0  |    0   0  |   58.81  101 |   59.42   94 |   68.52   77 |   75.10   55  AMERICAN            (A)
+  90  Air Force            A  =  63.07    1   0   39.81( 227)    0   0  |    0   0  |   61.17   87 |   61.04   88 |   63.94   92 |   69.83   78  MOUNTAIN WEST       (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  91  East Carolina        A  =  62.44    0   1   91.74(   9)    0   0  |    0   1  |   61.70   86 |   60.94   89 |   61.56  107 |   57.17  134  AMERICAN            (A)
+  92  Tarleton State       AA =  62.42    2   0   52.72( 141)    0   0  |    0   0  |   57.91  106 |   57.92  101 |   68.82   74 |   70.74   75  UAC                 (AA)
+  93  Nevada               A  =  62.24    1   0   51.04( 152)    0   0  |    0   0  |   57.14  111 |   57.90  103 |   69.16   71 |   79.20   43  MOUNTAIN WEST       (A)
+  94  Texas State          A  =  62.14    0   1   98.41(   1)    0   1  |    0   1  |   61.81   85 |   61.86   86 |   59.67  120 |   52.21  160  PAC-12              (A)
+  95  Kennesaw State       A  =  61.89    1   0   40.72( 225)    0   0  |    0   0  |   57.86  107 |   57.22  111 |   67.81   78 |   77.74   47  CONF-USA            (A)
+  96  North Texas          A  =  61.74    0   1   95.58(   5)    0   1  |    0   1  |   59.76   92 |   58.08   99 |   64.24   89 |   66.90   89  AMERICAN            (A)
+  97  South Dakota         AA =  61.55    2   0   42.69( 211)    0   0  |    0   0  |   59.18   98 |   58.88   96 |   63.38   97 |   66.76   90  MISSOURI VALLEY     (AA)
+  98  Rutgers              A  =  61.51    0   1   51.18( 149)    0   0  |    0   0  |   67.81   68 |   63.88   82 |   50.59  169 |   39.81  211  BIG TEN             (A)
+  99  Colorado State       A  =  61.49    1   0   50.70( 156)    0   0  |    0   0  |   58.27  105 |   59.05   95 |   63.97   91 |   71.18   70  PAC-12              (A)
+ 100  Montana              AA =  61.10    2   0   44.52( 197)    0   0  |    0   0  |   60.75   88 |   60.87   90 |   58.49  123 |   60.64  113  BIG SKY             (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 101  North Dakota         AA =  61.05    2   0   39.22( 230)    0   0  |    0   0  |   60.12   90 |   60.07   91 |   59.72  119 |   62.85  104  MISSOURI VALLEY     (AA)
+ 102  Oregon State         A  =  61.04    0   1   78.49(  30)    0   0  |    0   0  |   59.17   99 |   57.13  112 |   63.60   94 |   68.53   82  PAC-12              (A)
+ 103  Stephen F. Austin    AA =  60.97    2   0   46.29( 187)    0   0  |    0   0  |   55.55  118 |   54.61  120 |   70.48   65 |   74.93   56  SOUTHLAND           (AA)
+ 104  Toledo               A  =  60.53    0   1   73.90(  41)    0   0  |    0   0  |   59.03  100 |   57.06  113 |   62.21  101 |   65.76   95  MAC                 (A)
+ 105  San Jose State       A  =  60.42    1   1   72.28(  46)    0   0  |    0   1  |   56.63  112 |   54.45  121 |   67.24   81 |   72.53   64  MOUNTAIN WEST       (A)
+ 106  Old Dominion         A  =  60.30    1   0   37.13( 238)    0   0  |    0   0  |   59.65   94 |   61.27   87 |   56.73  133 |   52.57  158  SUN BELT EAST       (A)
+ 107  Liberty              A  =  60.27    0   1   67.52(  60)    0   0  |    0   0  |   59.57   95 |   57.73  105 |   60.18  116 |   59.98  117  CONF-USA            (A)
+ 108  Illinois State       AA =  59.29    2   0   41.26( 221)    0   0  |    0   0  |   56.48  113 |   56.69  115 |   61.24  110 |   68.32   83  MISSOURI VALLEY     (AA)
+ 109  Hawai'i              A  =  58.99    0   2   65.64(  67)    0   0  |    0   0  |   59.49   97 |   59.89   93 |   54.21  147 |   50.19  169  MOUNTAIN WEST       (A)
+ 110  Jacksonville State   A  =  58.88    1   1   56.14( 117)    0   0  |    0   0  |   58.35  104 |   57.47  108 |   57.34  127 |   59.35  121  CONF-USA            (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 111  Georgia Southern     A  =  58.73    1   0   39.18( 231)    0   0  |    0   0  |   56.13  116 |   56.44  116 |   60.10  118 |   66.71   92  SUN BELT EAST       (A)
+ 112  Austin Peay          AA =  58.68    1   1   63.96(  74)    0   0  |    0   0  |   54.75  125 |   53.54  127 |   64.35   88 |   68.59   81  UAC                 (AA)
+ 113  Marshall             A  =  58.45    0   1   89.64(  11)    0   0  |    0   1  |   57.69  108 |   57.92  102 |   56.26  135 |   49.36  171  SUN BELT EAST       (A)
+ 114  Florida Atlantic     A  =  58.43    0   1   89.77(  10)    0   0  |    0   1  |   57.64  109 |   57.85  104 |   56.31  134 |   49.49  170  AMERICAN            (A)
+ 115  UC Davis             AA =  58.40    2   0   45.02( 192)    0   0  |    0   0  |   57.33  110 |   57.38  109 |   56.99  129 |   59.95  118  BIG SKY             (AA)
+ 116  Southern Illinois    AA =  58.27    1   1   52.11( 146)    0   0  |    0   0  |   53.81  129 |   55.64  118 |   61.81  104 |   56.86  136  MISSOURI VALLEY     (AA)
+ 117  Fresno State         A  =  58.10    0   1   85.11(  16)    0   0  |    0   1  |   60.10   91 |   59.89   92 |   50.78  168 |   44.57  194  PAC-12              (A)
+ 118  Rice                 A  =  57.84    1   0   38.87( 234)    0   0  |    0   0  |   53.18  133 |   53.83  125 |   62.91   98 |   68.30   84  AMERICAN            (A)
+ 119  Arkansas State       A  =  57.83    0   1   70.74(  51)    0   0  |    0   0  |   54.78  124 |   53.58  126 |   61.54  109 |   58.19  130  SUN BELT WEST       (A)
+ 120  Coastal Carolina     A  =  57.61    0   1   72.83(  45)    0   0  |    0   0  |   54.93  123 |   52.71  130 |   61.54  108 |   68.16   85  SUN BELT EAST       (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 121  Delaware             A  =  57.40    1   0   36.12( 243)    0   0  |    0   0  |   56.47  114 |   56.80  114 |   55.35  138 |   62.54  105  CONF-USA            (A)
+ 122  South Alabama        A  =  57.35    1   0   43.64( 205)    0   0  |    0   0  |   56.39  115 |   57.32  110 |   54.74  144 |   61.34  111  SUN BELT WEST       (A)
+ 123  Eastern Michigan     A  =  57.05    1   1   54.00( 132)    0   0  |    0   0  |   53.22  132 |   53.00  128 |   61.22  111 |   60.88  112  MAC                 (A)
+ 124  Troy                 A  =  57.03    1   0   47.52( 180)    0   0  |    0   0  |   55.82  117 |   57.97  100 |   53.66  151 |   48.51  177  SUN BELT WEST       (A)
+ 125  Youngstown State     AA =  56.90    1   1   58.92( 100)    0   0  |    0   1  |   54.65  126 |   54.43  122 |   57.92  124 |   59.31  122  MISSOURI VALLEY     (AA)
+ 126  Ohio                 A  =  56.80    0   1   81.62(  21)    0   0  |    0   0  |   54.98  122 |   54.02  124 |   57.71  125 |   57.46  133  MAC                 (A)
+ 127  New Mexico State     A  =  56.74    1   1   56.22( 116)    0   0  |    0   0  |   53.85  128 |   51.83  140 |   60.79  115 |   67.06   87  CONF-USA            (A)
+ 128  Southern Miss        A  =  56.29    1   0   33.03( 249)    0   0  |    0   0  |   52.09  138 |   51.29  143 |   61.62  106 |   71.14   71  SUN BELT WEST       (A)
+ 129  Georgia State        A  =  56.03    1   0   31.29( 251)    0   0  |    0   0  |   51.91  140 |   51.25  144 |   61.03  113 |   70.77   73  SUN BELT EAST       (A)
+ 130  Miami-Ohio           A  =  56.00    0   1   83.43(  18)    0   0  |    0   1  |   55.55  119 |   56.39  117 |   52.28  161 |   44.01  198  MAC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 131  Tennessee Tech       AA =  55.91    2   0   48.45( 173)    0   0  |    0   0  |   52.56  135 |   51.16  145 |   60.11  117 |   67.03   88  SOUTHERN            (AA)
+ 132  Lehigh               AA =  55.75    2   0   43.06( 208)    0   0  |    0   0  |   51.87  141 |   50.33  146 |   61.09  112 |   68.88   80  PATRIOT             (AA)
+ 133  Fla. International   A  =  55.65    0   1   67.08(  62)    0   0  |    0   0  |   53.92  127 |   52.40  133 |   56.82  132 |   58.43  127  CONF-USA            (A)
+ 134  Bowling Green        A  =  55.34    0   1   60.01(  93)    0   0  |    0   0  |   50.65  147 |   49.16  157 |   62.09  102 |   60.59  115  MAC                 (A)
+ 135  UAB                  A  =  55.13    0   1   79.35(  28)    0   0  |    0   0  |   52.03  139 |   50.10  148 |   59.23  122 |   65.37   96  AMERICAN            (A)
+ 136  Northern Arizona     AA =  54.75    1   1   64.56(  73)    0   0  |    0   0  |   52.14  137 |   51.98  136 |   56.21  137 |   56.79  137  BIG SKY             (AA)
+ 137  Mercer               AA =  54.40    2   0   35.38( 244)    0   0  |    0   0  |   55.19  121 |   54.26  123 |   49.72  174 |   53.01  154  SOUTHERN            (AA)
+ 138  Southern Utah        AA =  54.26    1   1   56.22( 115)    0   0  |    0   0  |   51.87  142 |   51.74  141 |   55.21  140 |   56.02  143  BIG SKY             (AA)
+ 139  North Alabama        AA =  53.78    1   1   63.67(  79)    0   0  |    0   0  |   46.12  175 |   44.34  190 |   65.81   84 |   71.82   66  UAC                 (AA)
+ 140  Yale                 AA =  53.70    0   0    0.00(   0)    0   0  |    0   0  |   51.27  143 |   51.97  137 |   53.86  149 |   53.86  150  IVY LEAGUE          (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 141  Harvard              AA =  53.67    0   0    0.00(   0)    0   0  |    0   0  |   51.24  144 |   51.94  138 |   53.84  150 |   53.84  151  IVY LEAGUE          (AA)
+ 142  Massachusetts        A  =  53.59    1   0   63.92(  76)    0   0  |    0   0  |   43.84  190 |   48.05  166 |   63.77   93 |   74.56   60  MAC                 (A)
+ 143  Abilene Christian    AA =  53.52    0   2   65.63(  68)    0   0  |    0   0  |   53.31  131 |   52.41  132 |   50.84  167 |   51.85  163  UAC                 (AA)
+ 144  Western Kentucky     A  =  53.45    0   1   64.65(  72)    0   0  |    0   0  |   55.21  120 |   54.75  119 |   45.83  198 |   35.79  224  CONF-USA            (A)
+ 145  Idaho State          AA =  53.26    2   0   43.91( 202)    0   0  |    0   0  |   50.95  145 |   49.99  150 |   54.75  143 |   61.37  110  BIG SKY             (AA)
+ 146  Elon                 AA =  53.19    2   0   32.82( 250)    0   0  |    0   0  |   49.18  157 |   49.27  156 |   56.83  131 |   65.37   97  COASTAL ATHLETIC    (AA)
+ 147  Wyoming              A  =  53.11    0   1   63.90(  77)    0   0  |    0   0  |   52.93  134 |   52.38  134 |   49.95  173 |   42.73  203  MOUNTAIN WEST       (A)
+ 148  Central Michigan     A  =  52.89    0   1   70.33(  55)    0   0  |    0   0  |   52.37  136 |   52.57  131 |   49.63  175 |   42.10  205  MAC                 (A)
+ 149  Akron                A  =  52.82    0   1   74.60(  37)    0   0  |    0   0  |   50.28  149 |   49.29  155 |   54.72  145 |   56.71  139  MAC                 (A)
+ 150  Sacramento State     A  =  52.40    1   1   43.10( 207)    0   0  |    0   0  |   49.58  152 |   48.24  164 |   55.07  141 |   59.47  120  MAC                 (A)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 151  Northern Illinois    A  =  52.38    0   1   85.74(  15)    0   0  |    0   1  |   49.94  150 |   49.64  153 |   53.40  153 |   51.38  166  MOUNTAIN WEST       (A)
+ 152  Rhode Island         AA =  52.15    1   1   53.24( 138)    0   0  |    0   0  |   49.44  155 |   49.77  151 |   53.07  157 |   53.27  153  COASTAL ATHLETIC    (AA)
+ 153  Incarnate Word       AA =  52.11    1   0    0.00(   0)    0   0  |    0   0  |   49.36  156 |   50.31  147 |   52.50  160 |   52.50  159  SOUTHLAND           (AA)
+ 154  Missouri State       A  =  52.10    0   1   92.08(   7)    0   1  |    0   1  |   49.70  151 |   49.65  152 |   52.78  159 |   48.84  175  CONF-USA            (A)
+ 155  Eastern Washington   AA =  51.98    1   1   51.76( 147)    0   0  |    0   0  |   49.51  153 |   49.30  154 |   52.93  158 |   54.45  148  BIG SKY             (AA)
+ 156  Idaho                AA =  51.64    0   2   67.71(  59)    0   0  |    0   1  |   50.59  148 |   52.20  135 |   47.83  186 |   40.97  208  BIG SKY             (AA)
+ 157  Utah State           A  =  51.52    0   1   50.85( 153)    0   0  |    0   0  |   53.75  130 |   51.55  142 |   44.43  206 |   36.44  222  PAC-12              (A)
+ 158  Weber State          AA =  51.34    1   1   52.62( 143)    0   0  |    0   0  |   47.96  162 |   48.35  162 |   53.36  154 |   52.86  156  BIG SKY             (AA)
+ 159  Buffalo              A  =  51.29    1   0   43.52( 206)    0   0  |    0   0  |   49.47  154 |   51.86  139 |   48.24  183 |   45.14  191  MAC                 (A)
+ 160  Richmond             AA =  51.23    2   0   41.93( 219)    0   0  |    0   0  |   47.00  166 |   47.39  172 |   54.75  142 |   57.56  132  PATRIOT             (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 161  UTEP                 A  =  50.93    0   1   91.85(   8)    0   1  |    0   1  |   48.34  159 |   48.36  161 |   51.78  162 |   47.93  182  MOUNTAIN WEST       (A)
+ 162  Middle Tennessee     A  =  50.89    1   0   36.42( 241)    0   0  |    0   0  |   48.36  158 |   50.02  149 |   50.02  172 |   56.21  141  CONF-USA            (A)
+ 163  Villanova            AA =  50.84    1   1   44.77( 195)    0   0  |    0   0  |   50.82  146 |   52.88  129 |   43.89  209 |   38.33  217  PATRIOT             (AA)
+ 164  West Florida         AA =  50.35    2   0   52.20( 145)    0   0  |    0   0  |   42.21  203 |   39.18  221 |   62.23  100 |   70.74   74  UAC                 (AA)
+ 165  Wofford              AA =  50.33    2   0   42.49( 214)    0   0  |    0   0  |   46.22  172 |   45.66  182 |   54.33  146 |   58.44  126  SOUTHERN            (AA)
+ 166  Prairie View A&M     AA =  50.10    1   1   49.87( 161)    0   0  |    0   0  |   44.88  180 |   42.91  198 |   56.95  130 |   61.61  106  SWAC-WEST           (AA)
+ 167  Sam Houston State    A  =  49.93    0   1   59.44(  96)    0   0  |    0   0  |   46.65  168 |   45.19  183 |   53.24  155 |   58.39  128  CONF-USA            (A)
+ 168  Colgate              AA =  49.88    2   0   44.40( 198)    0   0  |    0   0  |   43.57  194 |   42.53  203 |   57.64  126 |   64.63  101  PATRIOT             (AA)
+ 169  Ball State           A  =  49.88    0   1   97.24(   3)    0   1  |    0   1  |   46.15  174 |   45.08  185 |   53.60  152 |   55.52  146  MAC                 (A)
+ 170  McNeese State        AA =  49.84    1   1   58.56( 105)    0   0  |    0   0  |   41.19  209 |   40.15  216 |   60.88  114 |   61.55  108  SOUTHLAND           (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 171  SC State             AA =  49.65    2   0   38.81( 235)    0   0  |    0   0  |   45.60  179 |   47.45  171 |   51.38  163 |   56.73  138  MEAC                (AA)
+ 172  SE Missouri State    AA =  49.57    1   1   60.84(  90)    0   0  |    0   0  |   46.45  171 |   46.70  176 |   51.06  164 |   50.63  167  OVC-BIG SOUTH       (AA)
+ 173  Dartmouth            AA =  49.47    0   0    0.00(   0)    0   0  |    0   0  |   46.19  173 |   47.56  169 |   50.22  171 |   50.22  168  IVY LEAGUE          (AA)
+ 174  UTRGV                AA =  49.38    1   1   69.72(  56)    0   0  |    0   0  |   47.60  164 |   47.74  167 |   48.40  182 |   43.38  201  SOUTHLAND           (AA)
+ 175  William & Mary       AA =  49.32    2   0   46.37( 186)    0   0  |    0   0  |   47.48  165 |   48.31  163 |   47.76  187 |   48.48  178  PATRIOT             (AA)
+ 176  Lamar                AA =  49.23    1   1   58.85( 101)    0   0  |    0   0  |   44.05  189 |   44.33  191 |   54.12  148 |   53.30  152  SOUTHLAND           (AA)
+ 177  Jackson State        AA =  49.18    2   0   45.88( 190)    0   0  |    0   0  |   45.77  177 |   48.17  165 |   49.15  178 |   48.14  181  SWAC-EAST           (AA)
+ 178  Gardner-Webb         AA =  49.14    0   2   56.92( 109)    0   0  |    0   0  |   44.67  182 |   44.57  187 |   53.19  156 |   51.53  165  OVC-BIG SOUTH       (AA)
+ 179  Samford              AA =  49.05    0   2   54.82( 125)    0   0  |    0   0  |   42.02  205 |   41.53  207 |   57.22  128 |   56.92  135  SOUTHERN            (AA)
+ 180  Northern Iowa        AA =  48.77    0   1   54.39( 129)    0   0  |    0   0  |   47.79  163 |   46.58  177 |   47.50  190 |   43.69  200  MISSOURI VALLEY     (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 181  Chattanooga          AA =  48.64    1   1   49.52( 166)    0   0  |    0   0  |   46.59  170 |   47.24  173 |   47.64  189 |   47.20  186  SOUTHERN            (AA)
+ 182  Western Carolina     AA =  48.56    1   1   45.14( 191)    0   0  |    0   0  |   48.14  160 |   48.38  160 |   44.46  205 |   45.04  192  SOUTHERN            (AA)
+ 183  Alabama State        AA =  48.46    2   0   39.37( 229)    0   0  |    0   0  |   44.54  184 |   46.74  175 |   49.48  176 |   52.99  155  SWAC-EAST           (AA)
+ 184  LouisianaMonroe(ULM) A  =  48.43    0   1   82.09(  19)    0   0  |    0   0  |   46.60  169 |   47.53  170 |   46.65  194 |   39.45  212  SUN BELT WEST       (A)
+ 185  Monmouth-NJ          AA =  48.25    1   1   47.83( 177)    0   0  |    0   0  |   46.89  167 |   48.53  158 |   44.65  202 |   39.04  215  COASTAL ATHLETIC    (AA)
+ 186  Cal Poly-SLO         AA =  47.88    2   0   49.23( 169)    0   0  |    0   0  |   43.63  191 |   46.34  179 |   48.96  180 |   54.10  149  BIG SKY             (AA)
+ 187  Portland State       AA =  47.25    0   2   63.70(  78)    0   0  |    0   0  |   43.39  195 |   43.06  194 |   50.25  170 |   48.95  173  BIG SKY             (AA)
+ 188  Campbell             AA =  47.13    2   0   46.17( 188)    0   0  |    0   0  |   44.31  187 |   43.03  196 |   49.18  177 |   55.73  145  COASTAL ATHLETIC    (AA)
+ 189  Kent State           A  =  46.81    0   1   86.85(  14)    0   0  |    0   1  |   44.72  181 |   45.75  181 |   45.31  200 |   37.83  220  MAC                 (A)
+ 190  Furman               AA =  46.74    1   1   87.09(  13)    0   0  |    0   1  |   43.21  197 |   43.06  195 |   49.00  179 |   48.18  180  SOUTHERN            (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 191  Pennsylvania         AA =  46.50    0   0    0.00(   0)    0   0  |    0   0  |   42.60  201 |   44.44  188 |   47.65  188 |   47.65  183  IVY LEAGUE          (AA)
+ 192  Indiana State        AA =  46.46    0   2   59.28(  98)    0   0  |    0   0  |   43.63  192 |   43.00  197 |   47.90  185 |   48.89  174  MISSOURI VALLEY     (AA)
+ 193  Northern Colorado    AA =  46.17    0   2   54.03( 131)    0   0  |    0   0  |   41.35  208 |   40.46  210 |   50.91  165 |   52.07  161  BIG SKY             (AA)
+ 194  Central Arkansas     AA =  46.13    1   1   47.99( 176)    0   0  |    0   0  |   45.62  178 |   46.96  174 |   40.46  222 |   38.13  218  UAC                 (AA)
+ 195  Butler               AA =  46.11    1   1   72.20(  47)    0   0  |    0   0  |   37.70  231 |   36.89  239 |   55.32  139 |   58.71  124  PIONEER             (AA)
+ 196  SE Louisiana         AA =  46.05    0   2   49.32( 167)    0   0  |    0   0  |   46.10  176 |   47.56  168 |   38.57  229 |   31.28  234  SOUTHLAND           (AA)
+ 197  Princeton            AA =  46.01    0   0    0.00(   0)    0   0  |    0   0  |   41.99  206 |   43.92  192 |   47.22  191 |   47.22  185  IVY LEAGUE          (AA)
+ 198  Albany-NY            AA =  45.93    1   1   48.25( 174)    0   0  |    0   0  |   43.23  196 |   42.59  201 |   47.10  192 |   51.95  162  COASTAL ATHLETIC    (AA)
+ 199  Tennessee-Martin     AA =  45.64    1   1   36.54( 240)    0   0  |    0   0  |   48.06  161 |   48.45  159 |   30.15  255 |   31.09  235  OVC-BIG SOUTH       (AA)
+ 200  New Hampshire        AA =  45.21    0   2   62.85(  84)    0   0  |    0   0  |   44.58  183 |   46.54  178 |   38.81  227 |   30.20  237  COASTAL ATHLETIC    (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 201  Holy Cross           AA =  45.06    0   2   52.82( 140)    0   0  |    0   0  |   43.61  193 |   45.06  186 |   41.47  215 |   32.72  232  PATRIOT             (AA)
+ 202  Bryant               AA =  44.97    1   1   56.63( 113)    0   0  |    0   0  |   38.33  223 |   39.11  223 |   50.87  166 |   48.96  172  COASTAL ATHLETIC    (AA)
+ 203  Towson               AA =  44.61    0   2   53.47( 134)    0   0  |    0   0  |   44.40  186 |   45.14  184 |   38.65  228 |   34.86  227  COASTAL ATHLETIC    (AA)
+ 204  Eastern Illinois     AA =  44.46    1   1   62.20(  87)    0   0  |    0   1  |   40.84  212 |   41.07  208 |   46.32  196 |   46.20  187  OVC-BIG SOUTH       (AA)
+ 205  Nicholls State       AA =  44.45    1   1   55.52( 122)    0   0  |    0   1  |   42.45  202 |   43.79  193 |   42.19  214 |   40.26  209  SOUTHLAND           (AA)
+ 206  East Tennessee State AA =  43.78    1   1   44.72( 196)    0   0  |    0   0  |   44.45  185 |   42.53  202 |   38.86  226 |   31.56  233  SOUTHERN            (AA)
+ 207  Fordham              AA =  43.74    0   2   59.50(  95)    0   0  |    0   0  |   38.12  225 |   37.92  232 |   48.75  181 |   44.20  197  PATRIOT             (AA)
+ 208  Stony Brook          AA =  43.74    1   1   42.37( 215)    0   0  |    0   0  |   42.19  204 |   42.82  199 |   41.19  219 |   39.07  214  COASTAL ATHLETIC    (AA)
+ 209  Maine                AA =  43.71    1   1   57.00( 108)    0   0  |    0   0  |   41.05  210 |   42.61  200 |   42.52  213 |   38.87  216  COASTAL ATHLETIC    (AA)
+ 210  Howard               AA =  43.64    1   1   43.86( 203)    0   0  |    0   0  |   38.49  222 |   38.29  229 |   48.02  184 |   48.42  179  MEAC                (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 211  Tennessee State      AA =  43.47    0   2   70.38(  54)    0   1  |    0   1  |   39.92  213 |   39.06  224 |   45.99  197 |   45.40  189  OVC-BIG SOUTH       (AA)
+ 212  LIU Post             AA =  43.21    0   2   70.93(  50)    0   0  |    0   0  |   39.01  219 |   38.50  226 |   46.41  195 |   44.74  193  NORTHEAST           (AA)
+ 213  Eastern Kentucky     AA =  43.14    0   2   56.13( 118)    0   0  |    0   0  |   44.19  188 |   46.10  180 |   29.01  256 |   20.19  257  UAC                 (AA)
+ 214  West Georgia         AA =  43.13    0   2   55.27( 123)    0   0  |    0   0  |   42.78  199 |   44.38  189 |   35.90  239 |   27.49  248  UAC                 (AA)
+ 215  Robert Morris        AA =  43.03    2   0   34.93( 245)    0   0  |    0   0  |   36.69  239 |   39.19  220 |   47.05  193 |   55.24  147  NORTHEAST           (AA)
+ 216  Lindenwood           AA =  42.84    1   1   42.67( 212)    0   0  |    0   0  |   41.40  207 |   41.93  205 |   40.05  224 |   39.44  213  OVC-BIG SOUTH       (AA)
+ 217  East Texas A&M       AA =  42.73    0   2   60.10(  91)    0   0  |    0   0  |   38.52  221 |   38.26  230 |   45.72  199 |   43.81  199  SOUTHLAND           (AA)
+ 218  Columbia             AA =  42.58    0   0    0.00(   0)    0   0  |    0   0  |   37.82  229 |   40.30  213 |   44.23  207 |   44.23  195  IVY LEAGUE          (AA)
+ 219  Brown                AA =  42.57    0   0    0.00(   0)    0   0  |    0   0  |   37.81  230 |   40.29  214 |   44.22  208 |   44.22  196  IVY LEAGUE          (AA)
+ 220  Duquesne             AA =  42.22    0   1   65.49(  71)    0   0  |    0   0  |   39.90  214 |   40.36  212 |   41.33  218 |   35.45  226  NORTHEAST           (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 221  Delaware State       AA =  41.90    1   1   46.53( 185)    0   0  |    0   0  |   38.15  224 |   37.39  235 |   44.48  204 |   48.56  176  MEAC                (AA)
+ 222  Charlotte            A  =  41.81    0   1   38.25( 236)    0   0  |    0   0  |   43.04  198 |   42.22  204 |   32.86  247 |   28.14  245  AMERICAN            (A)
+ 223  Cornell              AA =  41.60    0   0    0.00(   0)    0   0  |    0   0  |   36.62  241 |   39.25  219 |   43.37  211 |   43.37  202  IVY LEAGUE          (AA)
+ 224  Charleston Southern  AA =  41.60    0   2   53.20( 139)    0   0  |    0   0  |   39.86  215 |   40.12  217 |   39.63  225 |   36.10  223  OVC-BIG SOUTH       (AA)
+ 225  Lafayette            AA =  41.41    0   1   65.57(  69)    0   0  |    0   0  |   40.88  211 |   41.82  206 |   35.46  242 |   25.70  250  PATRIOT             (AA)
+ 226  Houston Christian    AA =  41.28    1   1   54.35( 130)    0   0  |    0   0  |   36.72  238 |   36.47  241 |   44.59  203 |   45.52  188  SOUTHLAND           (AA)
+ 227  The Citadel          AA =  40.66    1   1   48.48( 172)    0   0  |    0   0  |   39.80  216 |   40.39  211 |   36.01  238 |   34.50  228  SOUTHERN            (AA)
+ 228  Southern U.          AA =  40.58    1   1   49.66( 164)    0   0  |    0   0  |   38.09  226 |   37.27  236 |   41.04  221 |   37.53  221  SWAC-WEST           (AA)
+ 229  Bucknell             AA =  40.22    0   2   51.04( 151)    0   0  |    0   0  |   37.25  235 |   36.46  242 |   41.45  216 |   42.34  204  PATRIOT             (AA)
+ 230  St. Thomas-Mn.       AA =  40.04    1   1   63.46(  83)    0   0  |    0   0  |   39.08  218 |   39.62  218 |   35.68  240 |   28.99  243  PIONEER             (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 231  NC Central           AA =  39.95    1   1   39.74( 228)    0   0  |    0   0  |   42.63  200 |   40.68  209 |   24.61  260 |   17.03  261  MEAC                (AA)
+ 232  Sacred Heart         AA =  39.75    0   1   50.66( 157)    0   0  |    0   0  |   36.46  243 |   35.75  246 |   41.37  217 |   45.15  190  COASTAL ATHLETIC    (AA)
+ 233  Drake                AA =  39.59    0   2   63.51(  82)    0   0  |    0   0  |   38.65  220 |   39.14  222 |   35.17  243 |   29.22  242  PIONEER             (AA)
+ 234  Utah Tech            AA =  39.56    0   2   74.03(  40)    0   0  |    0   0  |   39.13  217 |   40.23  215 |   32.54  249 |   25.13  251  BIG SKY             (AA)
+ 235  Norfolk State        AA =  39.54    1   1   62.71(  85)    0   0  |    0   0  |   34.52  247 |   33.98  252 |   43.43  210 |   47.59  184  MEAC                (AA)
+ 236  Morgan State         AA =  39.29    1   1   58.75( 102)    0   0  |    0   0  |   37.44  234 |   38.36  228 |   36.57  234 |   33.68  229  MEAC                (AA)
+ 237  Central Connecticut  AA =  39.21    0   1   63.96(  75)    0   0  |    0   0  |   37.22  236 |   37.83  233 |   37.19  232 |   29.86  239  NORTHEAST           (AA)
+ 238  Grambling State      AA =  39.11    2   0    0.00(   0)    0   0  |    0   0  |   33.55  251 |   36.59  240 |   41.18  220 |   41.18  207  SWAC-WEST           (AA)
+ 239  Alabama A&M          AA =  38.89    1   1   43.64( 204)    0   0  |    0   0  |   33.89  249 |   32.79  256 |   43.01  212 |   41.34  206  SWAC-EAST           (AA)
+ 240  Western Illinois     AA =  38.85    1   1   56.88( 110)    0   0  |    0   0  |   36.87  237 |   36.95  238 |   37.32  231 |   30.25  236  OVC-BIG SOUTH       (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 241  Murray State         AA =  38.83    0   2   47.67( 178)    0   0  |    0   0  |   37.89  228 |   38.18  231 |   34.57  244 |   28.02  246  MISSOURI VALLEY     (AA)
+ 242  Florida A&M          AA =  38.81    1   1   49.65( 165)    0   0  |    0   0  |   36.61  242 |   35.89  244 |   38.50  230 |   33.15  231  SWAC-EAST           (AA)
+ 243  Ark.-Pine Bluff      AA =  38.81    1   1   81.07(  25)    0   0  |    0   0  |   31.93  258 |   30.80  258 |   44.88  201 |   51.75  164  SWAC-WEST           (AA)
+ 244  Merrimack            AA =  38.53    0   2   54.78( 126)    0   0  |    0   0  |   38.07  227 |   38.80  225 |   32.02  251 |   24.38  253  UAC                 (AA)
+ 245  San Diego            AA =  37.98    0   1   55.99( 121)    0   0  |    0   0  |   37.54  233 |   37.64  234 |   32.35  250 |   25.04  252  PIONEER             (AA)
+ 246  Dayton               AA =  37.93    1   0    0.00(   0)    0   0  |    0   0  |   32.09  257 |   35.32  247 |   40.13  223 |   40.13  210  PIONEER             (AA)
+ 247  Mercyhurst           AA =  37.92    0   2   59.23(  99)    0   0  |    0   0  |   35.90  244 |   36.31  243 |   36.03  237 |   28.81  244  NORTHEAST           (AA)
+ 248  Texas Southern       AA =  37.33    1   1   45.02( 193)    0   0  |    0   0  |   36.65  240 |   37.27  237 |   31.47  252 |   29.29  240  SWAC-WEST           (AA)
+ 249  Stonehill College    AA =  36.96    1   1   40.86( 223)    0   0  |    0   0  |   34.61  245 |   34.44  250 |   36.26  236 |   37.97  219  NORTHEAST           (AA)
+ 250  New Haven            AA =  36.75    1   1   31.20( 252)    0   0  |    0   0  |   37.65  232 |   38.41  227 |   21.65  262 |   14.18  262  NORTHEAST           (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 251  Bethune-Cookman      AA =  36.34    0   1   77.95(  31)    0   0  |    0   0  |   34.59  246 |   35.86  245 |   32.57  248 |   23.11  254  SWAC-EAST           (AA)
+ 252  VMI                  AA =  36.30    0   2   69.28(  57)    0   0  |    0   1  |   33.35  252 |   33.40  253 |   36.43  235 |   29.24  241  SOUTHERN            (AA)
+ 253  Georgetown           AA =  36.23    0   1   53.34( 135)    0   0  |    0   0  |   32.92  255 |   32.72  257 |   37.17  233 |   29.90  238  PATRIOT             (AA)
+ 254  Hampton              AA =  35.75    1   1   78.71(  29)    0   0  |    0   0  |   33.08  254 |   34.03  251 |   34.44  245 |   26.44  249  COASTAL ATHLETIC    (AA)
+ 255  Alcorn State         AA =  35.45    1   1   58.70( 103)    0   0  |    0   0  |   34.47  248 |   34.96  248 |   30.41  253 |   20.89  256  SWAC-WEST           (AA)
+ 256  NC A&T               AA =  33.70    0   2   47.66( 179)    0   0  |    0   0  |   33.08  253 |   33.22  254 |   27.68  258 |   20.13  258  COASTAL ATHLETIC    (AA)
+ 257  Morehead State       AA =  32.95    1   1    0.00(   0)    0   0  |    0   0  |   25.83  264 |   29.90  259 |   35.65  241 |   35.65  225  PIONEER             (AA)
+ 258  Presbyterian College AA =  32.85    1   1   56.81( 112)    0   0  |    0   0  |   33.63  250 |   34.52  249 |    9.22  265 |   -1.17  265  PIONEER             (AA)
+ 259  Wagner               AA =  32.52    1   1   40.62( 226)    0   0  |    0   0  |   31.39  259 |   29.73  261 |   30.29  254 |   22.10  255  NORTHEAST           (AA)
+ 260  Chicago State        AA =  31.77    0   2   48.05( 175)    0   0  |    0   0  |   32.88  256 |   32.87  255 |    6.82  266 |   -1.21  266  UAC                 (AA)
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 261  Valparaiso           AA =  30.78    1   0    0.00(   0)    0   0  |    0   0  |   23.07  266 |   27.50  265 |   33.67  246 |   33.67  230  PIONEER             (AA)
+ 262  Davidson             AA =  30.41    0   2   50.78( 155)    0   0  |    0   0  |   28.57  262 |   28.45  263 |   27.90  257 |   19.36  259  PIONEER             (AA)
+ 263  Marist               AA =  30.27    1   1   39.16( 232)    0   0  |    0   0  |   30.01  260 |   29.74  260 |   22.66  261 |   28.02  247  PIONEER             (AA)
+ 264  Miss. Valley State   AA =  29.15    0   2   50.84( 154)    0   0  |    0   0  |   29.08  261 |   28.95  262 |   19.58  264 |   10.49  263  SWAC-EAST           (AA)
+ 265  Northwestern State   AA =  28.10    0   2   66.03(  65)    0   0  |    0   0  |   27.12  263 |   28.11  264 |   20.12  263 |    9.49  264  SOUTHLAND           (AA)
+ 266  Stetson              AA =  27.44    1   1   71.51(  49)    0   0  |    0   0  |   24.72  265 |   25.26  266 |   25.83  259 |   17.85  260  PIONEER             (AA)
+ 267  ***UNRATED***        __ = -91.00    5  32    0.00(   0)    0   0  |    0   0  |  -91.00  267 |  -91.00  267 |  -91.00  267 |  -91.00  267  ___UNRATED___       (__)
+_________________________________________________________________________________________________________________________________________________
+</pre>
+<pre>
+<h3><font size=+2>Conference Rankings</font></h3>
+<pre>
+There are three group ratings, the <b>"central mean"</b>, the
+<b>"simple average"</b> (also known as the <b>"arithmetic mean"</b>,)
+and the <b>WIN50%</b>.
+The <b>"central mean"</b> gives the most weight to the middle team(s)
+in the group and progressively less weight to teams as you go
+away from the middle in either direction, up or down.
+This tends to smooth out the effect of anomalous teams that are rated
+much higher and lower than the middle team(s) in the group.  The
+<b>"simple average" ("arithmetic mean")</b> weights each team equally
+no matter where they are relative to the middle.
+Here are a few examples of how the <b>"central mean"</b> is computed.
+  4-team group ___ the weights are   1-2-2-1
+  5-team group ___ the weights are   1-2-3-2-1
+  6-team group ___ the weights are   1-2-3-3-2-1
+  7-team group ___ the weights are   1-2-3-4-3-2-1
+  8-team group ___ the weights are   1-2-3-4-4-3-2-1
+  9-team group ___ the weights are   1-2-3-4-5-4-3-2-1
+ 10-team group ___ the weights are   1-2-3-4-5-5-4-3-2-1
+ 11-team group ___ the weights are   1-2-3-4-5-6-5-4-3-2-1
+ 12-team group ___ the weights are   1-2-3-4-5-6-6-5-4-3-2-1
+ 13-team group ___ the weights are   1-2-3-4-5-6-7-6-5-4-3-2-1
+This is an expanded version of the <b>"tri-mean"</b>.
+The <b>WIN50%</b> is the rating required to win 50% of the games if playing an
+infinite number of round-robins in the given group at a neutral location.
+</pre>
+<pre>
+      <b>CONFERENCE          CENTRAL MEAN    SIMPLE AVERAGE  TEAMS      WIN50%         RATING          PREDICTOR         GOLDEN_MEAN         RECENT
+   1  SEC                 (A) =  85.52      85.50  (  1)     16      85.50  (  1)  85.5039( 5.9587)  86.2519( 6.3218)  86.8308( 6.3296)  83.5061( 6.7731)
+   2  BIG TEN             (A) =  80.65      80.51  (  3)     18      80.62  (  3)  80.5143( 8.1866)  82.7541( 9.0169)  82.9428( 9.6891)  76.6884( 9.4966)
+   3  I-A IND.            (A) =  80.63      80.63  (  2)      2      80.63  (  2)  80.6303(24.7147)  78.9491(27.4610)  79.2719(29.3392)  82.7698(19.7422)
+   4  BIG 12              (A) =  75.65      75.58  (  5)     16      75.58  (  4)  75.5758( 4.0000)  76.5237( 5.1448)  76.2712( 5.4931)  73.7731( 7.0516)
+   5  ACC                 (A) =  75.41      75.69  (  4)     17      75.57  (  5)  75.6868( 6.7461)  76.1115( 6.6822)  75.8724( 7.0394)  74.0204( 8.7089)
+   6  PAC-12              (A) =  62.79      62.97  (  6)      8      62.94  (  6)  62.9654( 6.9523)  62.0028( 5.6438)  60.9991( 5.6317)  62.9691(11.4846)
+   7  AMERICAN            (A) =  62.67      61.82  (  7)     14      62.23  (  7)  61.8213( 7.1832)  59.8447( 6.6268)  59.6413( 6.9116)  63.3635(12.0809)
+   8  MOUNTAIN WEST       (A) =  60.69      60.46  (  8)     10      60.53  (  8)  60.4623( 6.5718)  58.2459( 6.4284)  57.9223( 6.4579)  62.0699( 8.8426)
+   9  SUN BELT EAST       (A) =  59.79      60.11  (  9)      7      60.08  (  9)  60.1146( 3.4756)  57.5433( 3.7913)  57.4755( 4.7690)  62.4504( 7.3334)
+  10  SUN BELT WEST       (A) =  57.90      57.82  ( 10)      7      57.88  ( 10)  57.8188( 5.2525)  54.8365( 4.3934)  54.8456( 4.1867)  60.5943( 9.9208)
+  11  MISSOURI VALLEY     (AA)=  56.38      55.58  ( 12)      9      55.93  ( 11)  55.5802( 9.2262)  53.5179( 9.1722)  53.4388( 9.1939)  55.9162(10.6339)
+  12  CONF-USA            (A) =  55.75      55.72  ( 11)     10      55.72  ( 12)  55.7207( 4.0522)  53.9929( 4.4320)  53.3050( 4.2115)  56.0158( 6.1458)
+  13  MAC                 (A) =  54.41      54.88  ( 13)     13      54.73  ( 13)  54.8821( 5.2827)  51.6941( 5.3726)  51.9718( 5.4420)  57.0496( 8.0647)
+  14  BIG SKY             (AA)=  52.50      52.87  ( 14)     13      52.70  ( 14)  52.8746( 7.4912)  50.4641( 7.9661)  50.6739( 7.7110)  53.1804( 8.8245)
+  15  UAC                 (AA)=  48.28      48.15  ( 15)     10      48.23  ( 15)  48.1455( 9.3996)  45.7844( 7.7063)  45.6486( 7.5716)  45.6257(20.2428)
+  16  SOUTHERN            (AA)=  47.79      47.44  ( 16)     10      47.53  ( 16)  47.4356( 5.9431)  45.1530( 6.2339)  44.7625( 5.9405)  47.3795( 8.4691)
+  17  SOUTHLAND           (AA)=  46.84      46.41  ( 18)     10      46.65  ( 18)  46.4137( 8.5129)  42.8664( 7.7812)  43.1334( 7.6652)  47.7579(13.5226)
+  18  IVY LEAGUE          (AA)=  46.70      47.01  ( 17)      8      46.96  ( 17)  47.0135( 4.8546)  43.1915( 5.8785)  44.9580( 5.1006)  48.0774( 4.2081)
+  19  PATRIOT             (AA)=  46.60      46.37  ( 19)     10      46.41  ( 19)  46.3695( 6.0224)  43.3520( 6.1301)  43.5434( 6.4638)  46.9438( 8.6687)
+  20  COASTAL ATHLETIC    (AA)=  44.74      44.47  ( 20)     13      44.55  ( 20)  44.4678( 5.5888)  42.0170( 5.4343)  42.4931( 5.5801)  43.5653( 7.9517)
+  21  OVC-BIG SOUTH       (AA)=  44.35      44.44  ( 21)      8      44.44  ( 21)  44.4444( 3.6386)  42.2584( 3.7804)  42.3573( 3.9244)  42.9647( 7.6185)
+  22  MEAC                (AA)=  41.74      42.33  ( 22)      6      42.24  ( 22)  42.3281( 3.9568)  39.4714( 3.9718)  39.3577( 4.5192)  41.4128( 9.6160)
+  23  SWAC-EAST           (AA)=  40.09      40.14  ( 24)      6      40.12  ( 23)  40.1392( 7.6097)  37.4132( 6.4997)  38.0657( 7.7187)  38.7126(11.3779)
+  24  SWAC-WEST           (AA)=  39.59      40.23  ( 23)      6      40.04  ( 24)  40.2284( 5.1402)  36.5949( 4.6136)  36.6325( 3.9259)  40.9882( 9.7187)
+  25  NORTHEAST           (AA)=  39.07      38.98  ( 25)      8      39.00  ( 25)  38.9764( 3.7192)  36.5477( 2.6675)  36.8448( 3.3960)  37.0253( 8.3720)
+  26  PIONEER             (AA)=  34.75      35.12  ( 26)     11      35.03  ( 26)  35.1231( 5.6088)  31.8979( 5.8875)  33.0882( 5.0685)  32.1427(11.4474)
+  27  ___UNRATED___       (__)= -91.00     -91.00  ( 27)      1     -91.00  ( 27) -91.0000( 0.0000) -91.0000( 0.0000) -91.0000( 0.0000) -91.0000( 0.0000)
+       OVERALL                                                                     57.7438(15.9544)  56.1049(17.3996)  56.2131(17.3322)  57.2865(17.1011)
+      <b>CONFERENCE          CENTRAL MEAN    SIMPLE AVERAGE  TEAMS      WIN50%         RATING          PREDICTOR         GOLDEN_MEAN         RECENT
+   7  AMERICAN            (A) =  62.67      61.82  (  7)     14      62.23  (  7)  61.8213( 7.1832)  59.8447( 6.6268)  59.6413( 6.9116)  63.3635(12.0809)
+   5  ACC                 (A) =  75.41      75.69  (  4)     17      75.57  (  5)  75.6868( 6.7461)  76.1115( 6.6822)  75.8724( 7.0394)  74.0204( 8.7089)
+   2  BIG TEN             (A) =  80.65      80.51  (  3)     18      80.62  (  3)  80.5143( 8.1866)  82.7541( 9.0169)  82.9428( 9.6891)  76.6884( 9.4966)
+   4  BIG 12              (A) =  75.65      75.58  (  5)     16      75.58  (  4)  75.5758( 4.0000)  76.5237( 5.1448)  76.2712( 5.4931)  73.7731( 7.0516)
+  12  CONF-USA            (A) =  55.75      55.72  ( 11)     10      55.72  ( 12)  55.7207( 4.0522)  53.9929( 4.4320)  53.3050( 4.2115)  56.0158( 6.1458)
+  13  MAC                 (A) =  54.41      54.88  ( 13)     13      54.73  ( 13)  54.8821( 5.2827)  51.6941( 5.3726)  51.9718( 5.4420)  57.0496( 8.0647)
+   8  MOUNTAIN WEST       (A) =  60.69      60.46  (  8)     10      60.53  (  8)  60.4623( 6.5718)  58.2459( 6.4284)  57.9223( 6.4579)  62.0699( 8.8426)
+   6  PAC-12              (A) =  62.79      62.97  (  6)      8      62.94  (  6)  62.9654( 6.9523)  62.0028( 5.6438)  60.9991( 5.6317)  62.9691(11.4846)
+   1  SEC                 (A) =  85.52      85.50  (  1)     16      85.50  (  1)  85.5039( 5.9587)  86.2519( 6.3218)  86.8308( 6.3296)  83.5061( 6.7731)
+   9  SUN BELT EAST       (A) =  59.79      60.11  (  9)      7      60.08  (  9)  60.1146( 3.4756)  57.5433( 3.7913)  57.4755( 4.7690)  62.4504( 7.3334)
+  10  SUN BELT WEST       (A) =  57.90      57.82  ( 10)      7      57.88  ( 10)  57.8188( 5.2525)  54.8365( 4.3934)  54.8456( 4.1867)  60.5943( 9.9208)
+   3  I-A IND.            (A) =  80.63      80.63  (  2)      2      80.63  (  2)  80.6303(24.7147)  78.9491(27.4610)  79.2719(29.3392)  82.7698(19.7422)
+  14  BIG SKY             (AA)=  52.50      52.87  ( 14)     13      52.70  ( 14)  52.8746( 7.4912)  50.4641( 7.9661)  50.6739( 7.7110)  53.1804( 8.8245)
+  20  COASTAL ATHLETIC    (AA)=  44.74      44.47  ( 20)     13      44.55  ( 20)  44.4678( 5.5888)  42.0170( 5.4343)  42.4931( 5.5801)  43.5653( 7.9517)
+  18  IVY LEAGUE          (AA)=  46.70      47.01  ( 17)      8      46.96  ( 17)  47.0135( 4.8546)  43.1915( 5.8785)  44.9580( 5.1006)  48.0774( 4.2081)
+  22  MEAC                (AA)=  41.74      42.33  ( 22)      6      42.24  ( 22)  42.3281( 3.9568)  39.4714( 3.9718)  39.3577( 4.5192)  41.4128( 9.6160)
+  11  MISSOURI VALLEY     (AA)=  56.38      55.58  ( 12)      9      55.93  ( 11)  55.5802( 9.2262)  53.5179( 9.1722)  53.4388( 9.1939)  55.9162(10.6339)
+  25  NORTHEAST           (AA)=  39.07      38.98  ( 25)      8      39.00  ( 25)  38.9764( 3.7192)  36.5477( 2.6675)  36.8448( 3.3960)  37.0253( 8.3720)
+  21  OVC-BIG SOUTH       (AA)=  44.35      44.44  ( 21)      8      44.44  ( 21)  44.4444( 3.6386)  42.2584( 3.7804)  42.3573( 3.9244)  42.9647( 7.6185)
+  19  PATRIOT             (AA)=  46.60      46.37  ( 19)     10      46.41  ( 19)  46.3695( 6.0224)  43.3520( 6.1301)  43.5434( 6.4638)  46.9438( 8.6687)
+  26  PIONEER             (AA)=  34.75      35.12  ( 26)     11      35.03  ( 26)  35.1231( 5.6088)  31.8979( 5.8875)  33.0882( 5.0685)  32.1427(11.4474)
+  16  SOUTHERN            (AA)=  47.79      47.44  ( 16)     10      47.53  ( 16)  47.4356( 5.9431)  45.1530( 6.2339)  44.7625( 5.9405)  47.3795( 8.4691)
+  17  SOUTHLAND           (AA)=  46.84      46.41  ( 18)     10      46.65  ( 18)  46.4137( 8.5129)  42.8664( 7.7812)  43.1334( 7.6652)  47.7579(13.5226)
+  23  SWAC-EAST           (AA)=  40.09      40.14  ( 24)      6      40.12  ( 23)  40.1392( 7.6097)  37.4132( 6.4997)  38.0657( 7.7187)  38.7126(11.3779)
+  24  SWAC-WEST           (AA)=  39.59      40.23  ( 23)      6      40.04  ( 24)  40.2284( 5.1402)  36.5949( 4.6136)  36.6325( 3.9259)  40.9882( 9.7187)
+  15  UAC                 (AA)=  48.28      48.15  ( 15)     10      48.23  ( 15)  48.1455( 9.3996)  45.7844( 7.7063)  45.6486( 7.5716)  45.6257(20.2428)
+  27  ___UNRATED___       (__)= -91.00     -91.00  ( 27)      1     -91.00  ( 27) -91.0000( 0.0000) -91.0000( 0.0000) -91.0000( 0.0000) -91.0000( 0.0000)
+       OVERALL                                                                     57.7438(15.9544)  56.1049(17.3996)  56.2131(17.3322)  57.2865(17.1011)
+__________________________________________________________________________________________________
+</pre>
+<h3><font size=+2>By Conference</font></h3>
+_________________________________________________________________________________________________________________________________________________
+   7  AMERICAN            (A) =  62.67
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  61  Army West Point      A  =  71.47    1   0   42.56( 213)    0   0  |    0   0  |   66.22   71 |   64.98   78 |   89.23    6 |   98.72    5  AMERICAN            (A)
+  71  Memphis              A  =  68.33    2   0   62.13(  88)    0   0  |    0   0  |   65.29   77 |   64.91   79 |   72.70   54 |   76.81   51  AMERICAN            (A)
+  75  UTSA                 A  =  67.31    1   0   46.97( 183)    0   0  |    0   0  |   65.88   74 |   65.92   71 |   67.44   80 |   72.47   65  AMERICAN            (A)
+  78  Tulsa                A  =  65.46    1   0   65.55(  70)    0   0  |    0   0  |   60.73   89 |   63.20   83 |   70.02   68 |   79.06   44  AMERICAN            (A)
+  82  South Florida        A  =  64.67    1   0   53.24( 137)    0   0  |    0   0  |   63.83   83 |   65.12   77 |   62.25   99 |   60.64  114  AMERICAN            (A)
+  84  Tulane               A  =  64.50    0   1   76.08(  34)    0   0  |    0   0  |   64.44   80 |   62.60   84 |   63.57   95 |   61.59  107  AMERICAN            (A)
+  87  Navy                 A  =  63.23    1   0   42.20( 216)    0   0  |    0   0  |   65.25   78 |   65.80   72 |   56.25  136 |   58.79  123  AMERICAN            (A)
+  89  Temple               A  =  63.14    1   0   49.74( 162)    0   0  |    0   0  |   58.81  101 |   59.42   94 |   68.52   77 |   75.10   55  AMERICAN            (A)
+  91  East Carolina        A  =  62.44    0   1   91.74(   9)    0   0  |    0   1  |   61.70   86 |   60.94   89 |   61.56  107 |   57.17  134  AMERICAN            (A)
+  96  North Texas          A  =  61.74    0   1   95.58(   5)    0   1  |    0   1  |   59.76   92 |   58.08   99 |   64.24   89 |   66.90   89  AMERICAN            (A)
+ 114  Florida Atlantic     A  =  58.43    0   1   89.77(  10)    0   0  |    0   1  |   57.64  109 |   57.85  104 |   56.31  134 |   49.49  170  AMERICAN            (A)
+ 118  Rice                 A  =  57.84    1   0   38.87( 234)    0   0  |    0   0  |   53.18  133 |   53.83  125 |   62.91   98 |   68.30   84  AMERICAN            (A)
+ 135  UAB                  A  =  55.13    0   1   79.35(  28)    0   0  |    0   0  |   52.03  139 |   50.10  148 |   59.23  122 |   65.37   96  AMERICAN            (A)
+ 222  Charlotte            A  =  41.81    0   1   38.25( 236)    0   0  |    0   0  |   43.04  198 |   42.22  204 |   32.86  247 |   28.14  245  AMERICAN            (A)
+_________________________________________________________________________________________________________________________________________________
+   5  ACC                 (A) =  75.41
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   6  Miami-Florida        A  =  92.28    1   0   67.27(  61)    0   0  |    0   0  |   93.92    7 |   94.73    7 |   89.29    5 |   96.26    6  ACC                 (A)
+  23  Louisville           A  =  81.75    0   1   87.62(  12)    0   0  |    0   1  |   82.14   26 |   80.31   31 |   81.57   25 |   84.51   30  ACC                 (A)
+  25  Virginia             A  =  81.26    1   0   70.55(  53)    0   0  |    0   0  |   78.67   39 |   80.33   30 |   83.78   17 |   92.52   10  ACC                 (A)
+  26  Pittsburgh           A  =  81.01    1   0   53.58( 133)    0   0  |    0   0  |   79.65   32 |   79.39   35 |   82.77   22 |   91.04   15  ACC                 (A)
+  28  Virginia Tech        A  =  80.49    1   0   33.89( 247)    0   0  |    0   0  |   78.42   40 |   77.69   43 |   84.81   15 |   93.84    7  ACC                 (A)
+  29  SMU                  A  =  80.20    1   0   76.93(  32)    0   0  |    0   0  |   82.51   25 |   83.73   24 |   75.10   46 |   73.70   62  ACC                 (A)
+  49  Clemson              A  =  75.50    0   1   95.88(   4)    0   1  |    0   1  |   79.41   35 |   78.62   39 |   69.10   72 |   59.50  119  ACC                 (A)
+  50  Syracuse             A  =  74.95    1   0   42.80( 210)    0   0  |    0   0  |   71.87   61 |   70.76   63 |   82.18   23 |   92.44   11  ACC                 (A)
+  51  Florida State        A  =  74.52    1   1   66.06(  64)    0   0  |    0   1  |   75.08   49 |   75.80   45 |   71.23   59 |   70.04   77  ACC                 (A)
+  53  North Carolina       A  =  74.18    1   0   74.04(  39)    0   0  |    0   0  |   72.34   57 |   73.95   50 |   74.25   49 |   79.60   41  ACC                 (A)
+  55  Georgia Tech         A  =  73.96    0   1   70.59(  52)    0   0  |    0   0  |   75.91   46 |   73.91   51 |   70.63   64 |   65.80   94  ACC                 (A)
+  56  Duke                 A  =  73.67    1   0   62.09(  89)    0   0  |    0   0  |   73.16   54 |   74.07   49 |   71.86   56 |   73.84   61  ACC                 (A)
+  59  Wake Forest          A  =  72.18    1   0   50.41( 159)    0   0  |    0   0  |   72.75   56 |   73.36   55 |   68.74   76 |   66.75   91  ACC                 (A)
+  62  California           A  =  70.61    0   1   79.62(  27)    0   0  |    0   1  |   73.03   55 |   70.88   62 |   66.32   83 |   58.53  125  ACC                 (A)
+  63  NC State             A  =  70.55    0   1   81.26(  23)    0   0  |    0   1  |   73.53   53 |   71.74   60 |   65.17   86 |   56.43  140  ACC                 (A)
+  80  Stanford             A  =  64.86    1   1   73.22(  42)    0   1  |    0   1  |   65.95   73 |   66.59   69 |   59.65  121 |   55.94  144  ACC                 (A)
+  81  Boston College       A  =  64.72    0   1   75.96(  36)    0   0  |    0   0  |   65.53   76 |   63.99   81 |   61.89  103 |   56.07  142  ACC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   2  BIG TEN             (A) =  80.65
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   3  Ohio State           A  =  94.82    1   0   47.47( 181)    0   0  |    0   0  |   99.51    1 |  100.55    1 |   89.82    4 |   87.90   24  BIG TEN             (A)
+   5  Indiana              A  =  93.17    1   0   59.33(  97)    0   0  |    0   0  |   97.29    4 |   98.29    4 |   88.28    8 |   85.62   28  BIG TEN             (A)
+   8  Oregon               A  =  90.36    1   0   72.03(  48)    0   0  |    0   0  |   97.74    3 |   99.32    3 |   83.56   19 |   74.82   57  BIG TEN             (A)
+  14  Penn State           A  =  87.23    1   0   56.04( 119)    0   0  |    0   0  |   87.05   16 |   87.15   16 |   86.75   13 |   93.65    8  BIG TEN             (A)
+  17  Iowa                 A  =  83.33    1   0   49.97( 160)    0   0  |    0   0  |   84.59   20 |   84.79   19 |   80.31   27 |   82.34   31  BIG TEN             (A)
+  19  Southern California  A  =  82.69    2   0   56.85( 111)    0   0  |    0   0  |   85.52   19 |   87.91   14 |   76.97   38 |   76.91   49  BIG TEN             (A)
+  20  Washington           A  =  82.67    1   0   63.57(  81)    0   0  |    0   0  |   85.84   18 |   86.85   18 |   77.17   36 |   71.44   69  BIG TEN             (A)
+  21  UCLA                 A  =  82.03    1   0   73.02(  44)    0   0  |    0   0  |   80.04   30 |   81.80   26 |   83.08   21 |   90.87   16  BIG TEN             (A)
+  27  Minnesota            A  =  80.74    1   0   42.04( 217)    0   0  |    0   0  |   79.70   31 |   79.37   36 |   81.81   24 |   87.85   25  BIG TEN             (A)
+  31  Wisconsin            A  =  79.83    0   1   98.11(   2)    0   1  |    0   1  |   81.81   28 |   80.29   32 |   76.69   40 |   70.38   76  BIG TEN             (A)
+  33  Nebraska             A  =  79.21    1   0   54.39( 128)    0   0  |    0   0  |   80.22   29 |   80.58   29 |   76.02   44 |   76.27   53  BIG TEN             (A)
+  34  Northwestern         A  =  79.13    1   0   66.69(  63)    0   0  |    0   0  |   78.00   42 |   78.91   37 |   78.93   32 |   81.44   36  BIG TEN             (A)
+  36  Michigan             A  =  78.81    0   1   65.66(  66)    0   0  |    0   0  |   87.22   15 |   83.89   21 |   70.48   66 |   60.29  116  BIG TEN             (A)
+  42  Illinois             A  =  76.94    1   0   52.72( 142)    0   0  |    0   0  |   79.61   33 |   80.65   28 |   71.10   61 |   64.97   99  BIG TEN             (A)
+  43  Maryland             A  =  76.30    1   0   33.34( 248)    0   0  |    0   0  |   75.39   48 |   74.63   47 |   77.09   37 |   85.09   29  BIG TEN             (A)
+  60  Michigan State       A  =  71.49    1   0   58.12( 106)    0   0  |    0   0  |   72.05   59 |   73.13   56 |   67.64   79 |   64.08  102  BIG TEN             (A)
+  70  Purdue               A  =  68.99    1   0   44.05( 201)    0   0  |    0   0  |   70.18   65 |   70.99   61 |   64.07   90 |   61.39  109  BIG TEN             (A)
+  98  Rutgers              A  =  61.51    0   1   51.18( 149)    0   0  |    0   0  |   67.81   68 |   63.88   82 |   50.59  169 |   39.81  211  BIG TEN             (A)
+_________________________________________________________________________________________________________________________________________________
+   4  BIG 12              (A) =  75.65
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  18  Utah                 A  =  82.71    1   0   49.23( 168)    0   0  |    0   0  |   81.99   27 |   81.64   27 |   83.33   20 |   91.53   13  BIG 12              (A)
+  22  Kansas State         A  =  81.90    1   0   42.04( 218)    0   0  |    0   0  |   79.26   36 |   78.37   41 |   89.14    7 |   98.99    4  BIG 12              (A)
+  35  Arizona State        A  =  78.98    1   0   36.87( 239)    0   0  |    0   0  |   78.08   41 |   77.40   44 |   79.94   30 |   88.51   21  BIG 12              (A)
+  39  BYU                  A  =  78.28    1   0   37.15( 237)    0   0  |    0   0  |   83.38   22 |   83.43   25 |   70.90   62 |   76.38   52  BIG 12              (A)
+  40  Texas Tech           A  =  77.20    1   0   51.11( 150)    0   0  |    0   0  |   89.03   13 |   90.42   13 |   65.58   85 |   58.12  131  BIG 12              (A)
+  41  Arizona              A  =  77.15    1   0   52.34( 144)    0   0  |    0   0  |   77.62   44 |   77.97   42 |   74.53   48 |   74.60   59  BIG 12              (A)
+  44  Houston              A  =  76.08    1   0   58.63( 104)    0   0  |    0   0  |   77.84   43 |   78.83   38 |   71.18   60 |   66.26   93  BIG 12              (A)
+  45  Baylor               A  =  76.02    0   1   81.57(  22)    0   0  |    0   1  |   75.74   47 |   73.90   52 |   76.63   41 |   80.84   38  BIG 12              (A)
+  46  Kansas               A  =  75.98    1   0   40.80( 224)    0   0  |    0   0  |   74.73   50 |   74.49   48 |   76.90   39 |   81.23   37  BIG 12              (A)
+  48  Central Florida(UCF) A  =  75.54    1   0   33.93( 246)    0   0  |    0   0  |   73.73   52 |   72.64   58 |   78.80   33 |   88.26   22  BIG 12              (A)
+  54  TCU                  A  =  74.04    0   1   74.18(  38)    0   0  |    0   0  |   76.38   45 |   73.73   53 |   70.67   63 |   65.32   98  BIG 12              (A)
+  57  Cincinnati           A  =  73.55    1   0   62.31(  86)    0   0  |    0   0  |   71.94   60 |   72.86   57 |   73.77   51 |   79.60   42  BIG 12              (A)
+  58  Colorado             A  =  73.01    1   0   76.37(  33)    0   0  |    0   0  |   71.45   64 |   72.37   59 |   73.07   52 |   77.89   46  BIG 12              (A)
+  64  West Virginia        A  =  70.42    1   0   55.20( 124)    0   0  |    0   0  |   71.86   62 |   73.40   54 |   64.83   87 |   58.22  129  BIG 12              (A)
+  65  Iowa State           A  =  70.40    1   0   47.16( 182)    0   0  |    0   0  |   69.60   66 |   69.89   65 |   69.38   69 |   71.07   72  BIG 12              (A)
+  73  Oklahoma State       A  =  67.96    0   1   67.87(  58)    0   0  |    0   0  |   71.75   63 |   69.01   66 |   61.73  105 |   52.69  157  BIG 12              (A)
+_________________________________________________________________________________________________________________________________________________
+  12  CONF-USA            (A) =  55.75
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  95  Kennesaw State       A  =  61.89    1   0   40.72( 225)    0   0  |    0   0  |   57.86  107 |   57.22  111 |   67.81   78 |   77.74   47  CONF-USA            (A)
+ 107  Liberty              A  =  60.27    0   1   67.52(  60)    0   0  |    0   0  |   59.57   95 |   57.73  105 |   60.18  116 |   59.98  117  CONF-USA            (A)
+ 110  Jacksonville State   A  =  58.88    1   1   56.14( 117)    0   0  |    0   0  |   58.35  104 |   57.47  108 |   57.34  127 |   59.35  121  CONF-USA            (A)
+ 121  Delaware             A  =  57.40    1   0   36.12( 243)    0   0  |    0   0  |   56.47  114 |   56.80  114 |   55.35  138 |   62.54  105  CONF-USA            (A)
+ 127  New Mexico State     A  =  56.74    1   1   56.22( 116)    0   0  |    0   0  |   53.85  128 |   51.83  140 |   60.79  115 |   67.06   87  CONF-USA            (A)
+ 133  Fla. International   A  =  55.65    0   1   67.08(  62)    0   0  |    0   0  |   53.92  127 |   52.40  133 |   56.82  132 |   58.43  127  CONF-USA            (A)
+ 144  Western Kentucky     A  =  53.45    0   1   64.65(  72)    0   0  |    0   0  |   55.21  120 |   54.75  119 |   45.83  198 |   35.79  224  CONF-USA            (A)
+ 154  Missouri State       A  =  52.10    0   1   92.08(   7)    0   1  |    0   1  |   49.70  151 |   49.65  152 |   52.78  159 |   48.84  175  CONF-USA            (A)
+ 162  Middle Tennessee     A  =  50.89    1   0   36.42( 241)    0   0  |    0   0  |   48.36  158 |   50.02  149 |   50.02  172 |   56.21  141  CONF-USA            (A)
+ 167  Sam Houston State    A  =  49.93    0   1   59.44(  96)    0   0  |    0   0  |   46.65  168 |   45.19  183 |   53.24  155 |   58.39  128  CONF-USA            (A)
+_________________________________________________________________________________________________________________________________________________
+  13  MAC                 (A) =  54.41
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  72  Western Michigan     A  =  68.07    1   0   81.22(  24)    0   0  |    0   0  |   62.21   84 |   65.16   76 |   75.79   45 |   85.98   27  MAC                 (A)
+ 104  Toledo               A  =  60.53    0   1   73.90(  41)    0   0  |    0   0  |   59.03  100 |   57.06  113 |   62.21  101 |   65.76   95  MAC                 (A)
+ 123  Eastern Michigan     A  =  57.05    1   1   54.00( 132)    0   0  |    0   0  |   53.22  132 |   53.00  128 |   61.22  111 |   60.88  112  MAC                 (A)
+ 126  Ohio                 A  =  56.80    0   1   81.62(  21)    0   0  |    0   0  |   54.98  122 |   54.02  124 |   57.71  125 |   57.46  133  MAC                 (A)
+ 130  Miami-Ohio           A  =  56.00    0   1   83.43(  18)    0   0  |    0   1  |   55.55  119 |   56.39  117 |   52.28  161 |   44.01  198  MAC                 (A)
+ 134  Bowling Green        A  =  55.34    0   1   60.01(  93)    0   0  |    0   0  |   50.65  147 |   49.16  157 |   62.09  102 |   60.59  115  MAC                 (A)
+ 142  Massachusetts        A  =  53.59    1   0   63.92(  76)    0   0  |    0   0  |   43.84  190 |   48.05  166 |   63.77   93 |   74.56   60  MAC                 (A)
+ 148  Central Michigan     A  =  52.89    0   1   70.33(  55)    0   0  |    0   0  |   52.37  136 |   52.57  131 |   49.63  175 |   42.10  205  MAC                 (A)
+ 149  Akron                A  =  52.82    0   1   74.60(  37)    0   0  |    0   0  |   50.28  149 |   49.29  155 |   54.72  145 |   56.71  139  MAC                 (A)
+ 150  Sacramento State     A  =  52.40    1   1   43.10( 207)    0   0  |    0   0  |   49.58  152 |   48.24  164 |   55.07  141 |   59.47  120  MAC                 (A)
+ 159  Buffalo              A  =  51.29    1   0   43.52( 206)    0   0  |    0   0  |   49.47  154 |   51.86  139 |   48.24  183 |   45.14  191  MAC                 (A)
+ 169  Ball State           A  =  49.88    0   1   97.24(   3)    0   1  |    0   1  |   46.15  174 |   45.08  185 |   53.60  152 |   55.52  146  MAC                 (A)
+ 189  Kent State           A  =  46.81    0   1   86.85(  14)    0   0  |    0   1  |   44.72  181 |   45.75  181 |   45.31  200 |   37.83  220  MAC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   8  MOUNTAIN WEST       (A) =  60.69
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  67  North Dakota State   A  =  69.13    2   0   48.90( 170)    0   0  |    0   0  |   66.08   72 |   65.29   74 |   74.23   50 |   80.30   40  MOUNTAIN WEST       (A)
+  74  New Mexico           A  =  67.92    1   0   50.48( 158)    0   0  |    0   0  |   65.58   75 |   65.58   73 |   70.10   67 |   77.62   48  MOUNTAIN WEST       (A)
+  76  UNLV                 A  =  66.43    1   1   63.66(  80)    0   0  |    0   0  |   65.15   79 |   64.70   80 |   66.68   82 |   68.10   86  MOUNTAIN WEST       (A)
+  90  Air Force            A  =  63.07    1   0   39.81( 227)    0   0  |    0   0  |   61.17   87 |   61.04   88 |   63.94   92 |   69.83   78  MOUNTAIN WEST       (A)
+  93  Nevada               A  =  62.24    1   0   51.04( 152)    0   0  |    0   0  |   57.14  111 |   57.90  103 |   69.16   71 |   79.20   43  MOUNTAIN WEST       (A)
+ 105  San Jose State       A  =  60.42    1   1   72.28(  46)    0   0  |    0   1  |   56.63  112 |   54.45  121 |   67.24   81 |   72.53   64  MOUNTAIN WEST       (A)
+ 109  Hawai'i              A  =  58.99    0   2   65.64(  67)    0   0  |    0   0  |   59.49   97 |   59.89   93 |   54.21  147 |   50.19  169  MOUNTAIN WEST       (A)
+ 147  Wyoming              A  =  53.11    0   1   63.90(  77)    0   0  |    0   0  |   52.93  134 |   52.38  134 |   49.95  173 |   42.73  203  MOUNTAIN WEST       (A)
+ 151  Northern Illinois    A  =  52.38    0   1   85.74(  15)    0   0  |    0   1  |   49.94  150 |   49.64  153 |   53.40  153 |   51.38  166  MOUNTAIN WEST       (A)
+ 161  UTEP                 A  =  50.93    0   1   91.85(   8)    0   1  |    0   1  |   48.34  159 |   48.36  161 |   51.78  162 |   47.93  182  MOUNTAIN WEST       (A)
+_________________________________________________________________________________________________________________________________________________
+   6  PAC-12              (A) =  62.79
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  52  Boise State          A  =  74.44    0   1   92.77(   6)    0   1  |    0   1  |   72.25   58 |   70.11   64 |   80.28   28 |   89.02   20  PAC-12              (A)
+  69  San Diego State      A  =  69.00    1   0   44.83( 194)    0   0  |    0   0  |   66.35   70 |   66.25   70 |   72.15   55 |   76.85   50  PAC-12              (A)
+  77  Washington State     A  =  65.98    0   1   85.08(  17)    0   0  |    0   1  |   64.31   81 |   62.16   85 |   68.88   73 |   74.61   58  PAC-12              (A)
+  94  Texas State          A  =  62.14    0   1   98.41(   1)    0   1  |    0   1  |   61.81   85 |   61.86   86 |   59.67  120 |   52.21  160  PAC-12              (A)
+  99  Colorado State       A  =  61.49    1   0   50.70( 156)    0   0  |    0   0  |   58.27  105 |   59.05   95 |   63.97   91 |   71.18   70  PAC-12              (A)
+ 102  Oregon State         A  =  61.04    0   1   78.49(  30)    0   0  |    0   0  |   59.17   99 |   57.13  112 |   63.60   94 |   68.53   82  PAC-12              (A)
+ 117  Fresno State         A  =  58.10    0   1   85.11(  16)    0   0  |    0   1  |   60.10   91 |   59.89   92 |   50.78  168 |   44.57  194  PAC-12              (A)
+ 157  Utah State           A  =  51.52    0   1   50.85( 153)    0   0  |    0   0  |   53.75  130 |   51.55  142 |   44.43  206 |   36.44  222  PAC-12              (A)
+_________________________________________________________________________________________________________________________________________________
+   1  SEC                 (A) =  85.52
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   2  Texas                A  =  96.00    1   0   59.73(  94)    0   0  |    0   0  |   96.27    5 |   96.81    5 |   95.16    3 |  102.62    3  SEC                 (A)
+   4  LSU                  A  =  93.46    1   0   73.09(  43)    0   0  |    0   0  |   91.40    8 |   92.77    8 |   96.72    2 |  106.32    1  SEC                 (A)
+   7  Georgia              A  =  91.57    1   0   41.06( 222)    0   0  |    0   0  |   94.79    6 |   95.44    6 |   87.21    9 |   89.09   19  SEC                 (A)
+   9  Texas A&M            A  =  89.67    1   0   49.69( 163)    0   0  |    0   0  |   91.17    9 |   91.51    9 |   86.84   11 |   90.78   17  SEC                 (A)
+  10  Oklahoma             A  =  89.44    1   0   48.51( 171)    0   0  |    0   0  |   90.98   10 |   91.30   10 |   86.56   14 |   90.41   18  SEC                 (A)
+  11  Alabama              A  =  89.33    1   0   60.03(  92)    0   0  |    0   0  |   90.31   11 |   90.77   12 |   87.04   10 |   91.43   14  SEC                 (A)
+  12  Mississippi          A  =  87.62    1   0   81.75(  20)    0   0  |    1   0  |   89.52   12 |   90.79   11 |   83.72   18 |   80.78   39  SEC                 (A)
+  13  Florida              A  =  87.36    1   0   56.02( 120)    0   0  |    0   0  |   87.23   14 |   87.34   15 |   86.80   12 |   93.63    9  SEC                 (A)
+  15  Tennessee            A  =  84.67    1   0   44.33( 200)    0   0  |    0   0  |   86.62   17 |   86.91   17 |   80.92   26 |   81.75   35  SEC                 (A)
+  16  South Carolina       A  =  84.44    1   0   44.40( 199)    0   0  |    0   0  |   84.09   21 |   83.79   23 |   84.39   16 |   91.87   12  SEC                 (A)
+  24  Auburn               A  =  81.57    1   0   76.02(  35)    0   0  |    0   0  |   83.37   23 |   84.24   20 |   77.35   35 |   73.14   63  SEC                 (A)
+  30  Kentucky             A  =  79.93    1   0   54.49( 127)    0   0  |    0   0  |   79.56   34 |   79.72   34 |   79.10   31 |   82.22   32  SEC                 (A)
+  32  Mississippi State    A  =  79.67    1   0   46.02( 189)    0   0  |    0   0  |   78.98   38 |   78.55   40 |   80.00   29 |   87.20   26  SEC                 (A)
+  37  Vanderbilt           A  =  78.79    1   0   56.27( 114)    0   0  |    0   0  |   79.08   37 |   79.94   33 |   76.23   43 |   71.47   68  SEC                 (A)
+  38  Missouri             A  =  78.66    1   0   36.40( 242)    0   0  |    0   0  |   82.65   24 |   83.85   22 |   71.79   57 |   64.91  100  SEC                 (A)
+  47  Arkansas             A  =  75.88    1   0   51.37( 148)    0   0  |    0   0  |   74.01   51 |   75.55   46 |   76.25   42 |   69.33   79  SEC                 (A)
+_________________________________________________________________________________________________________________________________________________
+   9  SUN BELT EAST       (A) =  59.79
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  79  James Madison        A  =  65.11    1   0   57.86( 107)    0   0  |    0   0  |   63.88   82 |   65.17   75 |   63.46   96 |   63.66  103  SUN BELT EAST       (A)
+  83  Appalachian State    A  =  64.57    1   0   41.30( 220)    0   0  |    0   0  |   58.61  102 |   57.56  107 |   78.02   34 |   88.18   23  SUN BELT EAST       (A)
+ 106  Old Dominion         A  =  60.30    1   0   37.13( 238)    0   0  |    0   0  |   59.65   94 |   61.27   87 |   56.73  133 |   52.57  158  SUN BELT EAST       (A)
+ 111  Georgia Southern     A  =  58.73    1   0   39.18( 231)    0   0  |    0   0  |   56.13  116 |   56.44  116 |   60.10  118 |   66.71   92  SUN BELT EAST       (A)
+ 113  Marshall             A  =  58.45    0   1   89.64(  11)    0   0  |    0   1  |   57.69  108 |   57.92  102 |   56.26  135 |   49.36  171  SUN BELT EAST       (A)
+ 120  Coastal Carolina     A  =  57.61    0   1   72.83(  45)    0   0  |    0   0  |   54.93  123 |   52.71  130 |   61.54  108 |   68.16   85  SUN BELT EAST       (A)
+ 129  Georgia State        A  =  56.03    1   0   31.29( 251)    0   0  |    0   0  |   51.91  140 |   51.25  144 |   61.03  113 |   70.77   73  SUN BELT EAST       (A)
+_________________________________________________________________________________________________________________________________________________
+  10  SUN BELT WEST       (A) =  57.90
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  85  Louisiana-Lafayette  A  =  64.19    1   0   46.82( 184)    0   0  |    0   0  |   58.46  103 |   58.49   98 |   74.59   47 |   81.78   34  SUN BELT WEST       (A)
+  86  Louisiana Tech       A  =  63.61    1   0   25.69( 253)    0   0  |    0   0  |   59.73   93 |   57.73  106 |   71.36   58 |   81.99   33  SUN BELT WEST       (A)
+ 119  Arkansas State       A  =  57.83    0   1   70.74(  51)    0   0  |    0   0  |   54.78  124 |   53.58  126 |   61.54  109 |   58.19  130  SUN BELT WEST       (A)
+ 122  South Alabama        A  =  57.35    1   0   43.64( 205)    0   0  |    0   0  |   56.39  115 |   57.32  110 |   54.74  144 |   61.34  111  SUN BELT WEST       (A)
+ 124  Troy                 A  =  57.03    1   0   47.52( 180)    0   0  |    0   0  |   55.82  117 |   57.97  100 |   53.66  151 |   48.51  177  SUN BELT WEST       (A)
+ 128  Southern Miss        A  =  56.29    1   0   33.03( 249)    0   0  |    0   0  |   52.09  138 |   51.29  143 |   61.62  106 |   71.14   71  SUN BELT WEST       (A)
+ 184  LouisianaMonroe(ULM) A  =  48.43    0   1   82.09(  19)    0   0  |    0   0  |   46.60  169 |   47.53  170 |   46.65  194 |   39.45  212  SUN BELT WEST       (A)
+_________________________________________________________________________________________________________________________________________________
+   3  I-A IND.            (A) =  80.63
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+   1  Notre Dame           A  =  98.11    1   0   79.83(  26)    0   0  |    0   0  |   98.37    2 |  100.02    2 |   96.73    1 |  103.03    2  I-A IND.            (A)
+  88  Connecticut          A  =  63.15    1   0   39.00( 233)    0   0  |    0   0  |   59.53   96 |   58.53   97 |   68.81   75 |   78.57   45  I-A IND.            (A)
+_________________________________________________________________________________________________________________________________________________
+  14  BIG SKY             (AA)=  52.50
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  66  Montana State        AA =  69.78    2   0   42.84( 209)    0   0  |    0   0  |   67.43   69 |   66.85   68 |   72.92   53 |   75.90   54  BIG SKY             (AA)
+ 100  Montana              AA =  61.10    2   0   44.52( 197)    0   0  |    0   0  |   60.75   88 |   60.87   90 |   58.49  123 |   60.64  113  BIG SKY             (AA)
+ 115  UC Davis             AA =  58.40    2   0   45.02( 192)    0   0  |    0   0  |   57.33  110 |   57.38  109 |   56.99  129 |   59.95  118  BIG SKY             (AA)
+ 136  Northern Arizona     AA =  54.75    1   1   64.56(  73)    0   0  |    0   0  |   52.14  137 |   51.98  136 |   56.21  137 |   56.79  137  BIG SKY             (AA)
+ 138  Southern Utah        AA =  54.26    1   1   56.22( 115)    0   0  |    0   0  |   51.87  142 |   51.74  141 |   55.21  140 |   56.02  143  BIG SKY             (AA)
+ 145  Idaho State          AA =  53.26    2   0   43.91( 202)    0   0  |    0   0  |   50.95  145 |   49.99  150 |   54.75  143 |   61.37  110  BIG SKY             (AA)
+ 155  Eastern Washington   AA =  51.98    1   1   51.76( 147)    0   0  |    0   0  |   49.51  153 |   49.30  154 |   52.93  158 |   54.45  148  BIG SKY             (AA)
+ 156  Idaho                AA =  51.64    0   2   67.71(  59)    0   0  |    0   1  |   50.59  148 |   52.20  135 |   47.83  186 |   40.97  208  BIG SKY             (AA)
+ 158  Weber State          AA =  51.34    1   1   52.62( 143)    0   0  |    0   0  |   47.96  162 |   48.35  162 |   53.36  154 |   52.86  156  BIG SKY             (AA)
+ 186  Cal Poly-SLO         AA =  47.88    2   0   49.23( 169)    0   0  |    0   0  |   43.63  191 |   46.34  179 |   48.96  180 |   54.10  149  BIG SKY             (AA)
+ 187  Portland State       AA =  47.25    0   2   63.70(  78)    0   0  |    0   0  |   43.39  195 |   43.06  194 |   50.25  170 |   48.95  173  BIG SKY             (AA)
+ 193  Northern Colorado    AA =  46.17    0   2   54.03( 131)    0   0  |    0   0  |   41.35  208 |   40.46  210 |   50.91  165 |   52.07  161  BIG SKY             (AA)
+ 234  Utah Tech            AA =  39.56    0   2   74.03(  40)    0   0  |    0   0  |   39.13  217 |   40.23  215 |   32.54  249 |   25.13  251  BIG SKY             (AA)
+_________________________________________________________________________________________________________________________________________________
+  20  COASTAL ATHLETIC    (AA)=  44.74
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 146  Elon                 AA =  53.19    2   0   32.82( 250)    0   0  |    0   0  |   49.18  157 |   49.27  156 |   56.83  131 |   65.37   97  COASTAL ATHLETIC    (AA)
+ 152  Rhode Island         AA =  52.15    1   1   53.24( 138)    0   0  |    0   0  |   49.44  155 |   49.77  151 |   53.07  157 |   53.27  153  COASTAL ATHLETIC    (AA)
+ 185  Monmouth-NJ          AA =  48.25    1   1   47.83( 177)    0   0  |    0   0  |   46.89  167 |   48.53  158 |   44.65  202 |   39.04  215  COASTAL ATHLETIC    (AA)
+ 188  Campbell             AA =  47.13    2   0   46.17( 188)    0   0  |    0   0  |   44.31  187 |   43.03  196 |   49.18  177 |   55.73  145  COASTAL ATHLETIC    (AA)
+ 198  Albany-NY            AA =  45.93    1   1   48.25( 174)    0   0  |    0   0  |   43.23  196 |   42.59  201 |   47.10  192 |   51.95  162  COASTAL ATHLETIC    (AA)
+ 200  New Hampshire        AA =  45.21    0   2   62.85(  84)    0   0  |    0   0  |   44.58  183 |   46.54  178 |   38.81  227 |   30.20  237  COASTAL ATHLETIC    (AA)
+ 202  Bryant               AA =  44.97    1   1   56.63( 113)    0   0  |    0   0  |   38.33  223 |   39.11  223 |   50.87  166 |   48.96  172  COASTAL ATHLETIC    (AA)
+ 203  Towson               AA =  44.61    0   2   53.47( 134)    0   0  |    0   0  |   44.40  186 |   45.14  184 |   38.65  228 |   34.86  227  COASTAL ATHLETIC    (AA)
+ 208  Stony Brook          AA =  43.74    1   1   42.37( 215)    0   0  |    0   0  |   42.19  204 |   42.82  199 |   41.19  219 |   39.07  214  COASTAL ATHLETIC    (AA)
+ 209  Maine                AA =  43.71    1   1   57.00( 108)    0   0  |    0   0  |   41.05  210 |   42.61  200 |   42.52  213 |   38.87  216  COASTAL ATHLETIC    (AA)
+ 232  Sacred Heart         AA =  39.75    0   1   50.66( 157)    0   0  |    0   0  |   36.46  243 |   35.75  246 |   41.37  217 |   45.15  190  COASTAL ATHLETIC    (AA)
+ 254  Hampton              AA =  35.75    1   1   78.71(  29)    0   0  |    0   0  |   33.08  254 |   34.03  251 |   34.44  245 |   26.44  249  COASTAL ATHLETIC    (AA)
+ 256  NC A&T               AA =  33.70    0   2   47.66( 179)    0   0  |    0   0  |   33.08  253 |   33.22  254 |   27.68  258 |   20.13  258  COASTAL ATHLETIC    (AA)
+_________________________________________________________________________________________________________________________________________________
+  18  IVY LEAGUE          (AA)=  46.70
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 140  Yale                 AA =  53.70    0   0    0.00(   0)    0   0  |    0   0  |   51.27  143 |   51.97  137 |   53.86  149 |   53.86  150  IVY LEAGUE          (AA)
+ 141  Harvard              AA =  53.67    0   0    0.00(   0)    0   0  |    0   0  |   51.24  144 |   51.94  138 |   53.84  150 |   53.84  151  IVY LEAGUE          (AA)
+ 173  Dartmouth            AA =  49.47    0   0    0.00(   0)    0   0  |    0   0  |   46.19  173 |   47.56  169 |   50.22  171 |   50.22  168  IVY LEAGUE          (AA)
+ 191  Pennsylvania         AA =  46.50    0   0    0.00(   0)    0   0  |    0   0  |   42.60  201 |   44.44  188 |   47.65  188 |   47.65  183  IVY LEAGUE          (AA)
+ 197  Princeton            AA =  46.01    0   0    0.00(   0)    0   0  |    0   0  |   41.99  206 |   43.92  192 |   47.22  191 |   47.22  185  IVY LEAGUE          (AA)
+ 218  Columbia             AA =  42.58    0   0    0.00(   0)    0   0  |    0   0  |   37.82  229 |   40.30  213 |   44.23  207 |   44.23  195  IVY LEAGUE          (AA)
+ 219  Brown                AA =  42.57    0   0    0.00(   0)    0   0  |    0   0  |   37.81  230 |   40.29  214 |   44.22  208 |   44.22  196  IVY LEAGUE          (AA)
+ 223  Cornell              AA =  41.60    0   0    0.00(   0)    0   0  |    0   0  |   36.62  241 |   39.25  219 |   43.37  211 |   43.37  202  IVY LEAGUE          (AA)
+_________________________________________________________________________________________________________________________________________________
+  22  MEAC                (AA)=  41.74
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 171  SC State             AA =  49.65    2   0   38.81( 235)    0   0  |    0   0  |   45.60  179 |   47.45  171 |   51.38  163 |   56.73  138  MEAC                (AA)
+ 210  Howard               AA =  43.64    1   1   43.86( 203)    0   0  |    0   0  |   38.49  222 |   38.29  229 |   48.02  184 |   48.42  179  MEAC                (AA)
+ 221  Delaware State       AA =  41.90    1   1   46.53( 185)    0   0  |    0   0  |   38.15  224 |   37.39  235 |   44.48  204 |   48.56  176  MEAC                (AA)
+ 231  NC Central           AA =  39.95    1   1   39.74( 228)    0   0  |    0   0  |   42.63  200 |   40.68  209 |   24.61  260 |   17.03  261  MEAC                (AA)
+ 235  Norfolk State        AA =  39.54    1   1   62.71(  85)    0   0  |    0   0  |   34.52  247 |   33.98  252 |   43.43  210 |   47.59  184  MEAC                (AA)
+ 236  Morgan State         AA =  39.29    1   1   58.75( 102)    0   0  |    0   0  |   37.44  234 |   38.36  228 |   36.57  234 |   33.68  229  MEAC                (AA)
+_________________________________________________________________________________________________________________________________________________
+  11  MISSOURI VALLEY     (AA)=  56.38
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  68  South Dakota State   AA =  69.10    1   1   53.28( 136)    0   0  |    0   0  |   68.10   67 |   67.49   67 |   69.21   70 |   71.77   67  MISSOURI VALLEY     (AA)
+  97  South Dakota         AA =  61.55    2   0   42.69( 211)    0   0  |    0   0  |   59.18   98 |   58.88   96 |   63.38   97 |   66.76   90  MISSOURI VALLEY     (AA)
+ 101  North Dakota         AA =  61.05    2   0   39.22( 230)    0   0  |    0   0  |   60.12   90 |   60.07   91 |   59.72  119 |   62.85  104  MISSOURI VALLEY     (AA)
+ 108  Illinois State       AA =  59.29    2   0   41.26( 221)    0   0  |    0   0  |   56.48  113 |   56.69  115 |   61.24  110 |   68.32   83  MISSOURI VALLEY     (AA)
+ 116  Southern Illinois    AA =  58.27    1   1   52.11( 146)    0   0  |    0   0  |   53.81  129 |   55.64  118 |   61.81  104 |   56.86  136  MISSOURI VALLEY     (AA)
+ 125  Youngstown State     AA =  56.90    1   1   58.92( 100)    0   0  |    0   1  |   54.65  126 |   54.43  122 |   57.92  124 |   59.31  122  MISSOURI VALLEY     (AA)
+ 180  Northern Iowa        AA =  48.77    0   1   54.39( 129)    0   0  |    0   0  |   47.79  163 |   46.58  177 |   47.50  190 |   43.69  200  MISSOURI VALLEY     (AA)
+ 192  Indiana State        AA =  46.46    0   2   59.28(  98)    0   0  |    0   0  |   43.63  192 |   43.00  197 |   47.90  185 |   48.89  174  MISSOURI VALLEY     (AA)
+ 241  Murray State         AA =  38.83    0   2   47.67( 178)    0   0  |    0   0  |   37.89  228 |   38.18  231 |   34.57  244 |   28.02  246  MISSOURI VALLEY     (AA)
+_________________________________________________________________________________________________________________________________________________
+  25  NORTHEAST           (AA)=  39.07
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 212  LIU Post             AA =  43.21    0   2   70.93(  50)    0   0  |    0   0  |   39.01  219 |   38.50  226 |   46.41  195 |   44.74  193  NORTHEAST           (AA)
+ 215  Robert Morris        AA =  43.03    2   0   34.93( 245)    0   0  |    0   0  |   36.69  239 |   39.19  220 |   47.05  193 |   55.24  147  NORTHEAST           (AA)
+ 220  Duquesne             AA =  42.22    0   1   65.49(  71)    0   0  |    0   0  |   39.90  214 |   40.36  212 |   41.33  218 |   35.45  226  NORTHEAST           (AA)
+ 237  Central Connecticut  AA =  39.21    0   1   63.96(  75)    0   0  |    0   0  |   37.22  236 |   37.83  233 |   37.19  232 |   29.86  239  NORTHEAST           (AA)
+ 247  Mercyhurst           AA =  37.92    0   2   59.23(  99)    0   0  |    0   0  |   35.90  244 |   36.31  243 |   36.03  237 |   28.81  244  NORTHEAST           (AA)
+ 249  Stonehill College    AA =  36.96    1   1   40.86( 223)    0   0  |    0   0  |   34.61  245 |   34.44  250 |   36.26  236 |   37.97  219  NORTHEAST           (AA)
+ 250  New Haven            AA =  36.75    1   1   31.20( 252)    0   0  |    0   0  |   37.65  232 |   38.41  227 |   21.65  262 |   14.18  262  NORTHEAST           (AA)
+ 259  Wagner               AA =  32.52    1   1   40.62( 226)    0   0  |    0   0  |   31.39  259 |   29.73  261 |   30.29  254 |   22.10  255  NORTHEAST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  21  OVC-BIG SOUTH       (AA)=  44.35
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 172  SE Missouri State    AA =  49.57    1   1   60.84(  90)    0   0  |    0   0  |   46.45  171 |   46.70  176 |   51.06  164 |   50.63  167  OVC-BIG SOUTH       (AA)
+ 178  Gardner-Webb         AA =  49.14    0   2   56.92( 109)    0   0  |    0   0  |   44.67  182 |   44.57  187 |   53.19  156 |   51.53  165  OVC-BIG SOUTH       (AA)
+ 199  Tennessee-Martin     AA =  45.64    1   1   36.54( 240)    0   0  |    0   0  |   48.06  161 |   48.45  159 |   30.15  255 |   31.09  235  OVC-BIG SOUTH       (AA)
+ 204  Eastern Illinois     AA =  44.46    1   1   62.20(  87)    0   0  |    0   1  |   40.84  212 |   41.07  208 |   46.32  196 |   46.20  187  OVC-BIG SOUTH       (AA)
+ 211  Tennessee State      AA =  43.47    0   2   70.38(  54)    0   1  |    0   1  |   39.92  213 |   39.06  224 |   45.99  197 |   45.40  189  OVC-BIG SOUTH       (AA)
+ 216  Lindenwood           AA =  42.84    1   1   42.67( 212)    0   0  |    0   0  |   41.40  207 |   41.93  205 |   40.05  224 |   39.44  213  OVC-BIG SOUTH       (AA)
+ 224  Charleston Southern  AA =  41.60    0   2   53.20( 139)    0   0  |    0   0  |   39.86  215 |   40.12  217 |   39.63  225 |   36.10  223  OVC-BIG SOUTH       (AA)
+ 240  Western Illinois     AA =  38.85    1   1   56.88( 110)    0   0  |    0   0  |   36.87  237 |   36.95  238 |   37.32  231 |   30.25  236  OVC-BIG SOUTH       (AA)
+_________________________________________________________________________________________________________________________________________________
+  19  PATRIOT             (AA)=  46.60
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 132  Lehigh               AA =  55.75    2   0   43.06( 208)    0   0  |    0   0  |   51.87  141 |   50.33  146 |   61.09  112 |   68.88   80  PATRIOT             (AA)
+ 160  Richmond             AA =  51.23    2   0   41.93( 219)    0   0  |    0   0  |   47.00  166 |   47.39  172 |   54.75  142 |   57.56  132  PATRIOT             (AA)
+ 163  Villanova            AA =  50.84    1   1   44.77( 195)    0   0  |    0   0  |   50.82  146 |   52.88  129 |   43.89  209 |   38.33  217  PATRIOT             (AA)
+ 168  Colgate              AA =  49.88    2   0   44.40( 198)    0   0  |    0   0  |   43.57  194 |   42.53  203 |   57.64  126 |   64.63  101  PATRIOT             (AA)
+ 175  William & Mary       AA =  49.32    2   0   46.37( 186)    0   0  |    0   0  |   47.48  165 |   48.31  163 |   47.76  187 |   48.48  178  PATRIOT             (AA)
+ 201  Holy Cross           AA =  45.06    0   2   52.82( 140)    0   0  |    0   0  |   43.61  193 |   45.06  186 |   41.47  215 |   32.72  232  PATRIOT             (AA)
+ 207  Fordham              AA =  43.74    0   2   59.50(  95)    0   0  |    0   0  |   38.12  225 |   37.92  232 |   48.75  181 |   44.20  197  PATRIOT             (AA)
+ 225  Lafayette            AA =  41.41    0   1   65.57(  69)    0   0  |    0   0  |   40.88  211 |   41.82  206 |   35.46  242 |   25.70  250  PATRIOT             (AA)
+ 229  Bucknell             AA =  40.22    0   2   51.04( 151)    0   0  |    0   0  |   37.25  235 |   36.46  242 |   41.45  216 |   42.34  204  PATRIOT             (AA)
+ 253  Georgetown           AA =  36.23    0   1   53.34( 135)    0   0  |    0   0  |   32.92  255 |   32.72  257 |   37.17  233 |   29.90  238  PATRIOT             (AA)
+_________________________________________________________________________________________________________________________________________________
+  26  PIONEER             (AA)=  34.75
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 195  Butler               AA =  46.11    1   1   72.20(  47)    0   0  |    0   0  |   37.70  231 |   36.89  239 |   55.32  139 |   58.71  124  PIONEER             (AA)
+ 230  St. Thomas-Mn.       AA =  40.04    1   1   63.46(  83)    0   0  |    0   0  |   39.08  218 |   39.62  218 |   35.68  240 |   28.99  243  PIONEER             (AA)
+ 233  Drake                AA =  39.59    0   2   63.51(  82)    0   0  |    0   0  |   38.65  220 |   39.14  222 |   35.17  243 |   29.22  242  PIONEER             (AA)
+ 245  San Diego            AA =  37.98    0   1   55.99( 121)    0   0  |    0   0  |   37.54  233 |   37.64  234 |   32.35  250 |   25.04  252  PIONEER             (AA)
+ 246  Dayton               AA =  37.93    1   0    0.00(   0)    0   0  |    0   0  |   32.09  257 |   35.32  247 |   40.13  223 |   40.13  210  PIONEER             (AA)
+ 257  Morehead State       AA =  32.95    1   1    0.00(   0)    0   0  |    0   0  |   25.83  264 |   29.90  259 |   35.65  241 |   35.65  225  PIONEER             (AA)
+ 258  Presbyterian College AA =  32.85    1   1   56.81( 112)    0   0  |    0   0  |   33.63  250 |   34.52  249 |    9.22  265 |   -1.17  265  PIONEER             (AA)
+ 261  Valparaiso           AA =  30.78    1   0    0.00(   0)    0   0  |    0   0  |   23.07  266 |   27.50  265 |   33.67  246 |   33.67  230  PIONEER             (AA)
+ 262  Davidson             AA =  30.41    0   2   50.78( 155)    0   0  |    0   0  |   28.57  262 |   28.45  263 |   27.90  257 |   19.36  259  PIONEER             (AA)
+ 263  Marist               AA =  30.27    1   1   39.16( 232)    0   0  |    0   0  |   30.01  260 |   29.74  260 |   22.66  261 |   28.02  247  PIONEER             (AA)
+ 266  Stetson              AA =  27.44    1   1   71.51(  49)    0   0  |    0   0  |   24.72  265 |   25.26  266 |   25.83  259 |   17.85  260  PIONEER             (AA)
+_________________________________________________________________________________________________________________________________________________
+  16  SOUTHERN            (AA)=  47.79
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 131  Tennessee Tech       AA =  55.91    2   0   48.45( 173)    0   0  |    0   0  |   52.56  135 |   51.16  145 |   60.11  117 |   67.03   88  SOUTHERN            (AA)
+ 137  Mercer               AA =  54.40    2   0   35.38( 244)    0   0  |    0   0  |   55.19  121 |   54.26  123 |   49.72  174 |   53.01  154  SOUTHERN            (AA)
+ 165  Wofford              AA =  50.33    2   0   42.49( 214)    0   0  |    0   0  |   46.22  172 |   45.66  182 |   54.33  146 |   58.44  126  SOUTHERN            (AA)
+ 179  Samford              AA =  49.05    0   2   54.82( 125)    0   0  |    0   0  |   42.02  205 |   41.53  207 |   57.22  128 |   56.92  135  SOUTHERN            (AA)
+ 181  Chattanooga          AA =  48.64    1   1   49.52( 166)    0   0  |    0   0  |   46.59  170 |   47.24  173 |   47.64  189 |   47.20  186  SOUTHERN            (AA)
+ 182  Western Carolina     AA =  48.56    1   1   45.14( 191)    0   0  |    0   0  |   48.14  160 |   48.38  160 |   44.46  205 |   45.04  192  SOUTHERN            (AA)
+ 190  Furman               AA =  46.74    1   1   87.09(  13)    0   0  |    0   1  |   43.21  197 |   43.06  195 |   49.00  179 |   48.18  180  SOUTHERN            (AA)
+ 206  East Tennessee State AA =  43.78    1   1   44.72( 196)    0   0  |    0   0  |   44.45  185 |   42.53  202 |   38.86  226 |   31.56  233  SOUTHERN            (AA)
+ 227  The Citadel          AA =  40.66    1   1   48.48( 172)    0   0  |    0   0  |   39.80  216 |   40.39  211 |   36.01  238 |   34.50  228  SOUTHERN            (AA)
+ 252  VMI                  AA =  36.30    0   2   69.28(  57)    0   0  |    0   1  |   33.35  252 |   33.40  253 |   36.43  235 |   29.24  241  SOUTHERN            (AA)
+_________________________________________________________________________________________________________________________________________________
+  17  SOUTHLAND           (AA)=  46.84
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 103  Stephen F. Austin    AA =  60.97    2   0   46.29( 187)    0   0  |    0   0  |   55.55  118 |   54.61  120 |   70.48   65 |   74.93   56  SOUTHLAND           (AA)
+ 153  Incarnate Word       AA =  52.11    1   0    0.00(   0)    0   0  |    0   0  |   49.36  156 |   50.31  147 |   52.50  160 |   52.50  159  SOUTHLAND           (AA)
+ 170  McNeese State        AA =  49.84    1   1   58.56( 105)    0   0  |    0   0  |   41.19  209 |   40.15  216 |   60.88  114 |   61.55  108  SOUTHLAND           (AA)
+ 174  UTRGV                AA =  49.38    1   1   69.72(  56)    0   0  |    0   0  |   47.60  164 |   47.74  167 |   48.40  182 |   43.38  201  SOUTHLAND           (AA)
+ 176  Lamar                AA =  49.23    1   1   58.85( 101)    0   0  |    0   0  |   44.05  189 |   44.33  191 |   54.12  148 |   53.30  152  SOUTHLAND           (AA)
+ 196  SE Louisiana         AA =  46.05    0   2   49.32( 167)    0   0  |    0   0  |   46.10  176 |   47.56  168 |   38.57  229 |   31.28  234  SOUTHLAND           (AA)
+ 205  Nicholls State       AA =  44.45    1   1   55.52( 122)    0   0  |    0   1  |   42.45  202 |   43.79  193 |   42.19  214 |   40.26  209  SOUTHLAND           (AA)
+ 217  East Texas A&M       AA =  42.73    0   2   60.10(  91)    0   0  |    0   0  |   38.52  221 |   38.26  230 |   45.72  199 |   43.81  199  SOUTHLAND           (AA)
+ 226  Houston Christian    AA =  41.28    1   1   54.35( 130)    0   0  |    0   0  |   36.72  238 |   36.47  241 |   44.59  203 |   45.52  188  SOUTHLAND           (AA)
+ 265  Northwestern State   AA =  28.10    0   2   66.03(  65)    0   0  |    0   0  |   27.12  263 |   28.11  264 |   20.12  263 |    9.49  264  SOUTHLAND           (AA)
+_________________________________________________________________________________________________________________________________________________
+  23  SWAC-EAST           (AA)=  40.09
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 177  Jackson State        AA =  49.18    2   0   45.88( 190)    0   0  |    0   0  |   45.77  177 |   48.17  165 |   49.15  178 |   48.14  181  SWAC-EAST           (AA)
+ 183  Alabama State        AA =  48.46    2   0   39.37( 229)    0   0  |    0   0  |   44.54  184 |   46.74  175 |   49.48  176 |   52.99  155  SWAC-EAST           (AA)
+ 239  Alabama A&M          AA =  38.89    1   1   43.64( 204)    0   0  |    0   0  |   33.89  249 |   32.79  256 |   43.01  212 |   41.34  206  SWAC-EAST           (AA)
+ 242  Florida A&M          AA =  38.81    1   1   49.65( 165)    0   0  |    0   0  |   36.61  242 |   35.89  244 |   38.50  230 |   33.15  231  SWAC-EAST           (AA)
+ 251  Bethune-Cookman      AA =  36.34    0   1   77.95(  31)    0   0  |    0   0  |   34.59  246 |   35.86  245 |   32.57  248 |   23.11  254  SWAC-EAST           (AA)
+ 264  Miss. Valley State   AA =  29.15    0   2   50.84( 154)    0   0  |    0   0  |   29.08  261 |   28.95  262 |   19.58  264 |   10.49  263  SWAC-EAST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  24  SWAC-WEST           (AA)=  39.59
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 166  Prairie View A&M     AA =  50.10    1   1   49.87( 161)    0   0  |    0   0  |   44.88  180 |   42.91  198 |   56.95  130 |   61.61  106  SWAC-WEST           (AA)
+ 228  Southern U.          AA =  40.58    1   1   49.66( 164)    0   0  |    0   0  |   38.09  226 |   37.27  236 |   41.04  221 |   37.53  221  SWAC-WEST           (AA)
+ 238  Grambling State      AA =  39.11    2   0    0.00(   0)    0   0  |    0   0  |   33.55  251 |   36.59  240 |   41.18  220 |   41.18  207  SWAC-WEST           (AA)
+ 243  Ark.-Pine Bluff      AA =  38.81    1   1   81.07(  25)    0   0  |    0   0  |   31.93  258 |   30.80  258 |   44.88  201 |   51.75  164  SWAC-WEST           (AA)
+ 248  Texas Southern       AA =  37.33    1   1   45.02( 193)    0   0  |    0   0  |   36.65  240 |   37.27  237 |   31.47  252 |   29.29  240  SWAC-WEST           (AA)
+ 255  Alcorn State         AA =  35.45    1   1   58.70( 103)    0   0  |    0   0  |   34.47  248 |   34.96  248 |   30.41  253 |   20.89  256  SWAC-WEST           (AA)
+_________________________________________________________________________________________________________________________________________________
+  15  UAC                 (AA)=  48.28
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+  92  Tarleton State       AA =  62.42    2   0   52.72( 141)    0   0  |    0   0  |   57.91  106 |   57.92  101 |   68.82   74 |   70.74   75  UAC                 (AA)
+ 112  Austin Peay          AA =  58.68    1   1   63.96(  74)    0   0  |    0   0  |   54.75  125 |   53.54  127 |   64.35   88 |   68.59   81  UAC                 (AA)
+ 139  North Alabama        AA =  53.78    1   1   63.67(  79)    0   0  |    0   0  |   46.12  175 |   44.34  190 |   65.81   84 |   71.82   66  UAC                 (AA)
+ 143  Abilene Christian    AA =  53.52    0   2   65.63(  68)    0   0  |    0   0  |   53.31  131 |   52.41  132 |   50.84  167 |   51.85  163  UAC                 (AA)
+ 164  West Florida         AA =  50.35    2   0   52.20( 145)    0   0  |    0   0  |   42.21  203 |   39.18  221 |   62.23  100 |   70.74   74  UAC                 (AA)
+ 194  Central Arkansas     AA =  46.13    1   1   47.99( 176)    0   0  |    0   0  |   45.62  178 |   46.96  174 |   40.46  222 |   38.13  218  UAC                 (AA)
+ 213  Eastern Kentucky     AA =  43.14    0   2   56.13( 118)    0   0  |    0   0  |   44.19  188 |   46.10  180 |   29.01  256 |   20.19  257  UAC                 (AA)
+ 214  West Georgia         AA =  43.13    0   2   55.27( 123)    0   0  |    0   0  |   42.78  199 |   44.38  189 |   35.90  239 |   27.49  248  UAC                 (AA)
+ 244  Merrimack            AA =  38.53    0   2   54.78( 126)    0   0  |    0   0  |   38.07  227 |   38.80  225 |   32.02  251 |   24.38  253  UAC                 (AA)
+ 260  Chicago State        AA =  31.77    0   2   48.05( 175)    0   0  |    0   0  |   32.88  256 |   32.87  255 |    6.82  266 |   -1.21  266  UAC                 (AA)
+_________________________________________________________________________________________________________________________________________________
+  27  ___UNRATED___       (__)= -91.00
+2026 College Football through games of September 7 Monday - Week 1
+                                RATING    W   L  SCHEDL(RANK) VS top 10 | VS top 30 |  PREDICTOR   | GOLDEN_MEAN  |  RECENT      | STRONG RECENT
+                HOME ADVANTAGE=[  2.41]                                               [  2.41]       [  2.41]       [  2.41]       [  2.41]
+ 267  ***UNRATED***        __ = -91.00    5  32    0.00(   0)    0   0  |    0   0  |  -91.00  267 |  -91.00  267 |  -91.00  267 |  -91.00  267  ___UNRATED___       (__)
+_________________________________________________________________________________________________________________________________________________
+                                      These are the "regular method".                                                           _
+HOME or CLOSEBY (c) is denoted                                                                                                  _
+by an "@" next to the HOME or CLOSER team                                                                                       _
+An "n" for NEUTRAL location will appear if a neutral game                               Rating Favorite                         _
+                                                            Strong                   MONEYLINE=odds to 100                      _
+          FAVORITE             Rating Predict Golden Recent Recent  UNDERDOG                ODDS   PCT%                 TOTAL   _
+====================================================================================================================================</pre></pre>
+<pre><b>
+<h2><font size=+2><a name="Predictions_with_Totals_and_Moneylines"><b>Predictions_with_Totals_and_Moneylines</b></a></h2></font>
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+    1   @ Miami-Florida         55.88  59.72  61.25  53.21  65.52   Florida A&M             5085    98%   33.52  13.24  46.76  20.27  88%   754
+    2   @ Boston College         5.62   0.13   2.52  13.71  18.67   Rutgers                  185    65%   28.25  25.35  53.60   2.89  58%   138
+    3     Missouri               0.27   5.51   6.95  -7.52 -18.73 @ Kansas                   103    51%   25.55  31.95  57.50  -6.40  67%   201
+    4   @ Louisville            33.32  33.74  29.84  40.09  48.58   Villanova               2065    95%   34.58  32.49  67.06   2.09  56%   126
+    5   @ NC State              21.73  28.94  26.76  12.83   1.28   Richmond                 856    90%   27.10  35.21  62.31  -8.11  71%   239
+    6   @ Virginia              44.13  46.56  48.77  42.76  47.34   Norfolk State           3572    97%   30.87  16.69  47.57  14.18  81%   433
+    7     North Dakota State     3.64   2.51   1.85   7.88   8.06 @ Air Force                150    60%   26.40  22.73  49.13   3.67  60%   150
+    8   @ Akron                 12.20  16.00  12.51  10.08   3.88   Robert Morris            358    78%   19.91  29.35  49.26  -9.45  73%   274
+    9   @ Arkansas State        17.12  14.40  11.61  28.06  33.12   West Georgia             568    85%   29.48  21.45  50.92   8.03  70%   237
+   10   @ Army West Point        9.21   4.80   2.27  29.39  40.49   South Florida            267    73%   33.29  14.59  47.89  18.70  87%   655
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   11   @ Auburn                27.69  33.69  35.36  18.14   4.42   Southern Miss           1392    93%   19.30  28.20  47.49  -8.90  72%   259
+   12   @ Ball State             8.55   6.37   4.68  14.82  18.86   Stony Brook              250    71%   30.27  39.11  69.37  -8.84  72%   258
+   13   @ Baylor                28.33  33.28  33.40  22.10  21.64   Prairie View A&M        1461    94%   26.79  28.30  55.08  -1.51  54%   118
+   14   @ Boise State            8.53   9.37   7.61   9.99  14.62   Memphis                  250    71%   29.72  33.39  63.11  -3.67  60%   150
+   15   @ BYU                    3.54   8.17   7.88  -1.22   4.19   Arizona                  148    60%   28.30  28.32  56.62  -0.02  50%   100
+   16   @ Central Michigan       5.42  11.21  12.46  -5.60 -20.11   Colgate                  181    64%   19.30  30.72  50.03 -11.42  77%   332
+   17   @ Cincinnati            27.40  26.22  26.89  31.72  36.97   Western Carolina        1361    93%   32.33  20.03  52.36  12.30  78%   362
+   18   @ Clemson               19.18  25.69  24.59  11.41  -4.80   Georgia Southern         684    87%   15.53  27.77  43.30 -12.25  78%   360
+   19   @ Coastal Carolina      16.28  19.23  17.20  15.20  26.37   Fordham                  526    84%   24.55  22.63  47.18   1.91  55%   124
+   20   @ Colorado              24.08  25.90  26.43  22.12  27.44   Weber State             1043    91%   29.39  26.50  55.90   2.89  58%   138
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   21   @ Colorado State         9.64   8.81   9.71  11.17  17.57   Southern Utah            279    74%   34.12  27.26  61.38   6.85  68%   210
+   22     Maryland              10.74  13.45  13.70   5.87   4.11 @ Connecticut              311    76%   27.93  28.56  56.49  -0.62  52%   107
+   23   @ East Carolina          0.28   5.51   5.79 -14.05 -28.59   Appalachian State        103    51%   17.40  39.26  56.66 -21.85  90%   865
+   24   @ Florida               42.64  45.34  46.72  40.04  40.31   Campbell                3364    97%   34.05  21.80  55.84  12.25  78%   360
+   25     Navy                   2.39   5.20   5.54  -2.48   6.89 @ Florida Atlantic         131    57%   38.19  26.74  64.93  11.45  77%   333
+   26   @ Fla. International     6.78   6.86   2.95  10.99  15.70   Buffalo                  209    68%   22.52  20.65  43.18   1.87  55%   123
+   27   @ Fresno State           8.12  12.94  14.06  -1.88 -12.49   Sacramento State         240    71%   22.42  21.35  43.77   1.08  53%   113
+   28   @ Georgia               40.53  41.99  43.11  43.79  55.71   Western Kentucky        3066    97%   41.95  15.51  57.45  26.44  93%  1263
+   29     Tennessee              8.31   8.30  10.60   7.88  13.53 @ Georgia Tech             244    71%   28.74  19.42  48.16   9.31  73%   270
+   30   @ Hawai'i                4.66   8.06  10.47  -4.16 -14.46   New Mexico State         167    63%   24.20  30.01  54.21  -5.80  65%   189
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   31   @ Houston               37.91  42.16  43.97  32.55  31.14   Southern U.             2694    96%   30.26  21.32  51.58   8.94  72%   260
+   32   @ Illinois               5.68   8.86   9.00   1.65  -6.46   Duke                     186    65%   26.52  21.61  48.14   4.91  63%   172
+   33   @ Indiana               51.94  61.21  62.41  42.68  39.61   Howard                  4603    98%   26.95  16.62  43.57  10.33  75%   299
+   34   @ Iowa                  15.34  17.41  17.31  13.34  13.68   Iowa State               482    83%   26.73  25.19  51.92   1.54  54%   119
+   35   @ James Madison         35.01  34.90  37.85  35.58  43.96   Wagner                  2291    96%   26.40  16.76  43.15   9.64  74%   279
+   36   @ Kansas State          18.33  17.36  18.62  22.67  26.79   Washington State         634    86%   35.89  14.87  50.76  21.02  89%   805
+   37   @ Kennesaw State         8.27   8.36   8.39   9.19   9.38   Georgia State            243    71%   36.23  28.02  64.26   8.21  71%   242
+   38     Wofford                1.11  -0.91  -2.50   6.61  18.20 @ Kent State               113    53%   28.31  17.39  45.70  10.91  76%   316
+   39     Alabama                6.99   8.34   8.64   5.52   6.79 @ Kentucky                 213    68%   26.77  31.17  57.94  -4.40  62%   162
+   40   @ Liberty               13.55  17.31  15.57   9.39  10.86   Gardner-Webb             407    80%   21.65  20.92  42.57   0.73  52%   108
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   41   @ LSU                   32.26  34.08  37.45  27.77  26.75   Louisiana Tech          1928    95%   28.76  29.90  58.66  -1.14  53%   114
+   42   @ Marshall               9.98  11.73  10.31   8.65  -4.44   Middle Tennessee         289    74%   23.28  32.73  56.01  -9.45  73%   274
+   43   @ Massachusetts         16.25   9.79  14.71  24.82  31.81   Sacred Heart             525    84%   33.57  19.83  53.40  13.74  81%   415
+   44   @ Miami-Ohio            13.35  14.34  13.74  13.23  13.71   Holy Cross               400    80%   26.88  27.52  54.40  -0.65  52%   107
+   45     Oklahoma               8.22   1.35   5.00  13.67  27.71 @ Michigan                 242    71%   27.54  16.82  44.36  10.72  76%   311
+   46   @ Michigan State        16.85  21.24  22.54   8.83   5.62   Eastern Michigan         554    85%   23.91  22.91  46.82   1.01  53%   112
+   47   @ Minnesota              3.48   3.13   3.23   4.22   3.06   Mississippi State        147    60%   33.53  26.25  59.78   7.28  69%   220
+   48   @ Mississippi           48.22  48.89  50.99  53.27  55.05   Charlotte               4125    98%   39.70  24.53  64.23  15.16  83%   474
+   49   @ Missouri State        11.67  10.70  10.13  15.14  11.81   Lindenwood               340    77%   17.09  24.11  41.20  -7.02  68%   214
+   50   @ Nebraska              26.28  31.98  33.83  16.35  18.09   Bowling Green           1248    93%   25.50  20.08  45.58   5.42  64%   181
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   51     Montana State          5.13   7.89   6.54   1.35  -5.71 @ Nevada                   176    64%   28.24  28.07  56.30   0.17  50%   102
+   52   @ New Mexico            32.41  32.09  31.68  36.48  51.23   Mercyhurst              1948    95%   38.38  14.42  52.80  23.96  91%  1034
+   53   @ North Carolina        32.81  30.30  33.83  37.80  50.45   East Tennessee State    1999    95%   32.54  27.11  59.64   5.43  64%   181
+   54     UNLV                   2.28   2.97   4.21   0.03  -1.21 @ North Texas              129    56%   26.58  19.90  46.48   6.67  67%   207
+   55     Illinois State         4.49   4.13   4.63   5.43  14.53 @ Northern Illinois        164    62%   33.42  17.34  50.75  16.08  84%   517
+   56   @ Notre Dame            42.68  47.59  48.59  36.24  37.15   Rice                    3370    97%   24.73  21.86  46.59   2.88  58%   138
+   57   @ Ohio                   0.34  -0.97  -1.04   2.77   0.53   Jacksonville State       104    51%   21.48  30.78  52.26  -9.30  73%   270
+   58     Oregon                19.99  23.58  27.90  19.42  19.71 @ Oklahoma State           735    88%   26.26  24.25  50.50   2.01  56%   125
+   59     Texas Tech            13.75  27.45  30.88  -0.44 -12.82 @ Oregon State             415    81%   30.02  23.06  53.08   6.95  68%   213
+   60   @ Pittsburgh             7.89   8.33   9.17   6.38   5.19   Central Florida(UCF)     234    70%   29.84  30.36  60.20  -0.52  51%   106
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   61     Wake Forest            0.78   0.16  -0.04   2.26   2.95 @ Purdue                   109    52%   28.43  31.17  59.59  -2.74  58%   136
+   62     Tulsa                 13.12  11.68  15.61  14.37  18.26 @ Sam Houston State        391    80%   23.13  22.32  45.45   0.80  52%   109
+   63   @ San Jose State        14.95  15.41  10.52  20.69  20.84   Cal Poly-SLO             465    82%   38.20  21.72  59.92  16.48  84%   536
+   64   @ South Carolina        42.24  42.11  41.07  48.15  59.42   Towson                  3308    97%   36.82  14.32  51.14  22.50  90%   914
+   65   @ Southern California   20.92  29.48  31.83   4.79  -2.47   Louisiana-Lafayette      798    89%   30.15  26.29  56.44   3.87  61%   153
+   66   @ SMU                   24.21  27.59  28.76  20.53  16.16   UC Davis                1055    91%   32.41  23.15  55.56   9.26  73%   269
+   67   @ Syracuse               6.75   1.25   2.29  18.27  36.32   California               208    68%   42.06  18.04  60.10  24.02  91%  1039
+   68     Penn State            21.68  25.83  25.31  15.81  16.14 @ Temple                   852    89%   24.68  28.94  53.62  -4.25  62%   160
+   69   @ Texas                  3.58  -0.83  -1.33   7.76  17.13   Ohio State               149    60%   29.35  27.24  56.59   2.11  56%   127
+   70   @ Texas A&M             13.10  15.50  16.52   9.32   4.69   Arizona State            391    80%   29.82  29.62  59.44   0.20  51%   102
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   71   @ TCU                   37.34  45.24  39.55  31.90  26.55   Grambling State         2615    96%   41.39   4.05  45.45  37.34  96%  2615
+   72     UTSA                   2.76   1.66   1.65   5.36  17.85 @ Texas State              136    58%   36.80  20.34  57.14  16.47  84%   535
+   73   @ UTEP                  16.01  14.10  13.50  22.72  21.06   Texas Southern           513    84%   27.78  24.86  52.63   2.92  58%   138
+   74   @ Toledo                23.73  24.21  21.64  27.43  38.31   Central Connecticut     1014    91%   32.38  21.70  54.08  10.68  76%   309
+   75   @ Troy                  10.98  13.68  13.65   6.59  -2.07   Alabama State            318    76%   24.19  24.83  49.03  -0.64  52%   107
+   76   @ Tulane                 9.56  10.46   7.69  11.24   2.67   South Alabama            277    73%   17.70  23.34  41.04  -5.65  65%   186
+   77   @ UAB                    9.11   7.84   4.97  14.99  28.33   LouisianaMonroe(ULM)     265    73%   34.02  25.94  59.96   8.07  70%   238
+   78   @ UCLA                  15.45  16.11  17.96  13.34  16.43   San Diego State          487    83%   30.50  32.43  62.93  -1.93  55%   124
+   79   @ Utah                   9.24  10.38   8.50   9.48  24.62   Arkansas                 268    73%   29.34  26.52  55.86   2.82  58%   137
+   80   @ Vanderbilt            23.80  25.02  25.55  23.29  11.34   Delaware                1019    91%   29.03  20.53  49.56   8.50  71%   249
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   81   @ Virginia Tech         22.60  21.18  18.82  30.49  43.67   Old Dominion             922    90%   33.06  20.59  53.65  12.47  79%   368
+   82   @ Washington            33.55  34.49  37.72  35.15  37.41   Utah State              2096    95%   29.49  18.33  47.82  11.16  76%   324
+   83   @ West Virginia         27.19  26.20  27.36  37.09  29.53   Tennessee-Martin        1339    93%   36.21  20.14  56.35  16.06  84%   516
+   84   @ Western Michigan      22.23  17.73  19.04  33.55  49.35   Monmouth-NJ              893    90%   27.10  20.03  47.13   7.07  68%   215
+   85   @ Wisconsin             43.39  47.35  45.75  41.77  42.55   Western Illinois        3469    97%   28.11  25.10  53.22   3.01  58%   140
+   86   @ Wyoming                9.36  14.00  14.33   1.44  -6.93   Northern Colorado        271    73%   21.48  23.44  44.92  -1.96  55%   125
+   87     Stephen F. Austin      5.04  -0.17  -0.21  17.23  20.67 @ Abilene Christian        174    64%   33.08  17.66  50.74  15.41  83%   486
+   88     Tennessee State        2.17   3.63   3.86   0.57   1.65 @ Alabama A&M              127    56%   29.15  38.62  67.77  -9.47  73%   274
+   89 N @ Ark.-Pine Bluff        3.36  -2.54  -4.16  14.47  30.86   Alcorn State             145    59%   28.69  27.25  55.95   1.44  54%   118
+   90   @ Austin Peay           28.14  31.33  26.05  31.11  35.35   Morehead State          1440    94%   42.24  14.10  56.34  28.14  94%  1440
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   91   @ Bethune-Cookman       11.32  12.28  13.00   9.14   7.68   Stetson                  329    77%   31.83  26.62  58.46   5.21  64%   177
+   92   @ The Citadel            1.47   2.35   2.68  -1.21   0.81   Charleston Southern      118    54%   30.98  33.66  64.64  -2.68  57%   135
+   93   @ East Texas A&M        17.05  13.81  12.57  28.02  36.72   Northwestern State       564    85%   31.69  19.90  51.59  11.79  78%   344
+   94   @ Eastern Illinois       0.41  -0.38   0.48   0.82  -0.28   Indiana State            105    51%   28.28  21.73  50.01   6.55  67%   204
+   95     Chattanooga            3.09  -0.01  -1.27  16.23  24.60 @ Eastern Kentucky         141    58%   28.79  19.65  48.44   9.14  73%   265
+   96     Bryant                 6.81   2.84   2.67  14.02  20.11 @ Hampton                  210    68%   35.41  17.24  52.64  18.17  86%   625
+   97   @ Idaho                  4.82   8.95  10.27  -3.89  -9.91   Lamar                    170    63%   26.60  26.97  53.57  -0.36  51%   104
+   98   @ Idaho State           17.69  15.82  14.76  24.80  38.74   San Diego                598    86%   34.77  17.82  52.60  16.95  85%   559
+   99   @ Lafayette             13.55  13.28  14.49  15.21   0.09   Marist                   408    80%   28.99  25.87  54.86   3.12  59%   141
+  100   @ Lehigh                 8.85   6.80   4.43  15.74  22.81   William & Mary           258    72%   31.29  22.78  54.08   8.51  71%   249
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+  101     Albany-NY              0.31   1.80   1.69  -1.72   4.79 @ LIU Post                 103    51%   24.94  22.82  47.76   2.12  56%   127
+  102   @ Maine                  7.59   5.39   6.22  12.91  16.90   Merrimack                227    69%   28.14  19.54  47.68   8.60  72%   252
+  103     Tarleton State        10.17  14.31  15.36   5.53   6.78 @ McNeese State            294    75%   30.26  28.92  59.18   1.33  54%   116
+  104   @ Mercer                10.07  14.39  13.61   3.13   7.24   Furman                   291    74%   31.87  19.65  51.52  12.22  78%   359
+  105   @ Montana               23.95  24.03  23.05  28.37  37.92   Utah Tech               1033    91%   30.77  12.28  43.05  18.49  87%   643
+  106   @ Murray State          10.47  17.24  13.09   3.31  -3.24   Valparaiso               303    75%   30.56  20.09  50.65  10.47  75%   303
+  107   @ New Hampshire         10.67  12.38  14.51   4.96  -5.36   Stonehill College        309    76%   19.85  23.56  43.41  -3.71  60%   151
+  108     UTRGV                  2.51   2.74   1.54   3.80   0.70 @ Nicholls State           132    57%   28.32  28.39  56.71  -0.07  50%   101
+  109   @ NC Central             8.66  11.96   9.87  -0.66  -0.69   NC A&T                   253    72%   25.86  26.61  52.47  -0.75  52%   109
+  110   @ Northern Arizona       5.06   5.19   4.08   6.13   6.71   Incarnate Word           174    64%   29.63  24.58  54.21   5.06  64%   174
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+  111   @ Northern Iowa         11.59  11.55   9.85  14.74  16.89   Drake                    338    77%   31.85  28.18  60.03   3.67  60%   150
+  112     North Dakota          11.40  14.32  14.59   7.06  11.49 @ Portland State           332    77%   32.15  27.92  60.08   4.23  61%   160
+  113   @ Rhode Island           1.38   2.67   2.91  -1.35  -9.69   Elon                     117    54%   21.76  26.01  47.77  -4.25  62%   160
+  114   @ South Dakota          11.98  12.08  12.00  12.86  14.72   Eastern Washington       351    78%   38.57  27.84  66.41  10.73  76%   311
+  115   @ South Dakota State    34.76  32.86  31.49  49.97  60.00   New Haven               2258    96%   36.35  16.66  53.01  19.70  88%   716
+  116     North Alabama          5.32  -2.39  -5.63  24.83  38.13 @ SE Louisiana             179    64%   34.95  21.34  56.29  13.61  80%   410
+  117   @ Southern Illinois     11.12   9.78  11.35  13.16   8.64   SE Missouri State        323    76%   32.94  19.21  52.15  13.73  81%   415
+  118   @ Tennessee Tech         9.27  12.95  12.04   5.30  12.52   Samford                  269    73%   24.88  17.03  41.92   7.85  70%   233
+  119     Bucknell               1.52   1.49   0.65   2.61  10.69 @ VMI                      118    54%   23.90  17.05  40.95   6.84  68%   210
+  120   @ Youngstown State      17.09  17.16  16.48  19.00  26.27   Duquesne                 567    85%   26.85  18.92  45.77   7.93  70%   235
+EXPERIMENTAL NUMBERS INVOLVING HOME-AWAY ADJUSTMENTS FOR EACH TEAM
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+    1   @ Miami-Florida         68.20  72.04  73.56  65.52  77.83   Florida A&M             6463    98%   39.67   7.09  46.76  32.59  95%  1970
+    2   @ Boston College        10.57   5.09   7.47  18.67  23.62   Rutgers                  306    75%   30.73  22.88  53.60   7.85  70%   233
+    3   @ Kansas                15.27  10.03   8.59  23.06  34.27   Missouri                 479    83%   39.72  17.78  57.50  21.94  90%   872
+    4   @ Louisville            47.63  48.05  44.15  54.40  62.89   Villanova               4047    98%   41.73  25.33  67.06  16.40  84%   532
+    5   @ NC State               9.55  16.76  14.57   0.64 -10.90   Richmond                 277    73%   21.01  41.30  62.31 -20.29  88%   755
+    6   @ Virginia              44.55  46.98  49.18  43.18  47.76   Norfolk State           3630    97%   31.08  16.48  47.57  14.60  82%   450
+    7   @ Air Force              2.05   3.19   3.85  -2.18  -2.37   North Dakota State       126    56%   25.58  23.55  49.13   2.03  56%   125
+    8     Robert Morris          2.19  -1.61   1.88   4.31  10.51 @ Akron                    128    56%   36.55  12.71  49.26  23.84  91%  1023
+    9   @ Arkansas State        32.10  29.39  26.60  43.04  48.10   West Georgia            1908    95%   36.97  13.95  50.92  23.02  91%   955
+   10   @ Army West Point       29.80  25.39  22.86  49.98  61.08   South Florida           1627    94%   43.59   4.30  47.89  39.29  97%  2890
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   11   @ Auburn                13.97  19.96  21.63   4.42  -9.31   Southern Miss            424    81%   12.43  35.06  47.49 -22.63  90%   924
+   12   @ Ball State            17.76  15.58  13.89  24.03  28.07   Stony Brook              603    86%   34.87  34.50  69.37   0.37  51%   104
+   13   @ Baylor                30.29  35.24  35.37  24.06  23.60   Prairie View A&M        1685    94%   27.77  27.32  55.08   0.45  51%   105
+   14   @ Boise State            8.15   8.99   7.24   9.61  14.25   Memphis                  240    71%   29.53  33.58  63.11  -4.04  61%   156
+   15   @ BYU                   14.44  19.06  18.77   9.67  15.08   Arizona                  443    82%   33.75  22.87  56.62  10.88  76%   315
+   16     Colgate               13.47   7.68   6.43  24.49  39.00 @ Central Michigan         404    80%   40.17   9.86  50.03  30.31  94%  1687
+   17   @ Cincinnati            44.40  43.22  43.89  48.72  53.97   Western Carolina        3610    97%   40.83  11.53  52.36  29.30  94%  1569
+   18   @ Clemson                2.97   9.48   8.38  -4.80 -21.01   Georgia Southern         139    58%    7.42  35.88  43.30 -28.46  94%  1474
+   19   @ Coastal Carolina      32.16  35.10  33.08  31.08  42.25   Fordham                 1915    95%   32.49  14.70  47.18  17.79  86%   604
+   20   @ Colorado              29.88  31.71  32.23  27.93  33.25   Weber State             1637    94%   32.30  23.60  55.90   8.70  72%   254
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   21   @ Colorado State        20.37  19.54  20.44  21.90  28.30   Southern Utah            760    88%   39.48  21.90  61.38  17.58  86%   593
+   22   @ Connecticut            0.78  -1.93  -2.18   5.65   7.41   Maryland                 109    52%   34.32  22.17  56.49  12.14  78%   356
+   23     Appalachian State     14.26   9.04   8.76  28.59  43.14 @ East Carolina            436    81%   46.53  10.13  56.66  36.40  96%  2484
+   24   @ Florida               42.45  45.15  46.53  39.84  40.12   Campbell                3337    97%   33.95  21.89  55.84  12.06  78%   353
+   25     Navy                  11.76  14.57  14.91   6.89  16.26 @ Florida Atlantic         343    77%   42.87  22.05  64.93  20.82  89%   791
+   26   @ Fla. International    11.49  11.58   7.66  15.70  20.42   Buffalo                  335    77%   24.88  18.30  43.18   6.58  67%   205
+   27   @ Fresno State           0.79   5.61   6.73  -9.21 -19.82   Sacramento State         109    52%   18.76  25.01  43.77  -6.25  66%   198
+   28   @ Georgia               64.37  65.83  66.94  67.63  79.55   Western Kentucky        6050    98%   53.86   3.59  57.45  50.27  98%  4393
+   29     Tennessee             18.78  18.78  21.07  18.36  24.01 @ Georgia Tech             660    87%   33.97  14.19  48.16  19.79  88%   722
+   30     New Mexico State      16.27  12.87  10.46  25.09  35.39 @ Hawai'i                  526    84%   40.47  13.74  54.21  26.73  93%  1292
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   31   @ Houston               31.56  35.81  37.62  26.21  24.79   Southern U.             1840    95%   27.09  24.49  51.58   2.60  57%   134
+   32     Duke                   8.57   5.40   5.25  12.60  20.71 @ Illinois                 251    71%   28.74  19.39  48.14   9.35  73%   271
+   33   @ Indiana               46.21  55.48  56.68  36.95  33.88   Howard                  3856    97%   24.08  19.49  43.57   4.60  62%   166
+   34   @ Iowa                  17.70  19.77  19.67  15.70  16.04   Iowa State               599    86%   27.91  24.01  51.92   3.90  61%   154
+   35   @ James Madison         43.58  43.48  46.43  44.16  52.54   Wagner                  3496    97%   30.69  12.47  43.15  18.22  86%   628
+   36   @ Kansas State          26.57  25.60  26.86  30.91  35.03   Washington State        1276    93%   40.01  10.75  50.76  29.26  94%  1564
+   37   @ Kennesaw State        18.39  18.47  18.50  19.31  19.49   Georgia State            637    86%   41.29  22.97  64.26  18.32  86%   634
+   38     Wofford               12.70  10.68   9.09  18.20  29.79 @ Kent State               376    79%   34.10  11.60  45.70  22.50  90%   914
+   39     Alabama                5.14   6.49   6.79   3.67   4.94 @ Kentucky                 176    64%   25.85  32.09  57.94  -6.25  66%   198
+   40   @ Liberty               16.68  20.45  18.71  12.53  14.00   Gardner-Webb             546    85%   23.22  19.35  42.57   3.87  61%   153
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   41   @ LSU                   40.84  42.66  46.03  36.35  35.32   Louisiana Tech          3110    97%   33.04  25.61  58.66   7.43  69%   223
+   42     Middle Tennessee       3.11   1.35   2.78   4.44  17.53 @ Marshall                 141    59%   39.27  16.73  56.01  22.54  90%   917
+   43   @ Massachusetts         19.47  13.00  17.93  28.03  35.02   Sacred Heart             702    88%   35.18  18.22  53.40  16.95  85%   560
+   44   @ Miami-Ohio            22.87  23.87  23.26  22.75  23.23   Holy Cross               943    90%   31.64  22.76  54.40   8.88  72%   259
+   45     Oklahoma              32.45  25.58  29.23  37.90  51.94 @ Michigan                1953    95%   39.66   4.70  44.36  34.96  96%  2284
+   46   @ Michigan State        10.08  14.48  15.77   2.06  -1.15   Eastern Michigan         292    74%   20.53  26.29  46.82  -5.76  65%   188
+   47   @ Minnesota              8.36   8.01   8.11   9.10   7.94   Mississippi State        245    71%   35.97  23.81  59.78  12.16  78%   357
+   48   @ Mississippi           50.00  50.67  52.77  55.05  56.84   Charlotte               4357    98%   40.59  23.64  64.23  16.94  85%   559
+   49   @ Missouri State         8.91   7.95   7.37  12.38   9.06   Lindenwood               260    72%   15.71  25.49  41.20  -9.78  74%   283
+   50   @ Nebraska              28.27  33.97  35.81  18.33  20.07   Bowling Green           1454    94%   26.49  19.09  45.58   7.41  69%   223
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   51   @ Nevada                 2.18  -0.57   0.77   5.97  13.02   Montana State            128    56%   31.72  24.58  56.30   7.14  68%   217
+   52   @ New Mexico            61.91  61.58  61.17  65.97  80.72   Mercyhurst              5778    98%   53.13  -0.33  52.80  53.46  98%  4792
+   53   @ North Carolina        45.46  42.96  46.48  50.45  63.11   East Tennessee State    3755    97%   38.86  20.78  59.64  18.08  86%   620
+   54     UNLV                   7.45   8.15   9.38   5.20   3.96 @ North Texas              224    69%   29.16  17.32  46.48  11.85  78%   346
+   55     Illinois State        20.67  20.31  20.81  21.61  30.71 @ Northern Illinois        781    89%   41.51   9.25  50.75  32.26  95%  1929
+   56   @ Notre Dame            43.59  48.50  49.51  37.15  38.06   Rice                    3497    97%   25.19  21.40  46.59   3.79  60%   152
+   57   @ Ohio                   5.74   4.44   4.36   8.18   5.93   Jacksonville State       187    65%   24.18  28.07  52.26  -3.89  61%   154
+   58     Oregon                20.28  23.87  28.19  19.71  20.01 @ Oklahoma State           755    88%   26.40  24.10  50.50   2.30  56%   129
+   59     Texas Tech             1.37  15.06  18.50 -12.82 -25.21 @ Oregon State             116    54%   23.82  29.26  53.08  -5.43  64%   181
+   60   @ Pittsburgh            14.97  15.42  16.25  13.46  12.28   Central Florida(UCF)     466    82%   33.38  26.82  60.20   6.56  67%   204
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   61     Wake Forest            4.15   3.53   3.33   5.63   6.32 @ Purdue                   158    61%   30.11  29.48  59.59   0.63  52%   107
+   62     Tulsa                 17.00  15.56  19.49  18.26  22.14 @ Sam Houston State        562    85%   25.07  20.38  45.45   4.69  63%   168
+   63   @ San Jose State        15.10  15.56  10.67  20.84  20.99   Cal Poly-SLO             472    83%   38.28  21.64  59.92  16.64  84%   544
+   64   @ South Carolina        63.53  63.40  62.36  69.45  80.72   Towson                  5959    98%   47.46   3.67  51.14  43.79  97%  3525
+   65   @ Southern California   13.60  22.15  24.50  -2.53  -9.79   Louisiana-Lafayette      409    80%   26.49  29.95  56.44  -3.46  59%   147
+   66   @ SMU                   16.88  20.26  21.44  13.20   8.84   UC Davis                 556    85%   28.75  26.81  55.56   1.94  55%   124
+   67   @ Syracuse              35.06  29.56  30.61  46.58  64.63   California              2299    96%   56.22   3.88  60.10  52.34  98%  4654
+   68     Penn State            15.43  19.58  19.07   9.57   9.90 @ Temple                   486    83%   21.56  32.06  53.62 -10.50  75%   304
+   69   @ Texas                 20.42  16.01  15.50  24.59  33.97   Ohio State               764    88%   37.77  18.82  56.59  18.95  87%   670
+   70   @ Texas A&M             12.41  14.80  15.83   8.62   3.99   Arizona State            365    79%   29.47  29.97  59.44  -0.49  51%   106
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   71   @ TCU                   31.99  39.89  34.19  26.55  21.20   Grambling State         1894    95%   38.72   6.73  45.45  31.99  95%  1894
+   72     UTSA                  15.24  14.15  14.14  17.85  30.34 @ Texas State              478    83%   43.05  14.09  57.14  28.95  94%  1530
+   73   @ UTEP                  24.04  22.13  21.53  30.75  29.09   Texas Southern          1040    91%   31.79  20.84  52.63  10.95  76%   317
+   74   @ Toledo                41.93  42.42  39.84  45.63  56.51   Central Connecticut     3264    97%   41.48  12.60  54.08  28.88  94%  1522
+   75     Alabama State          2.83   0.13   0.17   7.22  15.88 @ Troy                     137    58%   31.74  17.29  49.03  14.45  82%   444
+   76   @ Tulane                 0.99   1.88  -0.88   2.67  -5.90   South Alabama            112    53%   13.41  27.63  41.04 -14.22  81%   434
+   77   @ UAB                   29.65  28.38  25.51  35.53  48.86   LouisianaMonroe(ULM)    1610    94%   44.29  15.67  59.96  28.61  94%  1492
+   78   @ UCLA                  18.53  19.19  21.04  16.43  19.51   San Diego State          645    87%   32.04  30.89  62.93   1.15  53%   114
+   79   @ Utah                  32.59  33.73  31.84  32.82  47.96   Arkansas                1970    95%   41.01  14.85  55.86  26.16  93%  1235
+   80   @ Vanderbilt             7.08   8.30   8.84   6.58  -5.38   Delaware                 215    68%   20.67  28.89  49.56  -8.21  71%   242
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   81   @ Virginia Tech         44.81  43.39  41.03  52.70  65.88   Old Dominion            3665    97%   44.16   9.48  53.65  34.68  96%  2247
+   82   @ Washington            30.08  31.02  34.24  31.68  33.94   Utah State              1660    94%   27.75  20.07  47.82   7.68  70%   229
+   83   @ West Virginia         13.02  12.03  13.19  22.92  15.36   Tennessee-Martin         387    79%   29.12  27.23  56.35   1.89  55%   123
+   84   @ Western Michigan      45.70  41.20  42.51  57.02  72.82   Monmouth-NJ             3788    97%   38.84   8.29  47.13  30.54  94%  1715
+   85   @ Wisconsin             44.17  48.13  46.52  42.55  43.32   Western Illinois        3577    97%   28.50  24.72  53.22   3.78  60%   152
+   86   @ Wyoming                0.99   5.62   5.95  -6.93 -15.30   Northern Colorado        112    53%   17.29  27.63  44.92 -10.34  75%   299
+   87     Stephen F. Austin      7.81   2.60   2.55  20.00  23.43 @ Abilene Christian        232    70%   34.46  16.28  50.74  18.18  86%   626
+   88     Tennessee State        1.36   2.82   3.06  -0.23   0.84 @ Alabama A&M              116    54%   28.75  39.02  67.77 -10.27  75%   297
+   89 N @ Ark.-Pine Bluff       19.76  13.86  12.23  30.86  47.26   Alcorn State             720    88%   36.89  19.05  55.95  17.84  86%   607
+   90   @ Austin Peay           35.98  39.17  33.88  38.95  43.19   Morehead State          2425    96%   46.16  10.18  56.34  35.98  96%  2425
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+   91   @ Bethune-Cookman       17.84  18.79  19.52  15.66  14.19   Stetson                  606    86%   35.09  23.36  58.46  11.73  77%   342
+   92   @ The Citadel            7.02   7.90   8.23   4.34   6.36   Charleston Southern      214    68%   33.76  30.89  64.64   2.87  58%   138
+   93   @ East Texas A&M        36.38  33.14  31.90  47.35  56.06   Northwestern State      2481    96%   41.36  10.23  51.59  31.12  95%  1786
+   94     Indiana State          3.37   4.17   3.30   2.96   4.06 @ Eastern Illinois         145    59%   23.62  26.39  50.01  -2.77  58%   136
+   95     Chattanooga           18.16  15.07  13.80  31.30  39.67 @ Eastern Kentucky         625    86%   36.32  12.12  48.44  24.21  91%  1055
+   96     Bryant                10.99   7.02   6.85  18.20  24.29 @ Hampton                  319    76%   37.49  15.15  52.64  22.35  90%   902
+   97   @ Idaho                  5.99  10.12  11.44  -2.72  -8.74   Lamar                    192    66%   27.19  26.38  53.57   0.80  52%   109
+   98   @ Idaho State           36.51  34.64  33.58  43.63  57.57   San Diego               2499    96%   44.18   8.41  52.60  35.77  96%  2396
+   99     Marist                 6.93   7.20   5.99   5.27  20.39 @ Lafayette                212    68%   36.11  18.75  54.86  17.37  85%   581
+  100   @ Lehigh                10.69   8.64   6.26  17.58  24.65   William & Mary           309    76%   32.21  21.86  54.08  10.35  75%   299
+2026 College Football through games of September 7 Monday - Week 1
+HOME ADVANTAGE=                  2.41   2.41   2.41   2.41   2.41
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+  101     Albany-NY              9.92  11.42  11.30   7.90  14.41 @ LIU Post                 287    74%   29.75  18.01  47.76  11.74  77%   343
+  102   @ Maine                 18.78  16.58  17.41  24.10  28.09   Merrimack                660    87%   33.73  13.95  47.68  19.79  88%   722
+  103     Tarleton State        12.25  16.39  17.44   7.61   8.86 @ McNeese State            360    78%   31.30  27.88  59.18   3.41  59%   146
+  104   @ Mercer                18.29  22.61  21.83  11.36  15.47   Furman                   632    86%   35.98  15.54  51.52  20.44  88%   765
+  105   @ Montana               41.13  41.21  40.23  45.55  55.10   Utah Tech               3151    97%   39.36   3.69  43.05  35.67  96%  2382
+  106     Valparaiso             3.06  -3.71   0.43  10.22  16.76 @ Murray State             140    58%   23.79  26.85  50.65  -3.06  58%   140
+  107     Stonehill College      8.83   7.11   4.98  14.53  24.85 @ New Hampshire            257    72%   33.30  10.10  43.41  23.20  91%   970
+  108   @ Nicholls State        13.83  13.60  14.81  12.54  15.65   UTRGV                    419    81%   36.56  20.15  56.71  16.41  84%   533
+  109   @ NC Central            18.37  21.67  19.58   9.05   9.02   NC A&T                   636    86%   30.72  21.76  52.47   8.96  72%   261
+  110   @ Northern Arizona       7.00   7.13   6.03   8.08   8.66   Incarnate Word           214    68%   30.61  23.60  54.21   7.00  68%   214
+          FAVORITE             Rating   Pred  Golden Recent Strong  UNDERDOG                MONEY  WIN%    home   away  TOTAL  HMARG WIN% MONEY
+  111   @ Northern Iowa         19.69  19.65  17.95  22.84  24.99   Drake                    716    88%   35.90  24.13  60.03  11.77  77%   344
+  112     North Dakota          12.79  15.72  15.99   8.46  12.88 @ Portland State           379    79%   32.85  27.23  60.08   5.63  65%   185
+  113     Elon                  15.51  14.21  13.98  18.23  26.57 @ Rhode Island             490    83%   34.45  13.32  47.77  21.13  89%   813
+  114   @ South Dakota          22.53  22.63  22.55  23.41  25.28   Eastern Washington       917    90%   43.85  22.56  66.41  21.29  89%   824
+  115   @ South Dakota State    52.78  50.87  49.50  67.98  78.01   New Haven               4708    98%   45.36   7.65  53.01  37.71  96%  2666
+  116     North Alabama         33.66  25.95  22.71  53.17  66.47 @ SE Louisiana            2111    95%   49.12   7.17  56.29  41.95  97%  3266
+  117   @ Southern Illinois      7.03   5.69   7.26   9.07   4.55   SE Missouri State        214    68%   30.90  21.25  52.15   9.64  74%   279
+  118   @ Tennessee Tech        24.17  27.84  26.94  20.19  27.41   Samford                 1051    91%   32.33   9.59  41.92  22.74  90%   933
+  119     Bucknell               4.33   4.31   3.47   5.42  13.51 @ VMI                      161    62%   25.30  15.65  40.95   9.66  74%   280
+  120   @ Youngstown State      36.69  36.76  36.07  38.60  45.87   Duquesne                2523    96%   36.64   9.12  45.77  27.52  93%  1374
+<pre>
+EIGENVECTOR Analysis            eigen MONEY=odds to 100  EPCT%=confidence
+          EFAVORITE           ESPREAD EODDS EPCT%    EUNDERDOG
+    1  @ Miami-Florida         23.84  1015   91%    Florida A&M
+    2  @ Boston College         2.73   135   58%    Rutgers
+    3  @ Kansas                 4.02   156   61%    Missouri
+    4    Villanova             15.05   469   82%  @ Louisville
+    5    Richmond              37.54  2567   96%  @ NC State
+    6  @ Virginia              18.13   622   86%    Norfolk State
+    7    North Dakota State    24.04  1032   91%  @ Air Force
+    8    Robert Morris         12.98   386   79%  @ Akron
+    9  @ Arkansas State         4.70   168   63%    West Georgia
+   10  @ Army West Point       13.63   411   80%    South Florida
+   11    Southern Miss          2.24   128   56%  @ Auburn
+   12    Stony Brook           23.91  1021   91%  @ Ball State
+   13    Prairie View A&M      18.54   645   87%  @ Baylor
+   14    Memphis               29.67  1583   94%  @ Boise State
+   15    Arizona                3.15   142   59%  @ BYU
+   16    Colgate               32.49  1914   95%  @ Central Michigan
+   17    Western Carolina       6.25   197   66%  @ Cincinnati
+   18    Georgia Southern      19.03   674   87%  @ Clemson
+   19  @ Coastal Carolina       4.22   159   61%    Fordham
+   20    Weber State            8.18   241   71%  @ Colorado
+   21    Southern Utah          7.54   226   69%  @ Colorado State
+   22  @ Connecticut            2.26   129   56%    Maryland
+   23    Appalachian State     21.18   813   89%  @ East Carolina
+   24    Campbell              16.79   551   85%  @ Florida
+   25    Navy                  16.97   560   85%  @ Florida Atlantic
+   26    Buffalo               10.70   310   76%  @ Fla. International
+   27    Sacramento State      23.26   968   91%  @ Fresno State
+   28  @ Georgia               22.55   913   90%    Western Kentucky
+   29    Tennessee              9.27   269   73%  @ Georgia Tech
+   30    New Mexico State      12.32   363   78%  @ Hawai'i
+   31  @ Houston               14.27   436   81%    Southern U.
+   32  @ Illinois               1.94   124   55%    Duke
+   33    Howard                 1.96   124   55%  @ Indiana
+   34    Iowa State             1.94   124   55%  @ Iowa
+   35  @ James Madison         16.27   525   84%    Wagner
+   36  @ Kansas State          23.57   993   91%    Washington State
+   37  @ Kennesaw State         2.40   131   57%    Georgia State
+   38    Wofford               36.81  2470   96%  @ Kent State
+   39  @ Kentucky               8.16   240   71%    Alabama
+   40    Gardner-Webb           5.54   183   65%  @ Liberty
+   41  @ LSU                    2.09   126   56%    Louisiana Tech
+   42    Middle Tennessee      16.46   535   84%  @ Marshall
+   43  @ Massachusetts         12.58   372   79%    Sacred Heart
+   44    Holy Cross             1.24   115   53%  @ Miami-Ohio
+   45    Oklahoma              11.41   332   77%  @ Michigan
+   46    Eastern Michigan       9.53   276   73%  @ Michigan State
+   47  @ Minnesota              8.63   252   72%    Mississippi State
+   48  @ Mississippi            9.96   288   74%    Charlotte
+   49    Lindenwood            21.67   847   89%  @ Missouri State
+   50  @ Nebraska              13.84   419   81%    Bowling Green
+   51    Montana State         16.19   521   84%  @ Nevada
+   52  @ New Mexico            18.64   651   87%    Mercyhurst
+   53  @ North Carolina        12.62   373   79%    East Tennessee State
+   54    UNLV                  23.54   991   91%  @ North Texas
+   55    Illinois State        16.16   520   84%  @ Northern Illinois
+   56    Rice                   3.29   144   59%  @ Notre Dame
+   57    Jacksonville State    17.40   582   85%  @ Ohio
+   58    Oregon                 8.53   249   71%  @ Oklahoma State
+   59    Texas Tech            12.55   371   79%  @ Oregon State
+   60  @ Pittsburgh             2.14   127   56%    Central Florida(UCF)
+   61  @ Purdue                 4.75   168   63%    Wake Forest
+   62    Tulsa                  6.12   195   66%  @ Sam Houston State
+   63  @ San Jose State        16.23   523   84%    Cal Poly-SLO
+   64  @ South Carolina        12.83   381   79%    Towson
+   65  @ Southern California   20.89   793   89%    Louisiana-Lafayette
+   66    UC Davis              12.10   355   78%  @ SMU
+   67  @ Syracuse              20.75   783   89%    California
+   68  @ Temple                 7.07   215   68%    Penn State
+   69  @ Texas                  2.36   130   57%    Ohio State
+   70    Arizona State          3.45   147   59%  @ Texas A&M
+   71  @ TCU                    8.69   254   72%    Grambling State
+   72    UTSA                  15.61   494   83%  @ Texas State
+   73    Texas Southern        14.81   459   82%  @ UTEP
+   74  @ Toledo                 7.02   214   68%    Central Connecticut
+   75    Alabama State          0.24   103   51%  @ Troy
+   76    South Alabama         14.37   440   81%  @ Tulane
+   77  @ UAB                    5.86   190   65%    LouisianaMonroe(ULM)
+   78    San Diego State        0.08   101   50%  @ UCLA
+   79  @ Utah                   1.27   115   54%    Arkansas
+   80  @ Vanderbilt             7.21   218   69%    Delaware
+   81  @ Virginia Tech          4.37   162   62%    Old Dominion
+   82  @ Washington            14.69   454   82%    Utah State
+   83    Tennessee-Martin       5.45   181   64%  @ West Virginia
+   84  @ Western Michigan       0.18   102   50%    Monmouth-NJ
+   85  @ Wisconsin              3.06   140   58%    Western Illinois
+   86    Northern Colorado      7.47   224   69%  @ Wyoming
+   87    Stephen F. Austin     26.99  1301   93%  @ Abilene Christian
+   88  @ Alabama A&M            2.35   130   57%    Tennessee State
+   89 N@ Ark.-Pine Bluff        0.68   108   52%    Alcorn State
+   90  @ Austin Peay           25.82  1189   92%    Morehead State
+   91  @ Bethune-Cookman        2.37   130   57%    Stetson
+   92  @ The Citadel           10.28   297   75%    Charleston Southern
+   93  @ East Texas A&M        11.53   336   77%    Northwestern State
+   94  @ Eastern Illinois      11.06   321   76%    Indiana State
+   95    Chattanooga           15.28   479   83%  @ Eastern Kentucky
+   96    Bryant                23.00   947   90%  @ Hampton
+   97    Lamar                  6.30   199   67%  @ Idaho
+   98  @ Idaho State           36.91  2482   96%    San Diego
+   99    Marist                 6.83   210   68%  @ Lafayette
+  100    William & Mary         0.28   103   51%  @ Lehigh
+  101    Albany-NY             18.39   637   86%  @ LIU Post
+  102  @ Maine                 16.65   544   84%    Merrimack
+  103    Tarleton State        33.13  1994   95%  @ McNeese State
+  104  @ Mercer                37.29  2534   96%    Furman
+  105  @ Montana               41.34  3079   97%    Utah Tech
+  106  @ Murray State           8.07   238   70%    Valparaiso
+  107    Stonehill College     17.39   582   85%  @ New Hampshire
+  108  @ Nicholls State        18.83   662   87%    UTRGV
+  109  @ NC Central             4.36   162   62%    NC A&T
+  110  @ Northern Arizona      22.89   939   90%    Incarnate Word
+  111  @ Northern Iowa          7.88   234   70%    Drake
+  112    North Dakota          25.50  1160   92%  @ Portland State
+  113  @ Rhode Island           4.89   171   63%    Elon
+  114  @ South Dakota          17.58   592   86%    Eastern Washington
+  115  @ South Dakota State    10.97   318   76%    New Haven
+  116    North Alabama         12.73   377   79%  @ SE Louisiana
+  117  @ Southern Illinois     14.06   428   81%    SE Missouri State
+  118  @ Tennessee Tech        37.07  2503   96%    Samford
+  119    Bucknell               7.80   232   70%  @ VMI
+  120  @ Youngstown State      22.58   915   90%    Duquesne
+endfile
+<h2><font size=+2><a href="#Top_of_Page"><b>Top_of_Page</b></a></h2></font>
+</pre>

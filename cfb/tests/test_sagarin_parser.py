@@ -19,6 +19,14 @@ It exists because the preseason capture has no date stamp, which left the only
 line that carries one with no golden bytes behind it until the Tuesday collector
 failed on the real format in production.
 
+``fixtures/sagarin_2026_week02.txt`` is the 2026-09-08 capture: 182,320 bytes,
+sha256 f829d98f4105571a2b4fa20fb9ba93a4d7f36073bfe750390354764bbcefa393, read
+back out of the snapshot the collector wrote before the parse that then failed
+on it. Its title line carries a week label past the weekday -- "through games of
+September 7 Monday - Week 1" -- which is the second format change the stamp has
+produced in eight days. Keeping both in-season captures is the point: one page
+is a format, two are a shape, and the next change lands against both.
+
 ``fixtures/sagarin_malformed_row.txt`` is derived from it: the header block and
 ranks 1-10, with rank 5's rating value deleted while the ``=`` anchor and every
 other field on the line stay put. That is the shape a lenient parser turns into
@@ -271,6 +279,30 @@ def test_a_date_after_the_phrase_that_will_not_parse_raises(page, stamp):
     assert stamp in str(excinfo.value), "the error should quote what it could not read"
 
 
+@pytest.mark.parametrize(
+    "stamp",
+    [
+        "September 7 Monday - Bowls",  # a label that is not a week number
+        "September 7 Monday - Week One",  # spelled out
+        "September 7 Monday - Week 1 (partial)",  # a label with something after it
+        "September 7 Monday - Weeks 1-2",  # a range
+    ],
+)
+def test_a_trailing_label_that_is_not_a_week_number_still_raises(page, stamp):
+    """**The strip is explicit, and this is why.**
+
+    Anything that removed everything past the weekday would read all four of
+    these and never tell anyone the page had changed shape again. The stamp's
+    tail is where two format changes have now arrived in eight days, so it is the
+    last place to start guessing: an unrecognised one is a red Tuesday, a stored
+    snapshot nobody has parsed yet, and a person who looks -- which is exactly
+    what happened on 2026-09-08 and is the only reason the label is known about.
+    """
+    with pytest.raises(ParseError) as excinfo:
+        parse_page_date_stamp(retitled(page, f"ratings  through games of {stamp}"))
+    assert stamp in str(excinfo.value), "the error should quote what it could not read"
+
+
 @pytest.mark.parametrize("tail", ["", " ", "   ", "	"])
 def test_the_phrase_with_nothing_after_it_raises(page, tail):
     """Case 2, at its edge: the phrase is present and the date is empty.
@@ -319,6 +351,14 @@ def test_a_readable_stamp_parses(page, stamp, expected):
         # season -- including when the two disagree.
         ("August 29, 2026 Saturday", date(2026, 8, 29)),
         ("August 29, 2019", date(2019, 8, 29)),
+        # The shape the live page started printing on 2026-09-08: a week label
+        # past the weekday. Sagarin's count, not CFBD's -- that page sits in CFBD
+        # week 2 and calls itself Week 1 -- so it is stripped and never read.
+        ("September 7 Monday - Week 1", date(2026, 9, 7)),
+        ("September 7 - Week 1", date(2026, 9, 7)),
+        ("December 6 Saturday - Week 14", date(2026, 12, 6)),
+        ("January 10 Saturday - Week 20", date(2027, 1, 10)),
+        ("September 7 Monday - week 1", date(2026, 9, 7)),
     ],
 )
 def test_a_year_less_stamp_is_dated_from_the_season_on_the_title_line(page, stamp, expected):
@@ -389,6 +429,54 @@ def test_the_in_season_page_is_not_the_preseason_degenerate_state(in_season_page
     teams = parse_ratings(in_season_page)
     assert any(t.rating != t.predictor for t in teams)
     assert any(t.wins or t.losses for t in teams)
+
+
+@pytest.fixture(scope="module")
+def week_two_page() -> str:
+    """The 2026-09-08 capture: 182,320 bytes, the page that carries a week label.
+
+    Provenance is the collector's own immutable snapshot --
+    ``s3://travispollard-cfb-data/raw/sagarin/season=2026/week=02/2026-09-08T161751Z.txt``,
+    written before the parse that failed on it, which is the whole reason it can
+    be a fixture at all. Bytes verbatim, CRLF intact, sha256 checked against the
+    manifest beside it in the bucket.
+    """
+    return _read("sagarin_2026_week02.txt")
+
+
+def test_the_week_label_page_parses_end_to_end(week_two_page):
+    """The 2026-09-08 regression, and the reason it is one line of the page.
+
+    `ParseError: page date stamp 'September 7 Monday - Week 1' matches no known
+    date format` took the Tuesday collector down, and nothing else on the page had
+    moved: ratings, the five HFA values, the predictions block and the page state
+    all read exactly as they did a week earlier. Pinning the whole page rather
+    than the stamp alone is what says so, and is what would catch a change that
+    arrived alongside the next one.
+    """
+    assert parse_season(week_two_page) == 2026
+    assert parse_page_state(week_two_page) == "in-season"
+    assert parse_page_date_stamp(week_two_page) == date(2026, 9, 7)
+    assert parse_hfa(week_two_page)["predictor"] == 2.41
+
+    teams = parse_ratings(week_two_page)
+    assert len(teams) == SECTION_1_TEAM_COUNT
+    assert Counter(t.division for t in teams) == {"A": FBS_COUNT, "AA": FCS_COUNT}
+    assert sorted(t.rank for t in teams) == list(range(1, SECTION_1_TEAM_COUNT + 1))
+
+
+def test_the_week_label_is_stripped_rather_than_read_as_a_partition(week_two_page):
+    """**Sagarin's Week 1 is CFBD's week 2, and this pins that they never meet.**
+
+    The page was captured inside CFBD week 2 -- its snapshot key says
+    ``week=02`` -- and labels itself Week 1, because Sagarin counts weeks that
+    have been played and CFBD partitions the ones being played. The stamp is read
+    for its date and nothing else; the partition comes from the committed
+    calendar. A label taken as a week key would misfile every snapshot from here
+    to January under a name that looks entirely reasonable.
+    """
+    assert "through games of September 7 Monday - Week 1" in week_two_page
+    assert parse_page_date_stamp(week_two_page) == date(2026, 9, 7)
 
 
 # --- FCS ------------------------------------------------------------------

@@ -90,6 +90,22 @@ _WEEKDAYS = "monday|tuesday|wednesday|thursday|friday|saturday|sunday"
 _TRAILING_WEEKDAY = re.compile(r",?\s+(?:" + _WEEKDAYS + r")$", re.IGNORECASE)
 _LEADING_WEEKDAY = re.compile(r"^(?:" + _WEEKDAYS + r"),?\s+", re.IGNORECASE)
 
+# Since 2026-09-08 the stamp can carry a week label past the weekday:
+# "September 7 Monday - Week 1". It is stripped and never read.
+#
+# **Sagarin's week numbering is not CFBD's and must never be used as one.** That
+# page was captured inside CFBD week 2 and calls itself Week 1, because Sagarin
+# counts the weeks that have been *played* and CFBD partitions the ones being
+# played. A label taken as a partition key would misfile every snapshot from here
+# to January, under a plausible-looking name, which is the shape of error SPEC 3.3
+# says is never re-partitioned. The week comes from the committed calendar; the
+# only thing this project wants off the stamp is the date.
+#
+# It has to come off before the weekday does. The label sits past the weekday, so
+# while it is there the weekday is not terminal and ``_TRAILING_WEEKDAY`` -- which
+# is anchored, deliberately -- matches nothing.
+_TRAILING_WEEK_LABEL = re.compile(r"\s*[-–—]\s*week\s+\d+\s*$", re.IGNORECASE)
+
 # A season spans the New Year. Sagarin's year-less stamp is read against the
 # season on its own title line, so the 2026 page's "January 10" is 2027 and its
 # "August 29" is 2026. July is the split: no college football is played in it, so
@@ -341,8 +357,11 @@ def parse_page_date_stamp(text: str) -> date | None:
         )
 
     # The weekday adds nothing the date does not already carry. The live page
-    # trails it ("August 29 Saturday"); a leading one has also been assumed.
-    bare = _TRAILING_WEEKDAY.sub("", _LEADING_WEEKDAY.sub("", found)).strip()
+    # trails it ("August 29 Saturday"); a leading one has also been assumed. The
+    # week label, when present, sits past the weekday and so comes off first.
+    bare = _TRAILING_WEEKDAY.sub(
+        "", _LEADING_WEEKDAY.sub("", _TRAILING_WEEK_LABEL.sub("", found))
+    ).strip()
 
     for candidate in (found, bare):
         for fmt in _DATE_FORMATS:
