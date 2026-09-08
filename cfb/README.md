@@ -2,7 +2,7 @@
 
 An Elo model for college football that predicts every FBS game, writes each
 prediction to immutable storage **before kickoff**, scores it against the result
-on Sunday, and publishes the record — right or wrong — to
+once the week closes, and publishes the record — right or wrong — to
 [travispollard.com/cfb](https://travispollard.com/cfb).
 
 The interesting part is not the model. It is that the model cannot lie about how
@@ -83,7 +83,7 @@ respect — whether they can be rewritten:
 | `raw/sagarin/`, `raw/cfbd/` | `cfb fetch` | **No.** The evidence. `.meta.json` manifests beside each object are the one exception, and only to append parse results |
 | `elo/` | `cfb elo seed`, `cfb score` | No — but it is a **cache**, not a source of truth |
 | `predictions/` | `cfb predict` | No. A regenerate writes a new key; the first stays |
-| `scored/` | `cfb score` | No. A rescore cannot quietly replace Sunday's numbers |
+| `scored/` | `cfb score` | No. A rescore cannot quietly replace the first run's numbers |
 | `backtest/` | `cfb backtest` | No. Deliberately a separate prefix — see below |
 | `notes/` | `cfb note` | No |
 | `cfb/data/` | `cfb publish` | **Yes.** Derived, rebuildable, and the only thing the site reads |
@@ -270,7 +270,7 @@ this is the absence of a position.
 ### Which prediction gets graded
 
 **Not the newest.** A week can hold several generations, and one of them can have
-been written on Sunday. `cfb score` takes the newest generation written *strictly
+been written after the games. `cfb score` takes the newest generation written *strictly
 before its own slate's first kickoff*, and refuses the week if none qualifies.
 `cfb publish` does the opposite — newest, full stop — because a regenerate exists
 precisely so the newer number reaches the site. Both are right.
@@ -293,8 +293,9 @@ red run is reproducible with one copy-paste.
 
 | When (UTC) | Workflow | Does |
 |---|---|---|
-| Sun 12:00 | `cfb-cfbd` | Pull the completed week's games and lines |
-| Sun 12:30 | `cfb-score` | Update Elo, score last week, write `scored/`, then verify the state replays |
+| Sun 13:00 | `cfb-refresh` | Put the weekend's results on the board |
+| Mon 12:00 | `cfb-score` | Pull the closed week's games and lines, update Elo, score every week that has no record, verify the state replays |
+| Mon 14:00 | `cfb-refresh` | Again, after scoring: the week's record reaches the page |
 | Tue 12:00 | `cfb-sagarin` | Snapshot the ratings page, check it is still moving |
 | Thu 12:00 | `cfb-predict` | Generate and write `predictions/` for the coming slate |
 | Thu 12:30 | `cfb-publish` | Build `/cfb/data/*`, upload, invalidate, confirm the site serves it |
@@ -316,8 +317,18 @@ Thursday 12:30 is now the run that has to make the deadline and Friday is a
 refresh. SPEC-phase1 §8.1 has the measurement, including the weeks this still
 does not cover — November MACtion plays Tuesday nights.
 
+**Scoring runs Monday, and it used to run Sunday.** CFBD's weeks are contiguous
+partitions that close on the Monday, so a Sunday run stood inside the week whose
+games had just been played and resolved to the week before it — every week of the
+season, with the accuracy page trailing the games by eight days. Worse, it asked
+for *the* newest closed week, which says nothing about any other that closed since
+the last run: swept across the real calendar, a weekly run scores 14 of the 15
+weeks whichever weekday it fires on, and which one it loses moves with the day.
+So `cfb score` now takes every closed week that has no record, oldest first, and
+nothing can be passed over. SPEC-phase1 §8.4 has the measurement.
+
 Everything gates on the committed calendar. Out of season, and on the season's
-first two Sundays when no week has completed, jobs exit 0 with a reason — turning
+opening Mondays when no week has completed, jobs exit 0 with a reason — turning
 those red would train a reader to ignore the one that matters.
 
 Authentication is GitHub OIDC into `arn:aws:iam::679878703800:role/cfb-data-publisher`.
@@ -340,7 +351,8 @@ uv run cfb fetch sagarin
 uv run cfb fetch cfbd --resource games          # --week defaults from the calendar
 uv run cfb elo seed --season 2026               # once, preseason only
 uv run cfb predict --season 2026 --week 4       # defaults to the coming week
-uv run cfb score   --season 2026 --week 3       # defaults to the completed week
+uv run cfb score   --season 2026                # every closed week with no record
+uv run cfb score   --season 2026 --week 3       # or rescore one, after a fix
 uv run cfb publish --season 2026
 uv run cfb note    --season 2026 --week 3       # the scaffold you write over
 uv run cfb elo replay --season 2026             # rebuild and check the cache
@@ -353,8 +365,8 @@ it at `file://./scratch` to work offline against a copy.
 
 ## Maintenance
 
-**The weekly rhythm is nothing.** All five jobs are scheduled; the only human step
-by design is turning `cfb note`'s scaffold into prose and committing it as MDX.
+**The weekly rhythm is nothing.** Every job is scheduled; the only human step by
+design is turning `cfb note`'s scaffold into prose and committing it as MDX.
 
 **When a run goes red**, the exception class name is on the line and it says which
 of a dozen documented failures happened. Re-run the same command locally with the
@@ -364,6 +376,7 @@ same arguments — that is the whole point of the thin-shell CLI.
 |---|---|
 | `UnmappedTeamError` | A vendor renamed a team. Add it to `data/crosswalk/teams-YYYY.yaml`, then `uv run pytest tests/test_crosswalk.py` |
 | `UnscoredGameError` | A join failed, or a game was in progress when the results were captured. Re-fetch and re-run |
+| `StaleCaptureError` | The week's newest `/games` capture predates its partition close, so a late game would be dropped from the means. Run the fetch the message names |
 | `StateMismatchError` | The stored Elo state no longer replays from `raw/`. **Regenerate forward from the latest state, never backward into an earlier week** |
 | `ReplayError: no Sagarin snapshot ... before` | The week opened before a capture existed. Correct, not a bug |
 | `MissingDependencyError` | A bare `uv sync` pruned boto3. `uv sync --extra s3` |

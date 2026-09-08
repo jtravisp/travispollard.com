@@ -28,10 +28,12 @@ __all__ = [
     "CalendarEntry",
     "WeekRef",
     "coming_week",
+    "completed_weeks",
     "in_season",
     "last_completed_week",
     "load_calendar",
     "resolve",
+    "week_close",
 ]
 
 #: How far before the first calendar entry ``in_season`` opens (SPEC 3.1).
@@ -176,8 +178,49 @@ def resolve(now: datetime, *, calendar: Calendar) -> WeekRef:
     return WeekRef(season=calendar.season, week="unknown", how="unknown")
 
 
+def completed_weeks(now: datetime, *, calendar: Calendar) -> list[str]:
+    """Every regular week that has closed as of ``now``, oldest first.
+
+    **This exists because "the last one" silently loses weeks.** A caller that
+    asks for the newest closed week gets a correct answer and no way to know it
+    skipped one: if two weeks close between two runs, the older is never named
+    again, and the run that passed over it is green. §8.4 has the two the 2026
+    calendar produces on its own -- week 1, which closes on a Tuesday, and week
+    14, which closes seven days before week 15 does -- and neither depends on a
+    missed run or an outage to happen.
+
+    A week that is silently never scored is the dropped row of §5.2 at the scale
+    of a whole week, so the collection is what scoring iterates and
+    ``last_completed_week`` is the convenience on top rather than the other way
+    round.
+    """
+    return [
+        _partition(entry)
+        for entry in sorted(calendar.entries, key=lambda entry: entry.last_game_start)
+        if not entry.is_postseason and entry.last_game_start < now
+    ]
+
+
+def week_close(week: str, *, calendar: Calendar) -> datetime:
+    """When ``week``'s partition closes. Raises if the calendar has no such week.
+
+    The bound §5.2's evidence rule needs: a ``/games`` capture taken before this
+    moment cannot have seen the week's last game, so a week scored against one
+    counts whatever came after it as merely unplayed and drops it from every mean
+    (§8.4). Read from the calendar rather than computed, because §8.2 is exactly
+    what happens when this project does date arithmetic on CFBD's fields.
+    """
+    for entry in calendar.entries:
+        if _partition(entry) == week:
+            return entry.last_game_start
+    raise WeekResolutionError(
+        f"season {calendar.season} has no week {week!r} in its calendar, so there is no "
+        f"close time to check a results capture against"
+    )
+
+
 def last_completed_week(now: datetime, *, calendar: Calendar) -> str | None:
-    """The regular week that has finished as of ``now``, or ``None`` if none has.
+    """The newest regular week that has finished as of ``now``, or ``None``.
 
     SPEC 5.2's "N is the week that just completed". It lives here rather than in
     the workflow because SPEC 11 has the workflow call the same command a human
@@ -185,14 +228,19 @@ def last_completed_week(now: datetime, *, calendar: Calendar) -> str | None:
     one place nothing tests it.
 
     **``None`` is a normal answer, not a failure.** On the real calendar week 1
-    runs 2026-08-29 to 2026-09-08, so no week has completed on any Sunday before
-    September 13. A caller that treated that as an error would turn the season's
-    first two Sundays red before the pipeline had done anything wrong, and an
-    alert that cries wolf twice before it ever means something is an alert nobody
-    reads in October.
+    runs 2026-08-29 to 2026-09-08, so nothing has completed before then. A caller
+    that treated that as an error would turn the season's opening runs red before
+    the pipeline had done anything wrong, and an alert that cries wolf twice
+    before it ever means something is an alert nobody reads in October.
 
     A week counts as complete once ``now`` is strictly past its end. At exactly
     ``last_game_start`` the last game has kicked off and has not finished.
+
+    **This is the newest, and scoring must not use it.** It answers "which week
+    would a fetch pull now", where one answer is the whole question; it cannot
+    answer "which weeks still need scoring", where the weeks it passed over are
+    the entire point. ``cfb score`` iterates ``completed_weeks`` for that reason
+    -- see §8.4, which is the bug this docstring used to help cause.
 
     Postseason is excluded, so from December onward this keeps answering ``15``.
     That is the honest answer rather than a good one: nothing here knows how to
@@ -200,14 +248,8 @@ def last_completed_week(now: datetime, *, calendar: Calendar) -> str | None:
     games under a wrong partition. Re-pulling week 15 is redundant, not wrong --
     SPEC 5.4 already says every invocation fetches for real.
     """
-    completed = [
-        entry
-        for entry in calendar.entries
-        if not entry.is_postseason and entry.last_game_start < now
-    ]
-    if not completed:
-        return None
-    return _partition(max(completed, key=lambda entry: entry.last_game_start))
+    completed = completed_weeks(now, calendar=calendar)
+    return completed[-1] if completed else None
 
 
 def coming_week(now: datetime, *, calendar: Calendar) -> str | None:

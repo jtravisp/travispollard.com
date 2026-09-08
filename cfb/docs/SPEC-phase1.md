@@ -1022,14 +1022,17 @@ answering a question they did not ask.
 
 | When | Workflow | Does |
 |---|---|---|
-| Sun 12:00 UTC | `cfb-cfbd.yml` *(exists)* | ingest final scores and lines for the completed week |
-| Sun 12:30 UTC | `cfb-score.yml` | update Elo, score last week's predictions, write `scored/` |
+| Sun 13:00 UTC | `cfb-refresh.yml` | put the weekend's results on the board |
+| Mon 12:00 UTC | `cfb-score.yml` | capture the closed week, update Elo, score every week that has none |
+| Mon 14:00 UTC | `cfb-refresh.yml` | after scoring: put the week's record on the page, and Sunday and Monday games |
 | Tue 12:00 UTC | `cfb-sagarin.yml` *(exists)* | snapshot, freshness check |
 | Thu 12:00 UTC | `cfb-predict.yml` | generate and write `predictions/` for the coming slate |
 | Thu 12:30 UTC | `cfb-publish.yml` | capture results for the week, build `/cfb/data/*`, upload, invalidate |
 | Fri 12:00 UTC | `cfb-publish.yml` | again, for lines that moved and Thursday's games |
-| Sun 13:00 UTC | `cfb-refresh.yml` | after scoring: put the week's record on the page |
-| Mon 13:00 UTC | `cfb-refresh.yml` | again, for Sunday and Monday games |
+
+`cfb-cfbd.yml` is gone. Its games-and-lines pull is two steps at the top of `cfb-score.yml`, for the
+reason §8.3 gives for the publish job's capture: two jobs half an hour apart are not ordered, and this
+is the pair where losing the order means scoring a week against evidence taken before it closed.
 
 Every step is a command a human runs locally, per Phase 0 §11. All of them gate on `calendar.in_season`.
 
@@ -1139,6 +1142,80 @@ before the season's first Thursday.
 than the default. A publish that quietly showed last week's board when `cfb predict` had failed would
 remove the signal §8 exists to give.
 
+### 8.4 Scoring ran a week behind all season, and could skip a week entirely
+
+`/cfb/accuracy` said "No games have been scored yet this season. Figures appear here the first Sunday
+after kickoff." Two Sundays had passed since kickoff. Nothing had been scored, `scored/` was empty,
+`elo/` held only the preseason state, and the page was telling the truth about itself while the
+sentence explaining it was false.
+
+**§8.2 is the cause, on the other end of the week.** `firstGameStart` and `lastGameStart` are partition
+edges, not kickoffs; `coming_week` was fixed for that and `last_completed_week` was not examined. It
+asks whether a week's partition has *closed*, and CFBD's close is the Monday — 06:59Z, 07:59Z once the
+US leaves daylight time. `cfb-cfbd` fired Sunday 12:00 and `cfb-score` Sunday 12:30, both **inside** the
+partition holding the games played the day before, so both resolved to the week before that one. Every
+Sunday of the season scored games that had finished eight days earlier, and §8's own table called that
+"score last week's predictions".
+
+**And "the newest closed week" is not a safe question to ask.** It returns one week and says nothing
+about any other that closed since the last run, so a skipped week is never re-offered and the run that
+skipped it is green. Swept across the real 2026 calendar, a weekly run that scores whatever
+`last_completed_week` names covers **14 of the 15 regular weeks**, and which one it loses moves with the
+weekday:
+
+| Weekly run | Weeks scored | Lost |
+|---|---|---|
+| Sunday 12:30Z | 14 | **week 14** — it closes 12-07, seven days before week 15 does, so the 12-13 run sees both closed and takes the newer |
+| Monday 12:00Z | 14 | **week 1** — a ten-day partition closing on a *Tuesday*, so no Monday lands between its close and week 2's |
+| Tuesday 12:00Z | 15 | none, on this calendar |
+
+Tuesday is the trap rather than the answer. It is a property of one published calendar, it is three days
+past the Saturday games, and 2027's weeks are CFBD's to shape. **A week that is silently never scored is
+§5.2's dropped row with a whole slate inside it** — every mean on the accuracy page computed over a
+season that quietly lost a week, with nothing on the page able to show it.
+
+So the fix is not a better cron:
+
+**`cfb score` scores every closed week that has no scored document, oldest first.** `completed_weeks`
+returns the collection and `last_completed_week` is the tail of it rather than a second reading of the
+calendar. Nothing can be passed over, because nothing is chosen. Iterating is also what makes a missed
+run recoverable: `advance` chains each week onto the state written by the one before, so a fortnight's
+outage is repaired by the next scheduled run instead of by someone remembering which weeks to name.
+
+**The schedule moves to Monday 12:00Z**, four hours past the latest close the calendar contains, with
+the games and lines pull folded in as steps. That is the freshness half: a week is scored roughly 36
+hours after its Saturday games rather than eight days. Week 1 still closes on a Tuesday and is picked up
+by the following Monday's iteration, which is the loop doing exactly what it exists for.
+
+**A stale capture is refused rather than averaged.** §5.2 decides "unplayed, or a join that failed"
+against the capture's own moment — correct, and the reason `UnscoredGameError` cannot catch this: a game
+that kicked off *after* the capture is legitimately unplayed, so it is counted and left out of every
+mean rather than raising. That is right while a week is running and is a dropped row once it is over,
+and the scored document reads identically either way. `StaleCaptureError` is the check: a week is scored
+only against a `/games` capture taken after its partition closed, and the message names the fetch that
+fixes it. Week 1 of 2026 is the live case — a capture taken Monday evening cannot have seen a Monday
+night game.
+
+**A closed week nobody forecast is skipped and said out loud** (`reason=nothing_forecast`), while a week
+that *was* forecast and cannot be scored is an error. The forecast is what creates the obligation: with
+no prediction there is no record to make and nothing to drop, and `cfb-predict` going red is already the
+alert that a week was missed. Without the split, one unforecast week would redden every run after it for
+the rest of the season, which is the state in which nobody reads the alerts.
+
+**What this cost, and what it did not.** Nothing published was wrong: `scored/` is write-once and every
+document in it was computed correctly, `predictions/` was never affected, and no number on the page was
+false. What was lost is timeliness — an accuracy page and an Elo state that trailed the games by a week,
+and predictions generated each Thursday from ratings that had not seen the previous week — plus, had the
+season run to December unchanged, week 14. The last of those is the one that could not have been
+repaired later from the page: `scored/` would simply never have held it, and no mean would have said so.
+
+**Why no test caught it.** `TestLastCompletedWeek` asserts the Sunday sequence and asserts it
+*correctly* — `None`, `None`, `"01"` on the first three Sundays. The values were right and the question
+was wrong, so the test pinned the bug in place. Its docstring even names the case as "the first Sunday
+that has anything to pull". A function that answers with one week cannot be tested into revealing the
+weeks it passed over; that needs a test that sweeps a season and counts, which `TestCompletedWeeks` now
+does.
+
 ---
 
 ## 9. CLI additions
@@ -1147,13 +1224,17 @@ remove the signal §8 exists to give.
 uv run cfb elo seed --season 2026                    # from the preseason snapshot; refuses in-season
 uv run cfb elo replay --season 2026 [--through-week N]   # rebuild state from raw/, no network
 uv run cfb predict --season 2026 --week N            # write predictions/; defaults to the coming week
-uv run cfb score --season 2026 --week N              # join results, write scored/; defaults to completed
+uv run cfb score --season 2026 [--week N]            # join results, write scored/; defaults to every
+                                                     #   closed week that has none (§8.4)
 uv run cfb publish --season 2026                     # build and upload /cfb/data/*
 uv run cfb note --season 2026 --week N               # write the scaffold
 ```
 
-`--week` defaults follow the same calendar logic `fetch cfbd` already uses: `predict` takes the week that
-is *about to* be played, `score` the week that just completed. No week arithmetic in YAML.
+`--week` defaults come from the committed calendar rather than from YAML: `predict` takes the week that
+is *about to* be played, and `score` takes **every** week that has closed and has no scored document,
+oldest first. It is a collection and not a week because a single answer silently loses the weeks it
+passed over — §8.4. Naming a week explicitly rescores it whether or not it already has one, which is the
+repair path for a crosswalk fix or a corrected score.
 
 ### 9.1 Errors this phase adds to the Phase 0 §9 hierarchy
 
@@ -1167,11 +1248,18 @@ run, and nothing caught and demoted to a warning.
 | `UnratedTeamError` | a game named a canonical id the ratings do not hold (§3.4) |
 | `ReplayError` | a season cannot be rebuilt from `raw/`: no preseason page, or no snapshot with an HFA before a kickoff (§3.5) |
 | `StateMismatchError` | a replay did not reproduce the stored state (§3.5, §11 step 5) |
+| `UnscoredGameError` | a result and the prediction of it could not be joined (§5.2) |
+| `StaleCaptureError` | a week was scored against a `/games` capture taken before its partition closed (§8.4) |
 
 Each has a name of its own rather than sharing `ParseError`, and the reason is the same in every case:
 **nothing was wrong with the source data.** A `ParseError` sends whoever reads it back to the page to find
 a malformed row that is not there. These say what actually happened — a command run at the wrong time, a
 result outside the model's defined range, a cache that stopped being reproducible.
+
+`StaleCaptureError` is the pair to `UnscoredGameError` rather than a variant of it, and the split is the
+whole point: one is a game that was played and did not come back, which raises, and the other is a game
+that had not been played *when the evidence was taken*, which does not. The second is correct mid-week
+and is a dropped row once the week is over, and only the capture's own timestamp can tell those apart.
 
 `SeedStateError` in particular is asserted by name in `tests/test_seed.py`. Asserting `CfbError` would have
 passed on any failure at all, including the `UnmappedTeamError` a broken crosswalk raises a few lines

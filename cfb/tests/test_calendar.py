@@ -44,10 +44,12 @@ import pytest
 from cfb.calendar import (
     PRESEASON_LEAD,
     coming_week,
+    completed_weeks,
     in_season,
     last_completed_week,
     load_calendar,
     resolve,
+    week_close,
 )
 from cfb.errors import WeekResolutionError
 from cfb.manifest import snapshot_key
@@ -350,6 +352,132 @@ class TestLastCompletedWeek:
             None,
             "01",
         ]
+
+
+class TestCompletedWeeks:
+    """Every closed regular week, not just the newest one (SPEC-phase1 8.4).
+
+    **This class is the regression, and the bug it pins was silent.** Scoring
+    resolved its week with `last_completed_week`, which answers with one week and
+    says nothing about the weeks it passed over. Any week that closed without a
+    scheduled run landing between its close and the next week's was therefore
+    never scored, never re-offered, and never reported: the run that skipped it
+    exited 0 with a scored document for some other week.
+
+    The 2026 calendar produces one of those under every weekly schedule, with no
+    outage and no missed run required -- see `test_no_weekday_names_every_week`.
+    That is what makes iterating the collection the fix rather than a better
+    cron: a schedule can be chosen to suit one season's calendar, and next
+    season's is CFBD's to publish.
+    """
+
+    def test_it_is_empty_before_any_week_closes(self, calendar):
+        assert completed_weeks(calendar.opens, calendar=calendar) == []
+
+    def test_it_is_oldest_first(self, calendar):
+        weeks = completed_weeks(calendar.closes, calendar=calendar)
+        assert weeks == sorted(weeks)
+
+    def test_it_ends_at_the_newest_and_agrees_with_last_completed_week(self, calendar):
+        """The convenience is the tail of the collection, not a second reading.
+
+        Two implementations of "which week has finished" is how the pair would
+        drift, and a drift here is invisible: both answers are plausible weeks.
+        """
+        for moment in (
+            calendar.opens,
+            midweek(calendar, 5),
+            midweek(calendar, 12),
+            calendar.closes,
+        ):
+            weeks = completed_weeks(moment, calendar=calendar)
+            expected = weeks[-1] if weeks else None
+            assert last_completed_week(moment, calendar=calendar) == expected
+
+    def test_postseason_is_excluded(self, calendar):
+        """Same reason `last_completed_week` excludes it: nothing here can express
+        a bowl slate as a CFBD week number, and inventing one would file real
+        games under a wrong partition."""
+        after = calendar.closes + timedelta(days=1)
+        assert "postseason" not in completed_weeks(after, calendar=calendar)
+
+    def test_a_week_closes_the_instant_after_its_window_ends(self, calendar):
+        first = calendar.entries[0]
+        assert completed_weeks(first.last_game_start, calendar=calendar) == []
+        assert completed_weeks(
+            first.last_game_start + timedelta(seconds=1), calendar=calendar
+        ) == ["01"]
+
+    def test_by_the_end_of_the_season_it_holds_all_fifteen(self, entries, calendar):
+        """The property the scoring loop rests on: no regular week is unreachable.
+
+        Asserted on whichever calendar is in play, because it is a statement about
+        the function rather than about CFBD's boundaries.
+        """
+        del entries
+        assert completed_weeks(calendar.closes, calendar=calendar) == [
+            f"{week:02d}" for week in range(1, 16)
+        ]
+
+    def test_no_weekday_names_every_week(self, entries, calendar):
+        """**The measurement that decided the fix**, on the real calendar.
+
+        A weekly run that takes `last_completed_week` and scores it names 14 of
+        the 15 regular weeks, whichever weekday it fires on -- and which week it
+        drops moves with the day:
+
+            Sunday  12:30Z   loses week 14, which closes seven days before 15
+            Monday  12:00Z   loses week 1, which closes on a Tuesday
+
+        Tuesday happens to lose none of 2026's, which is the trap rather than the
+        answer: it is a property of one published calendar, three days after the
+        Saturday games, and nothing keeps 2027's weeks in the same shape.
+        """
+        if len(entries[0].get("endDate", "")) == 0:
+            pytest.skip("synthetic fixture: week windows are kickoffs, not boundaries")
+
+        def swept(first_run: datetime) -> set[str]:
+            named, moment = set(), first_run
+            while moment < at(2027, 1, 5):
+                week = last_completed_week(moment, calendar=calendar)
+                if week is not None:
+                    named.add(week)
+                moment += timedelta(weeks=1)
+            return named
+
+        every_week = {f"{week:02d}" for week in range(1, 16)}
+        assert every_week - swept(at(2026, 8, 30, 12, 30)) == {"14"}
+        assert every_week - swept(at(2026, 8, 31, 12, 0)) == {"01"}
+
+    def test_the_collection_loses_none_of_them(self, entries, calendar):
+        """The same sweep against `completed_weeks`, which is the whole argument.
+
+        A run scores every closed week it has not scored yet, so what matters is
+        not which week a given run *names* but that no week is ever passed over
+        without being offered again.
+        """
+        del entries
+        offered, moment = set(), at(2026, 8, 30, 12, 30)
+        while moment < at(2027, 1, 5):
+            offered |= set(completed_weeks(moment, calendar=calendar))
+            moment += timedelta(weeks=1)
+        assert offered == {f"{week:02d}" for week in range(1, 16)}
+
+
+class TestWeekClose:
+    """The bound a results capture is checked against (SPEC-phase1 8.4)."""
+
+    def test_it_is_the_partition_boundary_the_calendar_published(self, calendar):
+        for entry in calendar.entries:
+            assert week_close(_partition_of(entry), calendar=calendar) == entry.last_game_start
+
+    def test_an_unknown_week_raises_rather_than_returning_a_plausible_moment(
+        self, calendar
+    ):
+        """A default here would be a silently wrong bound, and the check it feeds
+        exists to stop exactly that class of thing reaching a mean."""
+        with pytest.raises(WeekResolutionError, match="no week"):
+            week_close("16", calendar=calendar)
 
 
 class TestInSeason:
