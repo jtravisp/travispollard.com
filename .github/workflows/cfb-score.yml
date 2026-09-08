@@ -1,4 +1,5 @@
-# SPEC-phase1 §8. Monday: capture the closed week, update Elo, write `scored/`.
+# SPEC-phase1 §8. The Monday roll-over: close out the week that ended, then
+# forecast the one that just opened.
 #
 # **Monday, not Sunday, and that was a season-long bug.** CFBD's 2026 weeks are
 # contiguous partitions that close on the Monday — 06:59Z, and 07:59Z once the US
@@ -100,3 +101,44 @@ jobs:
       # thing that would ever notice.
       - name: Verify the state is reproducible from raw/
         run: uv run cfb elo replay
+
+      # --- forecast the week that just opened ---------------------------------
+      #
+      # **A CFBD week can hold a game days before Thursday, and those games were
+      # never forecast at all.** A partition opens on the Monday, so November
+      # MACtion — Tuesday and Wednesday nights — sits inside the same week as the
+      # Saturday slate and roughly 36 hours *ahead* of the Thursday `cfb predict`
+      # run. `predict_week` forecasts only games that have not kicked off, so by
+      # Thursday those games were already gone: not mis-forecast, not dropped,
+      # simply absent. They never entered `predictions/`, never reached the
+      # accuracy record, and nothing went red about it. SPEC-phase1 §8.5.
+      #
+      # **This is additive, not a move.** Thursday still writes the generation
+      # that governs the Saturday slate, with a fresh Sagarin page and prices
+      # books have had all week to sharpen. Scoring and the board both take, per
+      # game, the newest generation written before *that game's* kickoff — so
+      # this one only ever supplies the games Thursday cannot reach, and every
+      # figure the main slate produces is unchanged.
+      #
+      # **Steps rather than a job, and after the scoring rather than beside it.**
+      # A forecast written before `cfb score` runs would be built on ratings that
+      # have not seen the week that just ended, and cron offsets do not order two
+      # jobs — §8.3 measured over three hours of Actions drift.
+      #
+      # Skipped when a human dispatched a `--week` to rescore: that run is
+      # repairing an old week and has no business writing a new forecast for the
+      # current one.
+      - name: Capture the opening week's slate
+        if: ${{ !inputs.week }}
+        run: uv run cfb fetch cfbd --resource games --in-progress
+
+      - name: Capture the opening week's lines
+        if: ${{ !inputs.week }}
+        run: uv run cfb fetch cfbd --resource lines --in-progress
+
+      # No `--week`: `coming_week` is the partition that opened this morning.
+      # Out of season, and once the last regular week has closed, this exits 0
+      # with a reason rather than failing.
+      - name: Forecast the week that just opened
+        if: ${{ !inputs.week }}
+        run: uv run cfb predict

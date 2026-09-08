@@ -1023,7 +1023,7 @@ answering a question they did not ask.
 | When | Workflow | Does |
 |---|---|---|
 | Sun 13:00 UTC | `cfb-refresh.yml` | put the weekend's results on the board |
-| Mon 12:00 UTC | `cfb-score.yml` | capture the closed week, update Elo, score every week that has none |
+| Mon 12:00 UTC | `cfb-score.yml` | capture the closed week, update Elo, score every week that has none, then forecast the week that just opened |
 | Mon 14:00 UTC | `cfb-refresh.yml` | after scoring: put the week's record on the page, and Sunday and Monday games |
 | Tue 12:00 UTC | `cfb-sagarin.yml` *(exists)* | snapshot, freshness check |
 | Thu 12:00 UTC | `cfb-predict.yml` | generate and write `predictions/` for the coming slate |
@@ -1062,6 +1062,10 @@ Thursday run. Meeting "first kickoff of the week" literally in those weeks needs
 publish. An SLO the schedule is known to miss in four weeks of the season is worth stating as such rather
 than quietly redefining the deadline to whatever the cron already achieves — which is exactly how
 "first kickoff Saturday" came to be written.
+
+**What that paragraph did not notice is that those games were not being forecast at all** — a bigger
+loss than a late page, and a different one. §8.5 fixes the forecast; the publish deadline above is
+still missed in those weeks, and still stated rather than redefined.
 
 ### 8.2 CFBD's calendar returns partition boundaries, not kickoffs
 
@@ -1215,6 +1219,54 @@ was wrong, so the test pinned the bug in place. Its docstring even names the cas
 that has anything to pull". A function that answers with one week cannot be tested into revealing the
 weeks it passed over; that needs a test that sweeps a season and counts, which `TestCompletedWeeks` now
 does.
+
+### 8.5 A week can hold a game before Thursday, and those games were never forecast
+
+§8.1 recorded that November MACtion plays Tuesday and Wednesday nights inside the same CFBD week and
+roughly 36 hours *before* the Thursday run, and treated it as a **publish** problem: the page would be
+late for those kickoffs. It is that, and it was also something worse. `cfb predict` runs Thursday
+12:00Z and `predict_week` forecasts only games that have not kicked off — so by the time the run fired,
+a Tuesday game was already gone. Not mis-forecast, not dropped in scoring, **simply never forecast**.
+
+Nothing goes red about it, and every check downstream is satisfied:
+
+- `predictions/` holds a log for the week that never contained the game.
+- `forecast_from` records where the log's coverage begins, so §5.2's first failure mode excludes the
+  game rather than raising — which is correct, since no run could have predicted it.
+- `scored/` contains the week, one game short, with every denominator honest about the set it averaged.
+
+So the accuracy page is not lying; it is silent. The games are outside the record and nothing on the page
+is capable of showing that they were ever there. It is the same shape as §8.4's skipped week — a green
+run, a well-formed document, and something missing that no reader could detect — one slate smaller.
+
+**The fix is one more forecast, on the Monday, and it is additive.** The partition opens Monday morning,
+so a run that afternoon precedes every kickoff the week can hold. It goes at the end of `cfb-score.yml`
+rather than in a job of its own for two reasons: a forecast written before the scoring would be built on
+ratings that had not seen the week that just ended, and §8.3 measured over three hours of Actions drift,
+so two jobs an hour apart are not ordered. Two steps are.
+
+**Thursday is unchanged and still governs the Saturday slate.** `merge_generations` takes, per game, the
+newest generation written strictly before *that game's* own kickoff — the rule §5.4 already runs on. So
+Thursday's log, being newer and still early for everything from Thursday onward, wins every game it
+holds; Monday's supplies only the games Thursday cannot reach. No figure the main slate produces moves.
+
+That containment is what makes it safe to run every week rather than only in the weeks that need it,
+which would be calendar arithmetic in YAML of exactly the kind §8.2 and §8.4 both came from. It also
+bounds the one real cost: Monday's page is the previous Tuesday's Sagarin, so a Monday log carries no
+`sagarin_predictor_margin`. For the Saturday slate that never reaches the record, because Thursday's
+log displaces it. For the midweek games it means those games join `mae` and the ATS record but not
+`sagarin_mae` — a benchmark denominator, published with its own count per §5.3, and a far smaller loss
+than the game itself.
+
+**One consequence worth stating rather than discovering.** `next-game.json` takes the newest generation,
+so from the Monday refresh onward the site names the coming week's fixture instead of holding the
+previous week's until Thursday. That is a better page, and it is a change in behaviour rather than a
+side effect nobody chose.
+
+**What is still missed.** A game kicking off on the Monday evening the partition opens falls inside that
+week — a partition opens Monday 07:00Z, and a Monday night kickoff is 23:00Z or later — so the 12:00Z
+forecast precedes it, but the publish does not run again until Thursday. The forecast is written and
+scorable; the page is late. That is §8.1's deadline, unchanged and still stated.
 
 ---
 

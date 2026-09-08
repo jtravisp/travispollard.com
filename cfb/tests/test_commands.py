@@ -53,6 +53,12 @@ WEEK_TWO_KICKOFF = datetime(2026, 9, 12, 19, 0, tzinfo=UTC)
 WEEK_TWO_CAPTURED = datetime(2026, 9, 14, 12, 0, tzinfo=UTC)
 SECOND_MONDAY = datetime(2026, 9, 14, 12, 30, tzinfo=UTC)
 
+#: A midweek kickoff inside week 2 -- November MACtion's shape, on the week the
+#: harness already has. It is 36 hours ahead of the Thursday forecast run and a
+#: few hours behind the Monday one, which is the whole of SPEC-phase1 8.5.
+MACTION_KICKOFF = datetime(2026, 9, 8, 23, 0, tzinfo=UTC)
+MONDAY_FORECAST = datetime(2026, 9, 8, 15, 0, tzinfo=UTC)
+
 #: One FBS game, played. Enough for every command to have something to do, and
 #: small enough that a failure names one row rather than a slate.
 def played(home_points=31, away_points=17):
@@ -108,6 +114,47 @@ def week_two(home_points=None, away_points=None):
     return cfbd_game(
         game_id=2, week=2, kickoff=WEEK_TWO_KICKOFF, home="Texas", away="Ohio State",
         home_points=home_points, away_points=away_points,
+    )
+
+
+def maction(home_points=None, away_points=None):
+    """A Tuesday-night game in week 2, alongside the Saturday one.
+
+    Different teams from `week_two`, because a slate where one pair plays twice
+    in a week would fold both results onto the same two ratings and make the Elo
+    assertions meaningless. Both are on the committed preseason page, so the seed
+    rates them.
+    """
+    return cfbd_game(
+        game_id=3, week=2, kickoff=MACTION_KICKOFF, home="Georgia", away="Oregon",
+        home_points=home_points, away_points=away_points,
+    )
+
+
+def midweek_slate_ready(store, crosswalk, *, forecast_monday: bool):
+    """Week 2 with a Tuesday game and a Saturday game, captured after it closed.
+
+    ``forecast_monday`` is the change under test: with it, the week is forecast
+    on the Monday it opened *and* again on the Thursday; without it, only on the
+    Thursday, which is what the schedule did before SPEC-phase1 8.5.
+    """
+    seed(store, crosswalk)
+    put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+    predict(store, crosswalk)
+    put_games(store, week="01", fetched_at=CAPTURED_AT, games=[played()])
+
+    put_games(store, week="02", fetched_at=PULLED_AT, games=[maction(), week_two()])
+    if forecast_monday:
+        predict(store, crosswalk, now=MONDAY_FORECAST, week="02")
+    predict(store, crosswalk, now=WEEK_TWO_FORECAST, week="02")
+    put_games(
+        store,
+        week="02",
+        fetched_at=WEEK_TWO_CAPTURED,
+        games=[
+            maction(home_points=17, away_points=13),
+            week_two(home_points=24, away_points=20),
+        ],
     )
 
 
@@ -393,6 +440,75 @@ class TestScore:
         assert run("score", "--season", "2026", "--week", "1", "--force",
                    "--store", store_url, now=SECOND_MONDAY.replace(minute=45)) == 0
         assert len(store.list_keys("scored/season=2026/week=01/")) == 2
+
+    def test_a_midweek_game_is_scored_when_the_week_was_forecast_on_the_monday(
+        self, store, store_url, crosswalk
+    ):
+        """**SPEC-phase1 8.5.** A Tuesday game and a Saturday game, one week, two
+        generations, and both games in the record.
+
+        Neither generation covers the week alone. Monday's holds both and was
+        early for both; Thursday's cannot hold the Tuesday game at all, because
+        `predict_week` forecasts only what has not kicked off. `merge_generations`
+        takes, per game, the newest generation written before *that game's* own
+        kickoff — so the Saturday game is still graded on Thursday's forecast,
+        with its fresher lines, and the Tuesday game is graded on Monday's.
+        """
+        midweek_slate_ready(store, crosswalk, forecast_monday=True)
+
+        assert run("score", "--season", "2026", "--force",
+                   "--store", store_url, now=SECOND_MONDAY) == 0
+
+        scored = json.loads(
+            store.get_bytes(store.list_keys("scored/season=2026/week=02/")[0])
+        )
+        by_id = {game["cfbd_game_id"]: game for game in scored["games"]}
+        assert sorted(by_id) == [2, 3]
+        assert by_id[3]["forecast_generated_at"].startswith("2026-09-08")
+        assert by_id[2]["forecast_generated_at"].startswith("2026-09-10")
+
+    def test_without_the_monday_forecast_the_midweek_game_is_simply_absent(
+        self, store, store_url, crosswalk
+    ):
+        """**The gap 8.5 closes, asserted rather than described.**
+
+        This is what the Thursday-only schedule produced, and the reason it went
+        unnoticed for a season: the run is green, the document is well-formed,
+        the joins all succeed, and the game is just not there. `forecast_from`
+        keeps it honest — the week's coverage starts at the Saturday kickoff and
+        says so — but no mean on the accuracy page is computed over the Tuesday
+        game, and nothing on the page could show that it was missing.
+        """
+        midweek_slate_ready(store, crosswalk, forecast_monday=False)
+
+        assert run("score", "--season", "2026", "--force",
+                   "--store", store_url, now=SECOND_MONDAY) == 0
+
+        scored = json.loads(
+            store.get_bytes(store.list_keys("scored/season=2026/week=02/")[0])
+        )
+        assert [game["cfbd_game_id"] for game in scored["games"]] == [2]
+        assert scored["full_slate"]["games"] == 1
+
+    def test_the_monday_forecast_does_not_displace_thursdays_for_the_saturday_slate(
+        self, store, store_url, crosswalk
+    ):
+        """The additive claim, which is what makes this safe to run every week.
+
+        Monday's generation covers the Saturday game too, and must not win it:
+        Thursday's is newer and was still written before kickoff, so it governs.
+        If that ever inverted, every ordinary week's record would quietly move to
+        a forecast made with four days' less information and Monday's prices.
+        """
+        midweek_slate_ready(store, crosswalk, forecast_monday=True)
+        run("score", "--season", "2026", "--force", "--store", store_url,
+            now=SECOND_MONDAY)
+
+        scored = json.loads(
+            store.get_bytes(store.list_keys("scored/season=2026/week=02/")[0])
+        )
+        saturday = next(g for g in scored["games"] if g["cfbd_game_id"] == 2)
+        assert saturday["forecast_generated_at"].startswith("2026-09-10")
 
     def test_out_of_season_is_a_skip_not_a_failure(self, store, store_url, crosswalk):
         """A scheduled Sunday in June. Exit 0, nothing written -- turning those

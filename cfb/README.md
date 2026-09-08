@@ -294,10 +294,10 @@ red run is reproducible with one copy-paste.
 | When (UTC) | Workflow | Does |
 |---|---|---|
 | Sun 13:00 | `cfb-refresh` | Put the weekend's results on the board |
-| Mon 12:00 | `cfb-score` | Pull the closed week's games and lines, update Elo, score every week that has no record, verify the state replays |
+| Mon 12:00 | `cfb-score` | Pull the closed week's games and lines, update Elo, score every week that has no record, verify the state replays, then forecast the week that just opened |
 | Mon 14:00 | `cfb-refresh` | Again, after scoring: the week's record reaches the page |
 | Tue 12:00 | `cfb-sagarin` | Snapshot the ratings page, check it is still moving |
-| Thu 12:00 | `cfb-predict` | Generate and write `predictions/` for the coming slate |
+| Thu 12:00 | `cfb-predict` | Forecast again, now with a fresh Sagarin page and sharper lines |
 | Thu 12:30 | `cfb-publish` | Build `/cfb/data/*`, upload, invalidate, confirm the site serves it |
 | Fri 12:00 | `cfb-publish` | Again, for lines that moved |
 
@@ -326,6 +326,16 @@ the last run: swept across the real calendar, a weekly run scores 14 of the 15
 weeks whichever weekday it fires on, and which one it loses moves with the day.
 So `cfb score` now takes every closed week that has no record, oldest first, and
 nothing can be passed over. SPEC-phase1 §8.4 has the measurement.
+
+**A week is forecast twice, and that is not a duplicate.** A CFBD partition opens
+on the Monday, so November MACtion — Tuesday and Wednesday nights — sits inside the
+same week as the Saturday slate and roughly 36 hours *ahead* of the Thursday run.
+`cfb predict` forecasts only games that have not kicked off, so those games were
+never forecast at all: absent from `predictions/`, absent from the record, and
+nothing red about it. The Monday run covers them. Thursday still writes the
+generation that governs the Saturday slate — scoring and the board both take, per
+game, the newest forecast written before that game's own kickoff — so nothing the
+main slate produces moves. SPEC-phase1 §8.5.
 
 Everything gates on the committed calendar. Out of season, and on the season's
 opening Mondays when no week has completed, jobs exit 0 with a reason — turning
