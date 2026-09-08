@@ -1,37 +1,45 @@
-# SPEC-phase1 §8. Sunday: update Elo, score last week, write `scored/`.
+# SPEC-phase1 §8. Monday: capture the closed week, update Elo, write `scored/`.
 #
-# 12:30 UTC, thirty minutes after `cfb-cfbd.yml` pulls the completed week's
-# games and lines. The gap is deliberate and it is the only ordering constraint
-# between any two workflows here: `cfb score` reads the `/games` capture that job
-# writes, and §5.2 decides "unplayed, or a join that failed" against *when that
-# capture was taken*. A score run that started first would read last week's
-# capture, find this week's games missing from it, and be correct to go red --
-# which is a confusing way to discover a scheduling mistake.
+# **Monday, not Sunday, and that was a season-long bug.** CFBD's 2026 weeks are
+# contiguous partitions that close on the Monday — 06:59Z, and 07:59Z once the US
+# leaves daylight time — so a Sunday 12:30 run stood *inside* the week whose games
+# had just been played. `last_completed_week` answered with the week before it,
+# every week of the season, and the accuracy page trailed the games by eight days
+# while claiming to be "scored on Sunday". §8.4 has the measurement.
 #
-# **Actions cron drifts 5-15 minutes under load**, so thirty is the margin rather
-# than the interval. If the collect job is ever slow enough to overrun it, this
-# run fails loudly on a stale capture rather than scoring a partial week; both
-# jobs are idempotent in the way that matters (write-once keys, newest capture
-# wins), so the fix is to re-run this one.
+# 12:00 UTC is four hours past the latest close the calendar contains, which is
+# margin for the 5–15 minutes of Actions cron drift §8.1 assumed and the three
+# hours §8.3 measured.
 #
-# **One command, and it does both halves of §8's row.** `cfb score` folds the
-# week's results onto the previous Elo state *and* grades the predictions, in
-# that order, reading every input before writing anything. Splitting it into two
-# steps here would put the ordering in YAML, where nothing tests it.
+# **The fetch is a step here rather than a job of its own.** `cfb-cfbd.yml` used
+# to pull games and lines half an hour ahead of this and was deleted for the
+# reason §8.3 gives: two jobs half an hour apart are not ordered, and drift past
+# the gap would have this run score a week against a capture taken before it
+# closed. Two steps are ordered. `StaleCaptureError` is the backstop if they ever
+# come apart anyway.
 #
-# **The season's first two Sundays do nothing, and that is correct.** Week 1 runs
-# 2026-08-29 to 2026-09-08, so no week has completed before September 13. The CLI
-# exits 0 with `reason=no_completed_week` and the run stays green -- turning those
-# Sundays red would train a reader to ignore the one that matters.
+# **This scores every closed week that has no scored document, oldest first.**
+# Not "last week" — see §8.4. A run that names a single week silently passes over
+# any other that closed since the last run, which on the real 2026 calendar
+# happens without an outage: week 1 closes on a Tuesday and week 14 closes seven
+# days before week 15. Iterating also means a missed Monday repairs itself on the
+# next one rather than needing someone to remember which weeks to pass `--week`.
+#
+# **The season's first Mondays do nothing, and that is correct.** Week 1 runs
+# 2026-08-29 to 2026-09-08, so nothing has closed before then. The CLI exits 0
+# with `reason=no_completed_week` and the run stays green — turning those red
+# would train a reader to ignore the one that matters. Once the scoring has
+# caught up the reason is `already_scored`, which is a different sentence on
+# purpose.
 name: cfb-score
 
 on:
   schedule:
-    - cron: "30 12 * * 0" # Sunday 12:30 UTC, after cfb-cfbd
+    - cron: "0 12 * * 1" # Monday 12:00 UTC, after the week's partition closes
   workflow_dispatch:
     inputs:
       week:
-        description: "Week to score (1-15). Blank uses the week that just completed."
+        description: "Week to score (1-15). Blank scores every closed week that has none."
         required: false
         type: string
 
@@ -53,8 +61,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      # --extra s3: the default store is s3:// and `cfb score` reads and writes
-      # four prefixes through it.
+      # --extra s3: the default store is s3:// and this job reads and writes five
+      # prefixes through it. `fetch cfbd` reads its key from SSM through boto3 as
+      # well (SPEC-phase0 §5.5), so the extra is needed twice over.
       - name: Install
         run: uv sync --extra s3
 
@@ -63,10 +72,24 @@ jobs:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1
 
-      # `--week` only when a human dispatched one. The scheduled path passes
-      # nothing and the CLI reads the committed calendar, which is what keeps the
-      # week arithmetic in a tested place rather than in this file.
-      - name: Score the completed week
+      # No `--week` on either fetch: the CLI resolves the week that just closed
+      # from the committed calendar. A `--week ${{ ... }}` expression here would
+      # be the duplicated arithmetic these workflows exist to avoid, and §8.2 is
+      # what happens when this project does date arithmetic on CFBD's fields.
+      #
+      # Both are allowed to find no week and say so. Out of season, and on the
+      # season's opening Mondays, they exit 0 with a reason.
+      - name: Fetch the closed week's games
+        run: uv run cfb fetch cfbd --resource games
+
+      - name: Fetch the closed week's lines
+        run: uv run cfb fetch cfbd --resource lines
+
+      # `--week` only when a human dispatched one; that path rescores a week that
+      # already has a document, which is how a crosswalk fix or a corrected score
+      # is applied. The scheduled path passes nothing and takes every closed week
+      # that has none.
+      - name: Score the weeks that have closed
         run: |
           uv run cfb score ${{ inputs.week && format('--week {0}', inputs.week) || '' }}
 

@@ -58,14 +58,14 @@ export default function ModelsPage() {
 
 function Models({ document }: { document: ModelsDocument }) {
   if (document.through_week === null) {
-    // Legal and expected before the season's first Sunday. §6.2 publishes the
-    // document rather than refusing, so the page has to draw the empty state.
+    // Legal and expected before the season's first week closes. §6.2 publishes
+    // the document rather than refusing, so the page has to draw the empty state.
     return (
       <div className="space-y-6">
         <div className="alert max-w-2xl">
           <span>
-            No week has been scored yet. The comparison starts after the first Sunday scoring
-            run of the {document.season} season.
+            No week has been scored yet. The comparison starts once the {document.season} season
+            has a closed week to grade.
           </span>
         </div>
         <Generated document={document} />

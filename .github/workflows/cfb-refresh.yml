@@ -6,10 +6,17 @@
 # had already been played. On 2026-09-07 the headline still read Texas State,
 # from two days earlier.
 #
-# Sunday runs after `cfb-score`, so the page picks up the week's record and
-# `last_result` stops being null. Monday catches the Sunday and Monday games that
-# a Sunday-morning run cannot see -- CFBD weeks carry them, and 2026 week 1 ended
-# on a Monday night.
+# Sunday puts the weekend's results on the board. Monday catches the Sunday and
+# Monday games a Sunday-morning run cannot see -- CFBD weeks carry them, and 2026
+# week 1 ended on a Monday night -- and runs after `cfb-score`, so that is where
+# the week's record reaches the page and `last_result` stops being null.
+#
+# **Scoring moved to Monday and this followed it.** The Sunday refresh used to be
+# the one that carried the record, because scoring ran at 12:30 that morning; §8.4
+# is why it no longer does. The dependency is freshness rather than correctness --
+# a refresh that beats the scoring publishes a board without the record, and the
+# next run carries it -- so an hour is enough margin and nothing here fails if the
+# order is lost.
 #
 # **This is not the SLO run and must not resolve its week like one.** A CFBD week
 # closes on the Monday, so by Monday midday `coming_week` has moved to a week
@@ -23,8 +30,8 @@ name: cfb-refresh
 
 on:
   schedule:
-    - cron: "0 13 * * 0" # Sunday 13:00 UTC, after cfb-score
-    - cron: "0 13 * * 1" # Monday 13:00 UTC
+    - cron: "0 13 * * 0" # Sunday 13:00 UTC
+    - cron: "0 14 * * 1" # Monday 14:00 UTC, after cfb-score
   workflow_dispatch:
 
 permissions:

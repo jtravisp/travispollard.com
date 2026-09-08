@@ -34,10 +34,23 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from cfb.calendar import coming_week, in_season, last_completed_week, load_calendar
+from cfb.calendar import (
+    coming_week,
+    completed_weeks,
+    in_season,
+    last_completed_week,
+    load_calendar,
+    week_close,
+)
 from cfb.collectors.cfbd import CfbdClient, fetch_cfbd, http_fetch
 from cfb.collectors.sagarin import check_freshness, decode_page, fetch_sagarin
-from cfb.errors import CfbError, ReplayError, SeedStateError, WeekResolutionError
+from cfb.errors import (
+    CfbError,
+    ReplayError,
+    SeedStateError,
+    StaleCaptureError,
+    WeekResolutionError,
+)
 from cfb.logging import (
     EVENT_BACKTESTED,
     EVENT_ELO_REPLAY,
@@ -49,6 +62,7 @@ from cfb.logging import (
     EVENT_PUBLISHED,
     EVENT_SNAPSHOT_WRITTEN,
     EVENT_WEEK_SCORED,
+    REASON_ALREADY_SCORED,
     REASON_NO_COMING_WEEK,
     REASON_NO_COMPLETED_WEEK,
     REASON_NO_STORED_STATE,
@@ -536,33 +550,51 @@ def _predict(args, *, moment: datetime) -> int:
 
 
 def _score(args, *, moment: datetime) -> int:
-    """SPEC-phase1 8's Sunday run: update Elo, score last week, write ``scored/``.
+    """SPEC-phase1 8's Monday run: update Elo, score the weeks that have closed.
 
-    **Two things happen and they are independent**, which is the only reason it is
-    safe for one command to do both. The advance folds the week's completed games
-    onto the previous state and reads nothing from ``predictions/``; the scoring
-    grades a document written days earlier against results and reads no rating.
-    Neither can quietly consume the other's output. §8 lists the Elo update first,
-    so it goes first among the *writes* -- and if the scoring then raises on a
-    join failure, the state already written is still correct, because a prediction
-    that went missing says nothing about whether the game was played.
+    **Every closed week with no scored document, oldest first.** Not "the week
+    that just completed" -- that phrasing is SPEC 5.2's and it cost the season a
+    week. A run that names one week silently passes over any other that closed
+    since the last run, and the pass is green: nothing lists the weeks it did not
+    score. SPEC-phase1 8.4 has the two the 2026 calendar produces without anyone
+    missing a run, and a week that is never scored is 5.2's dropped row with a
+    whole slate inside it.
+
+    Iterating is also what makes a missed run recoverable rather than permanent.
+    `advance` chains -- each week builds on the state written by the one before --
+    so a fortnight's outage is repaired by the next scheduled run instead of by
+    someone remembering which weeks to pass `--week`.
+
+    **A week is scored against evidence taken after it closed.** 5.2 decides
+    "unplayed, or a join that failed" against the capture's own moment, so a game
+    that kicked off after the capture is legitimately unplayed and drops out of
+    every mean. That is right during a week and wrong once it is over, and nothing
+    in the resulting document distinguishes the two -- so `StaleCaptureError` is
+    checked before any of it runs.
+
+    **Two things happen per week and they are independent**, which is the only
+    reason it is safe for one command to do both. The advance folds the week's
+    completed games onto the previous state and reads nothing from
+    ``predictions/``; the scoring grades a document written days earlier against
+    results and reads no rating. Neither can quietly consume the other's output.
+    8 lists the Elo update first, so it goes first among the *writes* -- and if
+    the scoring then raises on a join failure, the state already written is still
+    correct, because a prediction that went missing says nothing about whether the
+    game was played.
 
     **The advance is `replay.advance`, the same function `cfb elo advance` calls.**
     Not a copy of it -- a second implementation of "which games, which names,
-    which HFA" is precisely what step 5 of §11 would stop being able to detect,
+    which HFA" is precisely what step 5 of 11 would stop being able to detect,
     since it would be comparing a rebuild against a cache that drifted for reasons
     the model never saw.
 
     A rerun writes new keys beside the old ones rather than replacing them, for
     both documents. That is the same behaviour `cfb predict` has and it is the
-    point of write-once: a rescore that disliked Sunday's numbers cannot quietly
+    point of write-once: a rescore that disliked Monday's numbers cannot quietly
     become the only surviving record.
     """
-    from cfb.elo.scoring import score_week, write_scored
-    from cfb.elo.state import write_state
-    from cfb.predict import predictions_to_score
-    from cfb.replay import advance
-    from cfb.sources import results_capture, week_position, week_slate
+    from cfb.elo.scoring import scored_partitions
+    from cfb.predict import prediction_generations
 
     season = args.season or _season_of(moment)
     calendar = load_calendar(season, data_dir=_data_dir())
@@ -576,38 +608,102 @@ def _score(args, *, moment: datetime) -> int:
         )
         return 0
 
-    week = (
-        _week_partition(args.week, flag="--week")
-        if args.week is not None
-        else last_completed_week(moment, calendar=calendar)
-    )
-    if week is None:
-        # No regular week has finished. Normal on the season's first Sundays, and
-        # a skip rather than an error for the same reason `fetch cfbd` skips.
-        log(
-            EVENT_WEEK_SCORED,
-            season=season,
-            result=RESULT_SKIP,
-            reason=REASON_NO_COMPLETED_WEEK,
-        )
-        return 0
-
     store = _store(args.store)
 
-    # **Everything is read before anything is written.** Not tidiness: `advance`
-    # writes a state whatever it finds, and a week whose results never landed is
-    # a week it legitimately folds zero games into. Left after the write, a Sunday
-    # where the CFBD pull failed would go red on the missing capture *and* leave
-    # an empty week state behind it -- harmless, since a replay of the same empty
-    # `raw/` reproduces it and the next run absorbs the week, but it is a state
-    # object asserting a week happened that nobody has evidence for yet. Reading
-    # first makes a run that cannot do its job write nothing at all.
-    #
-    # The capture is read for its `fetched_at`, and that is a model input rather
-    # than a log field: §5.2 decides "unplayed, or a join that failed" against
-    # when the results were looked at rather than against a clock, so a scoring
-    # run that took the moment from `now` could not be replayed.
+    if args.week is not None:
+        # An explicit week is scored whether or not it already holds a document.
+        # That is the repair path -- a crosswalk fix, a corrected score -- and
+        # write-once keeps the earlier generation beside the new one.
+        weeks = [_week_partition(args.week, flag="--week")]
+    else:
+        closed = completed_weeks(moment, calendar=calendar)
+        if not closed:
+            # No regular week has finished. Normal on the season's opening runs,
+            # and a skip rather than an error for the same reason `fetch cfbd`
+            # skips.
+            log(
+                EVENT_WEEK_SCORED,
+                season=season,
+                result=RESULT_SKIP,
+                reason=REASON_NO_COMPLETED_WEEK,
+            )
+            return 0
+
+        already = scored_partitions(store, season=season)
+        pending = [week for week in closed if week not in already]
+        if not pending:
+            log(
+                EVENT_WEEK_SCORED,
+                season=season,
+                result=RESULT_SKIP,
+                reason=REASON_ALREADY_SCORED,
+                weeks=len(closed),
+            )
+            return 0
+
+        # A closed week nobody forecast is skipped, and a closed week that was
+        # forecast and cannot be scored is an error. The forecast is what creates
+        # the obligation: with no prediction there is no record to make and
+        # nothing to drop, and `cfb-predict` going red is already the alert that
+        # a week was missed. Without this split one unforecast week would redden
+        # every run after it for the rest of the season, which is the state in
+        # which nobody reads the alerts.
+        weeks = []
+        for week in pending:
+            if prediction_generations(store, season=season, week=week):
+                weeks.append(week)
+                continue
+            log(
+                EVENT_WEEK_SCORED,
+                season=season,
+                week=week,
+                result=RESULT_SKIP,
+                reason=REASON_NOTHING_FORECAST,
+            )
+
+    for week in weeks:
+        _score_one(week, season=season, store=store, calendar=calendar, moment=moment)
+    return 0
+
+
+def _score_one(week: str, *, season: int, store, calendar, moment: datetime) -> None:
+    """One week of `cfb score`. Raises rather than returning a code; see `_score`.
+
+    **Everything is read before anything is written.** Not tidiness: `advance`
+    writes a state whatever it finds, and a week whose results never landed is a
+    week it legitimately folds zero games into. Left after the write, a run where
+    the CFBD pull failed would go red on the missing capture *and* leave an empty
+    week state behind it -- harmless, since a replay of the same empty `raw/`
+    reproduces it and the next run absorbs the week, but it is a state object
+    asserting a week happened that nobody has evidence for yet. Reading first
+    makes a run that cannot do its job write nothing at all.
+
+    The capture is read for its `fetched_at`, and that is a model input rather
+    than a log field: 5.2 decides "unplayed, or a join that failed" against when
+    the results were looked at rather than against a clock, so a scoring run that
+    took the moment from `now` could not be replayed.
+    """
+    from cfb.elo.scoring import score_week, write_scored
+    from cfb.elo.state import write_state
+    from cfb.predict import predictions_to_score
+    from cfb.replay import advance
+    from cfb.sources import results_capture, week_position, week_slate
+
     capture = results_capture(store, season, week)
+    closes = week_close(week, calendar=calendar)
+    if capture.fetched_at <= closes:
+        raise StaleCaptureError(
+            f"the newest /games capture for week {week} of season {season} was taken at "
+            f"{capture.fetched_at.isoformat()}, and the week does not close until "
+            f"{closes.isoformat()}. A game that kicks off after the capture comes back "
+            f"unplayed rather than unjoined (SPEC-phase1 5.2), so scoring against this "
+            f"one would leave every game played after it out of the week's means with "
+            f"nothing on the page saying so. Capture the closed week and run again:\n\n"
+            f"  uv run cfb fetch cfbd --resource games --season {season} --week {week}\n\n"
+            f"If the week is still being played, `cfb backtest` is the command that "
+            f"grades it -- it writes to its own prefix and says it is not a prediction."
+        )
+
     target = week_position(week, label="--week")
     slate, _ = week_slate(store, season, lambda raw: raw.order == target)
     predictions = predictions_to_score(store, season=season, week=week)
@@ -641,21 +737,19 @@ def _score(args, *, moment: datetime) -> int:
         key=key,
         games=len(scored.games),
         # Every prediction is accounted for: scored, or left out and counted.
-        # §5.2 makes anything else an error, so a run where these do not add up to
+        # 5.2 makes anything else an error, so a run where these do not add up to
         # the slate is a bug in the scorer rather than a quiet week.
         unplayed=scored.unplayed,
         results_from=capture.snapshot_key,
         predictions_generated_at=scored.predictions_generated_at.isoformat(),
         ats=scored.full_slate.ats.record,
         # The two figures the accuracy page opens with, and the two whose
-        # denominators §5.3 insists travel with them.
+        # denominators 5.3 insists travel with them.
         mae=scored.full_slate.mae,
         brier=scored.full_slate.brier,
         texas_games=scored.texas.games,
         elo_state=state,
     )
-    return 0
-
 
 def _publish(args, *, moment: datetime) -> int:
     """SPEC-phase1 8's publish run: build `/cfb/data/*` and upload it.

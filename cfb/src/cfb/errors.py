@@ -170,6 +170,25 @@ class UnscoredGameError(CfbError):
     """
 
 
+class StaleCaptureError(CfbError):
+    """A week was scored against a ``/games`` capture taken before it closed.
+
+    The mirror of ``UnscoredGameError`` and the reason it is not enough on its
+    own. §5.2 decides "unplayed, or a join that failed" against when the results
+    were captured, so a game that kicked off *after* the capture is legitimately
+    unplayed and is left out of the week's means -- correct while the week is
+    running, and a dropped row once the week is over.
+
+    Nothing in the scored document distinguishes the two. A week whose Sunday
+    night game was never captured produces a complete-looking record, a green
+    run, and a mean over a set that is missing a game (SPEC-phase1 8.4).
+
+    So the bound is the partition close: a capture taken after it has seen every
+    game the week holds. Refusing to score without one is the only check that
+    fires before the number is published rather than after.
+    """
+
+
 class UnknownProviderError(CfbError):
     """A ``/lines`` entry names a sportsbook this project has no mapping for.
 

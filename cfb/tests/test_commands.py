@@ -21,7 +21,7 @@ exercised rather than assumed.
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -44,6 +44,14 @@ MONDAY_AFTER_CLOSE = datetime(2026, 9, 8, 13, 0, tzinfo=UTC)
 
 THURSDAY = datetime(2026, 9, 3, 23, 0, tzinfo=UTC)
 SATURDAY = datetime(2026, 9, 5, 19, 0, tzinfo=UTC)
+
+#: Week 2: forecast, played, captured after its 09-14 06:59Z close, and a run on
+#: the Monday after it. The second week exists so the scoring loop can be asked
+#: for more than one, which is the whole of SPEC-phase1 8.4.
+WEEK_TWO_FORECAST = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+WEEK_TWO_KICKOFF = datetime(2026, 9, 12, 19, 0, tzinfo=UTC)
+WEEK_TWO_CAPTURED = datetime(2026, 9, 14, 12, 0, tzinfo=UTC)
+SECOND_MONDAY = datetime(2026, 9, 14, 12, 30, tzinfo=UTC)
 
 #: One FBS game, played. Enough for every command to have something to do, and
 #: small enough that a failure names one row rather than a slate.
@@ -83,11 +91,41 @@ def seed(store, crosswalk):
     )
 
 
-def predict(store, crosswalk, *, now=GENERATED_AT):
+def predict(store, crosswalk, *, now=GENERATED_AT, week="01"):
     log = predict_week(
-        store=store, season=SEASON, week="01", now=now, crosswalk=crosswalk
+        store=store, season=SEASON, week=week, now=now, crosswalk=crosswalk
     )
     return write_predictions(store, log)
+
+
+def week_two(home_points=None, away_points=None):
+    """One week 2 game, so a run can be asked to score more than one week.
+
+    Week 2 of 2026 runs 09-08 07:00Z to 09-14 06:59Z; this kicks off inside it and
+    after week 1's last game, which is what lets `advance` chain the two states in
+    kickoff order.
+    """
+    return cfbd_game(
+        game_id=2, week=2, kickoff=WEEK_TWO_KICKOFF, home="Texas", away="Ohio State",
+        home_points=home_points, away_points=away_points,
+    )
+
+
+def both_weeks_ready(store, crosswalk):
+    """Weeks 1 and 2 forecast, played, and captured after each week closed."""
+    seed(store, crosswalk)
+    put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+    predict(store, crosswalk)
+    put_games(store, week="01", fetched_at=CAPTURED_AT, games=[played()])
+
+    put_games(store, week="02", fetched_at=CAPTURED_AT, games=[week_two()])
+    predict(store, crosswalk, now=WEEK_TWO_FORECAST, week="02")
+    put_games(
+        store,
+        week="02",
+        fetched_at=WEEK_TWO_CAPTURED,
+        games=[week_two(home_points=24, away_points=20)],
+    )
 
 
 def predict_late(store, crosswalk, *, stamped):
@@ -222,6 +260,139 @@ class TestScore:
         fails(capsys, "score", "--season", "2026", "--week", "1", "--force",
               "--store", store_url, now=RAN_AT, saying="no /games capture")
         assert set(store.list_keys("elo/")) == before
+
+    def test_it_scores_every_closed_week_rather_than_only_the_newest(
+        self, store, store_url, crosswalk
+    ):
+        """**The SPEC-phase1 8.4 regression.** One run, two weeks, no `--week`.
+
+        The old default resolved `last_completed_week` and scored that alone, so
+        a run standing after two closes wrote a document for the newer week and
+        passed over the older one in silence -- exit 0, nothing in the log naming
+        the week that was dropped, and no later run that would ever offer it
+        again. On the real 2026 calendar that is week 14 under a Sunday schedule
+        and week 1 under a Monday one.
+        """
+        both_weeks_ready(store, crosswalk)
+
+        assert run("score", "--season", "2026", "--force",
+                   "--store", store_url, now=SECOND_MONDAY) == 0
+        assert len(store.list_keys("scored/season=2026/week=01/")) == 1
+        assert len(store.list_keys("scored/season=2026/week=02/")) == 1
+
+    def test_it_scores_them_oldest_first_so_the_elo_chain_composes(
+        self, store, store_url, crosswalk
+    ):
+        """Order is not cosmetic: `advance` builds each week on the state before
+        it, and Elo is path-dependent. Week 2 folded onto the seed and week 1
+        folded on afterwards is a different season from the one `replay`
+        produces, and §11 step 5 would be right to go red about it."""
+        both_weeks_ready(store, crosswalk)
+        run("score", "--season", "2026", "--force", "--store", store_url,
+            now=SECOND_MONDAY)
+
+        first = json.loads(store.get_bytes(store.list_keys("elo/season=2026/week=01/")[0]))
+        second = json.loads(store.get_bytes(store.list_keys("elo/season=2026/week=02/")[0]))
+        assert second["games_applied"] > first["games_applied"]
+        assert second["through_kickoff"] > first["through_kickoff"]
+
+    def test_a_second_run_writes_nothing_and_says_which_answer_it_gave(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """`already_scored`, not `no_completed_week`. One says the season has
+        produced nothing to score and the other says the scoring has caught up;
+        a log that flattens them cannot tell a healthy Tuesday from a calendar
+        that never advanced."""
+        both_weeks_ready(store, crosswalk)
+        run("score", "--season", "2026", "--force", "--store", store_url,
+            now=SECOND_MONDAY)
+        capsys.readouterr()
+
+        assert run("score", "--season", "2026", "--force",
+                   "--store", store_url, now=SECOND_MONDAY) == 0
+        assert "reason=already_scored" in capsys.readouterr().out
+        assert len(store.list_keys("scored/season=2026/week=01/")) == 1
+        assert len(store.list_keys("scored/season=2026/week=02/")) == 1
+
+    def test_a_week_missed_for_a_fortnight_is_repaired_by_the_next_run(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """An outage is recoverable without anyone remembering which weeks to
+        pass `--week`. The weeks are still there, still closed, and still
+        unscored, so the next scheduled run takes both.
+
+        Weeks 3 and 4 have closed by then and nobody forecast them, which is the
+        other half of the rule: a closed week with no prediction is skipped and
+        said out loud, because there is no record to make and nothing to drop.
+        Erroring instead would leave every run after an unforecast week red for
+        the rest of the season.
+        """
+        both_weeks_ready(store, crosswalk)
+
+        assert run("score", "--season", "2026", "--force", "--store", store_url,
+                   now=SECOND_MONDAY + timedelta(days=14)) == 0
+        assert len(store.list_keys("scored/season=2026/week=01/")) == 1
+        assert len(store.list_keys("scored/season=2026/week=02/")) == 1
+
+        printed = capsys.readouterr().out
+        assert "week=03 result=skip reason=nothing_forecast" in printed
+        assert "week=04 result=skip reason=nothing_forecast" in printed
+
+    def test_it_refuses_a_capture_taken_before_the_week_closed(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """**The silent half of the same bug**, and the reason the loop needed a
+        guard rather than just an iteration.
+
+        §5.2 decides "unplayed, or a join that failed" against the capture's own
+        moment, so a game that kicked off after the capture is legitimately
+        unplayed and drops out of every mean. Correct while a week is running and
+        a dropped row once it is over -- and the scored document reads the same
+        either way. Week 1 of 2026 is the live case: it closes 09-08 06:59Z, so a
+        capture from the Monday evening cannot have seen a Monday night game.
+        """
+        seed(store, crosswalk)
+        put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+        predict(store, crosswalk)
+        # Taken while the week was still open, unlike CAPTURED_AT.
+        put_games(store, week="01", fetched_at=datetime(2026, 9, 7, 21, 0, tzinfo=UTC),
+                  games=[played()])
+
+        before = set(store.list_keys("elo/"))
+        fails(capsys, "score", "--season", "2026", "--week", "1", "--force",
+              "--store", store_url, now=RAN_AT,
+              saying="does not close until")
+        assert set(store.list_keys("elo/")) == before
+        assert store.list_keys("scored/") == []
+
+    def test_the_refusal_names_the_fetch_that_fixes_it(
+        self, store, store_url, crosswalk, capsys
+    ):
+        """SPEC-phase0 §9: the failure names the command, because the person
+        reading it is looking at an Actions log rather than at this source."""
+        seed(store, crosswalk)
+        put_games(store, week="01", fetched_at=PULLED_AT, games=[unplayed()])
+        predict(store, crosswalk)
+        put_games(store, week="01", fetched_at=datetime(2026, 9, 7, 21, 0, tzinfo=UTC),
+                  games=[played()])
+
+        printed = fails(capsys, "score", "--season", "2026", "--week", "1", "--force",
+                        "--store", store_url, now=RAN_AT, saying="StaleCaptureError")
+        assert "cfb fetch cfbd --resource games --season 2026 --week 01" in printed
+
+    def test_an_explicit_week_is_rescored_even_though_it_already_has_a_document(
+        self, store, store_url, crosswalk
+    ):
+        """The repair path stays open. `--week` is how a crosswalk fix or a
+        corrected score is applied, so it does not consult what is already
+        stored -- write-once keeps the earlier generation beside the new one."""
+        both_weeks_ready(store, crosswalk)
+        run("score", "--season", "2026", "--force", "--store", store_url,
+            now=SECOND_MONDAY)
+
+        assert run("score", "--season", "2026", "--week", "1", "--force",
+                   "--store", store_url, now=SECOND_MONDAY.replace(minute=45)) == 0
+        assert len(store.list_keys("scored/season=2026/week=01/")) == 2
 
     def test_out_of_season_is_a_skip_not_a_failure(self, store, store_url, crosswalk):
         """A scheduled Sunday in June. Exit 0, nothing written -- turning those

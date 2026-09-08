@@ -253,7 +253,7 @@ function HowItIsDoing({ record }: { record?: SeasonSoFar | null }) {
         ) : (
           <p className="text-sm text-base-content/70">
             No games have been scored yet. Every prediction is written before kickoff and graded
-            against the result on Sunday, so this fills in from the first scored week onward —{' '}
+            once its week has closed, so this fills in from the first scored week onward —{' '}
             <Link href="/cfb/accuracy" className="link link-primary">
               the record
             </Link>{' '}

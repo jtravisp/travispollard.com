@@ -43,6 +43,7 @@ __all__ = [
     "REASON_NO_COMPLETED_WEEK",
     "REASON_NO_PAGE_DATE_STAMP",
     "REASON_NO_PRIOR_MANIFEST",
+    "REASON_ALREADY_SCORED",
     "REASON_NO_COMING_WEEK",
     "REASON_NOTHING_FORECAST",
     "REASON_NO_STORED_STATE",
@@ -119,9 +120,15 @@ REASON_NO_PRIOR_MANIFEST = "no_prior_manifest"
 REASON_NO_PAGE_DATE_STAMP = "no_page_date_stamp"
 #: Out of season. Sagarin does not update from roughly February through August.
 REASON_NOT_IN_SEASON = "not_in_season"
-#: No regular week has finished yet (SPEC 5.2). Normal on the season's first
-#: Sundays, and a skip rather than an error for exactly that reason.
+#: No regular week has finished yet (SPEC 5.2). Normal on the season's opening
+#: runs, and a skip rather than an error for exactly that reason.
 REASON_NO_COMPLETED_WEEK = "no_completed_week"
+#: Every week that has closed already holds a scored document. The ordinary answer
+#: on a `cfb score` run between Mondays, and deliberately not `no_completed_week`:
+#: one says the season has produced nothing to score, the other says the scoring
+#: has caught up, and a log that flattens both into "nothing to do" cannot tell a
+#: healthy Tuesday from a season whose calendar never advanced (SPEC-phase1 8.4).
+REASON_ALREADY_SCORED = "already_scored"
 
 # --- why an Elo verification was skipped (SPEC-phase1 3.5) --------------------
 #: Nothing under `elo/season=YYYY/week=NN/`. The rebuild ran and there is no

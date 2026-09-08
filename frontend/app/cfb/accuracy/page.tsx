@@ -36,9 +36,9 @@ export default function AccuracyPage() {
 
         <h1 className="text-2xl font-bold mb-1">Model accuracy</h1>
         <p className="text-base-content/70 mb-8">
-          Every prediction is written before kickoff and scored against the result on Sunday.
-          Nothing is dropped: a game that cannot be joined to its prediction fails the run rather
-          than quietly leaving the averages.
+          Every prediction is written before kickoff and scored once its week has closed and
+          the final results are in. Nothing is dropped: a game that cannot be joined to its
+          prediction fails the run rather than quietly leaving the averages.
         </p>
 
         {state.status !== 'ready' ? (
@@ -53,14 +53,20 @@ export default function AccuracyPage() {
 
 function Accuracy({ document }: { document: AccuracyDocument }) {
   if (document.through_week === null) {
-    // Legal and expected: the Friday before the season's first Sunday. §6.4
+    // Legal and expected before the season's first week has closed. §6.4
     // publishes this document rather than refusing, so the page has to draw it.
+    //
+    // **It used to say "the first Sunday after kickoff" and that was false.** A
+    // CFBD week is a partition, not a weekend: 2026 week 1 ran 08-29 to 09-08,
+    // so two Sundays passed with nothing scorable and the sentence named a day
+    // that had already come and gone twice. SPEC-phase1 8.4.
     return (
       <div className="space-y-6">
         <div className="alert max-w-2xl">
           <p>
-            No games have been scored yet this season. Figures appear here the first Sunday after
-            kickoff.
+            No games have been scored yet this season. A week is graded once it has closed and
+            its final results are captured, so the first figures appear after the season&rsquo;s
+            opening week ends.
           </p>
         </div>
         <Disclosure disclosure={document.seed_disclosure} />

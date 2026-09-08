@@ -54,6 +54,7 @@ __all__ = [
     "read_scored",
     "score_week",
     "scored_key",
+    "scored_partitions",
     "scored_weeks",
     "write_scored",
 ]
@@ -470,6 +471,27 @@ def scored_weeks(
         read_scored(store, newest[week])
         for week in sorted(newest, key=lambda value: week_position(value))
     ]
+
+
+def scored_partitions(
+    store: SnapshotStore, *, season: int, prefix: str = "scored"
+) -> set[str]:
+    """Which week partitions of ``season`` already hold a scored document.
+
+    Keys only. ``scored_weeks`` answers a similar question by reading and
+    validating every document, which is the right thing when the documents are
+    what you want and the wrong thing here: this is asked before scoring, to
+    decide which weeks still need it, and one week stored under an older schema
+    would otherwise raise and block the scoring of every *other* week -- turning
+    a stale document into an outage.
+    """
+    found: set[str] = set()
+    for key in store.list_keys(f"{prefix}/season={season}/"):
+        parsed = _parse_scored_key(key, prefix=prefix)
+        if parsed is None or parsed[0] != season:
+            continue
+        found.add(parsed[1])
+    return found
 
 
 def _parse_scored_key(key: str, *, prefix: str = "scored") -> tuple[int, str, datetime] | None:
