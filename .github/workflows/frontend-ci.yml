@@ -1,0 +1,115 @@
+# The gate `frontend/` did not have.
+#
+# `cfb-ci.yml` fires only on `cfb/**`, so a frontend-only PR merged with **no
+# checks at all** and CodeBuild found out afterwards. On 2026-09-15 that cost two
+# production breakages in one afternoon, and the second one hid the first:
+#
+#   PR #74  bumped the publisher to schema 3 while every deployed page still
+#           listed `SUPPORTED_SCHEMA_VERSIONS = [2]`, so `/cfb` rendered the
+#           stale placeholder against a document that was perfectly good.
+#   PR #75  fixed that, and shipped a test asserting "Saturday" for a
+#           2026-09-20T00:00:00Z kickoff -- Saturday in Austin, Sunday in UTC.
+#           CodeBuild runs UTC. POST_BUILD failed, so **nothing deployed**, and
+#           #75's fix never reached the site it was written to repair.
+#
+# Neither failure needed a clever check. `tsc --noEmit` and the existing
+# Playwright suite, run under the timezone CI actually uses, would have caught
+# both before a merge button was available.
+#
+# **The environment is the thing under test here**, which is why this job pins
+# what the developer's machine gets to decide. `TZ=UTC` is not tidiness: it is
+# the exact fact that made #75 pass locally and fail in the pipeline. `CI=true`
+# is the same argument -- Playwright reads it to suppress the report server,
+# retry flaky specs, and forbid `test.only`.
+#
+# This duplicates what `buildspec.yml` does post-merge, on purpose. CodeBuild is
+# the deploy and runs after the decision; this runs before it, which is the only
+# place a check can stop a bad merge rather than a bad deploy.
+name: frontend-ci
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+# Read-only. Nothing here writes to the repo, comments on the PR, or touches AWS
+# -- unlike `buildspec.yml`, which publishes the artifact this only inspects.
+permissions:
+  contents: read
+
+# A force-push mid-review should not leave two runs racing to report on the same
+# PR. The newest push is the one whose answer matters.
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    env:
+      # The two facts #75 got wrong, set once for every step below.
+      TZ: UTC
+      CI: "true"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matching `buildspec.yml`'s runtime-versions. A gate that passes on a
+          # newer Node than the deploy builds with is a gate with a gap in it.
+          node-version: 18
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # **Types first, because it is the cheap half.** A type error fails here in
+      # seconds rather than after a browser download and a full build.
+      #
+      # `npm run lint` is deliberately not run: `next lint` has no ESLint config
+      # in this repo and prompts interactively to create one, which in CI is a
+      # job that hangs until the timeout rather than a job that fails.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Playwright's `webServer` serves `out/`, so the export has to exist before
+      # the suite runs. This is also the step that catches a build-time failure
+      # the typecheck cannot see.
+      - name: Build
+        run: npm run build
+
+      # `--with-deps` is right here and wrong in `buildspec.yml`: this is Ubuntu
+      # and has apt-get, while the CodeBuild image is Amazon Linux 2023 and does
+      # not. Both browsers, because the config declares both and the deploy runs
+      # both -- a gate that only ran chromium would pass a firefox-only break
+      # straight through to production.
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      # `tests/visitor-counter.spec.ts` talks to the live API Gateway endpoint,
+      # so this step needs network and can fail for reasons that have nothing to
+      # do with the diff. That is the same suite `buildspec.yml` gates the deploy
+      # on, and running a different one here would defeat the point of the job.
+      - name: Test
+        run: npx playwright test
+
+      # The trace and HTML report are what make a red run diagnosable without a
+      # local reproduction -- which, for a timezone bug, is exactly the case
+      # where reproducing locally is what fails.
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
