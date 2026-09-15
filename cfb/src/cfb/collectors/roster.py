@@ -42,9 +42,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cfb.collectors.cfbd import BASE_URL, CfbdClient
 from cfb.crosswalk import Crosswalk
-from cfb.errors import RosterBasisError
+from cfb.errors import ReplayError, RosterBasisError
 from cfb.manifest import manifest_key, snapshot_key
 from cfb.models import Manifest, validating
+from cfb.sources import week_slate
 from cfb.storage import SnapshotStore
 
 __all__ = [
@@ -84,7 +85,15 @@ _PASSING = "passing"
 #: took the first snap. Attempts is the closest available proxy for "was the
 #: quarterback that day" and it is the same proxy in 2017 as in 2026, which is the
 #: property section 3.2 is built on.
-_ATTEMPTS = "ATT"
+#:
+#: **The passing category spells it `C/ATT`, and the value is `"24/31"`** --
+#: completions over attempts, in one string. A bare `ATT` exists too, under
+#: *rushing*, which is the trap: a reader that matched on `"ATT"` would find no
+#: passing stat at all and silently produce a document with no expectations in it
+#: -- 240 teams, zero starters, and nothing raising. That is exactly what the
+#: first draft of this collector did against the real 2026 week 2 capture, and
+#: what the fixture built from a guessed shape failed to catch.
+_ATTEMPTS = "C/ATT"
 
 
 class ExpectedQb(BaseModel):
@@ -149,24 +158,39 @@ def qb_expectations(
     rows: list[dict],
     resolver: Crosswalk,
     *,
-    source_game_ids: dict[str, int] | None = None,
+    only_games: set[int],
 ) -> list[TeamRoster]:
     """One expected starter per team, from a ``/games/players`` response.
 
-    **Every team in the response, or the team is absent -- never a guess.** A team
-    whose passing category holds no attempts gets ``expected_qb: None`` rather
-    than a lowest-ranked player standing in for one. Section 3.2's whole argument
-    is that the expectation has to be the same function in 2017 as today, and a
-    fallback would be a different function on exactly the rows where the data is
-    thin.
+    **``only_games`` is required, and it is a selection rather than a filter.**
+    ``/games/players`` returns box scores for every division CFBD covers: week 2
+    of 2026 came back with 131 games against the 120 this project models, the
+    extra eleven naming Bowie State, Central Oklahoma, Dickinson and the rest. The
+    crosswalk holds 266 FBS and FCS teams and correctly raises on a D-II name, so
+    passing the whole response would redden every Thursday over games that were
+    never ours.
 
-    Unmapped team names raise through the crosswalk, as everywhere else.
+    The selection is made on **the vendor's own classification**, through
+    ``week_slate`` -- the one place in this project that decides what the model
+    rates (see ``RawGame.is_modelled``). That matters: filtering on *whether the
+    crosswalk resolved* would turn `cfb/CLAUDE.md`'s hard rule into a silent drop,
+    and an unmapped FBS team -- a real error -- would vanish along with the D-II
+    ones. Inside the selected set an unmapped name still raises.
+
+    **Every team in the selected games, or the team is absent -- never a guess.** A
+    team whose passing category holds no attempts gets ``expected_qb: None``
+    rather than a lowest-ranked player standing in for one. Section 3.2's whole
+    argument is that the expectation is the same function in 2017 as today, and a
+    fallback would be a different function on exactly the rows where the data is
+    thinnest.
     """
     attempts: dict[str, dict[int, dict]] = defaultdict(dict)
     game_of: dict[str, int] = {}
 
     for game in rows:
         game_id = game.get("id")
+        if game_id not in only_games:
+            continue
         for team_block in game.get("teams", []):
             vendor = team_block.get("team")
             if not vendor:
@@ -180,7 +204,7 @@ def qb_expectations(
                     if stat.get("name") != _ATTEMPTS:
                         continue
                     for athlete in stat.get("athletes", []):
-                        taken = _as_int(athlete.get("stat"))
+                        taken = _attempts_of(athlete.get("stat"))
                         if taken is None:
                             continue
                         player = int(athlete["id"])
@@ -210,7 +234,7 @@ def qb_expectations(
                         basis="previous-game-starter",
                         games_started=1,
                         usage_share=round(entry["att"] / total, 4),
-                        last_game_id=(source_game_ids or game_of)[team],
+                        last_game_id=game_of[team],
                     ),
                 )
             )
@@ -295,7 +319,22 @@ def fetch_roster(
             f"/games/players returns; an error body stored with a 200 looks like this"
         )
 
-    rosters = qb_expectations(rows, resolver)
+    # Which of the vendor's games this project models, decided by the vendor's own
+    # classification through the single implementation of that question. Read
+    # after the bytes are stored, so a missing games capture costs the API call
+    # but never the evidence.
+    slate, _ = week_slate(store, season, lambda raw: raw.partition == source_week)
+    only_games = {game.id for game, _ in slate}
+    if not only_games:
+        raise ReplayError(
+            f"no modelled games are stored for season {season} week {source_week}, so "
+            f"there is no way to tell which of the {len(rows)} box scores are ours. "
+            f"`/games/players` returns every division and the crosswalk rates two of "
+            f"them. Capture the week first:\n"
+            f"  uv run cfb fetch cfbd --resource games --week {int(source_week)}"
+        )
+
+    rosters = qb_expectations(rows, resolver, only_games=only_games)
     check_basis(rosters)
 
     with validating(f"roster snapshot for season {season} week {week}"):
@@ -343,9 +382,20 @@ def fetch_roster(
     return snapshot
 
 
-def _as_int(value) -> int | None:
-    """CFBD sends stat values as strings, and occasionally as something else."""
+def _attempts_of(value) -> int | None:
+    """Attempts out of a ``C/ATT`` value.
+
+    ``"24/31"`` is twenty-four completions from thirty-one attempts, and it is the
+    attempts this reads -- a quarterback who went 2-for-14 still took the snaps.
+    All 261 passing rows in the 2026 week 2 capture carry the slash; a value
+    without one is a shape change and returns ``None`` rather than being guessed
+    at, which leaves the team with no expectation instead of a wrong one.
+    """
+    text = str(value).strip()
+    _, slash, attempts = text.partition("/")
+    if not slash:
+        return None
     try:
-        return int(str(value).strip())
-    except (TypeError, ValueError):
+        return int(attempts.strip())
+    except ValueError:
         return None
