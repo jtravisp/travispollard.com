@@ -27,8 +27,24 @@
  * version 1 now, so a version 1 document means something has gone backwards —
  * a rollback, a stale cache, a hand-edited object — and a page that quietly
  * accepted it would make that look like it worked.
+ *
+ * **3 is here because `status` landed, and 2 stays for exactly the window 1 once
+ * covered.** The pipeline and the site deploy separately, so both directions of
+ * the skew are real: a v3 document reaching a page that only knows 2, and a v2
+ * document still cached for a page that knows 3. `statusOf` handles the second;
+ * this list is what handles the first.
+ *
+ * **This list is the deploy order, and getting it backwards takes the page down.**
+ * On 2026-09-15 the publisher was bumped to 3 and a v3 document was published
+ * while every deployed page still read `[2]`, which turned `/cfb` into the stale
+ * placeholder — a worse outcome than the bye message the change was fixing. The
+ * rule the sequence implies: **widen this list and deploy it before the publisher
+ * starts writing the new version**, never after.
+ *
+ * 2 comes out once every published document reads 3 — checked against the live
+ * site, the way 1 was.
  */
-export const SUPPORTED_SCHEMA_VERSIONS = [2];
+export const SUPPORTED_SCHEMA_VERSIONS = [2, 3];
 
 /** Where the documents are served from. Same distribution as the site. */
 export const CFB_DATA_BASE = '/cfb/data';
