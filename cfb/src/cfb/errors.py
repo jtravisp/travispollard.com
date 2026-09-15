@@ -99,6 +99,24 @@ class UnmappedTeamError(CfbError):
     """A source team name has no crosswalk entry."""
 
 
+class RosterBasisError(CfbError):
+    """A roster expectation could not name how it was formed (SPEC-phase3 3.2).
+
+    ``basis`` is the load-bearing field of the roster schema and its values are
+    not interchangeable. ``previous-game-starter`` is derived from a completed box
+    score and is backfillable across the whole training window;
+    ``depth-chart`` and ``reported-out`` are captured prospectively and exist only
+    from the day this collector started running.
+
+    **A mixed-era training set that cannot tell them apart silently means two
+    different things**, which is the failure the schema exists to prevent -- and
+    the one §3.2 calls "retrospective leakage wearing a feature's clothes". So a
+    row whose basis is missing, unrecognised, or unsupported by the evidence
+    behind it raises rather than defaulting to the backfillable value, which is
+    the one a consumer would trust most and the one it would be most wrong about.
+    """
+
+
 class SupersessionError(CfbError):
     """The committed game-supersession record is malformed (SPEC-phase1 5.2).
 

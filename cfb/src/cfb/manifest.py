@@ -27,8 +27,14 @@ MANIFEST_SUFFIX = ".meta.json"
 _STAMP_FORMAT = "%Y-%m-%dT%H%M%SZ"
 
 #: Sagarin has one resource and omits the segment; CFBD requires one (SPEC 2.1).
-_EXTENSIONS = {"sagarin": ".txt", "cfbd": ".json"}
-_RESOURCE_REQUIRED = {"sagarin": False, "cfbd": True}
+# `roster` is its own source rather than a cfbd resource, and the split is the
+# schema's rather than the vendor's. `raw/cfbd/` holds the vendor's bytes exactly
+# as they arrived; a roster snapshot is a *derived* document -- one canonical id
+# and one expectation per team, with the basis that formed it (SPEC-phase3 3.2).
+# Filing it under `raw/cfbd/roster/` would put a document this project computed
+# in the prefix reserved for documents it only received.
+_EXTENSIONS = {"sagarin": ".txt", "cfbd": ".json", "roster": ".json"}
+_RESOURCE_REQUIRED = {"sagarin": False, "cfbd": True, "roster": False}
 
 _NAMED_WEEKS = frozenset({"preseason", "postseason", "offseason", "season", "unknown"})
 
