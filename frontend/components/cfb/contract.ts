@@ -120,10 +120,63 @@ export interface AsOf {
   fbs_teams: number;
 }
 
+/**
+ * A scheduled game the model has not forecast yet (schema 3).
+ *
+ * **No model numbers, deliberately.** The forecast that would produce a margin
+ * runs on Thursday; until then the page can name the fixture and nothing else.
+ */
+export interface UpcomingFixture {
+  kickoff: string;
+  week: string;
+  opponent: string;
+  home: boolean;
+  neutral_site: boolean;
+}
+
+/**
+ * Which of four states the document is in (schema 3).
+ *
+ * Before v3 the page read `game === null` as "on a bye". Three different facts
+ * produce that null and only one is a bye — on 2026-09-15 `/cfb` announced a
+ * Texas bye while UTSA sat on the week 3 slate for that Saturday. `cfb predict`
+ * runs Thursday, so "scheduled but not yet forecast" covers roughly five days in
+ * seven, and it was the state being misreported all of them.
+ */
+export type NextGameStatus =
+  | 'forecast'
+  | 'awaiting_forecast'
+  | 'bye'
+  | 'season_over';
+
+/**
+ * The document's state, with the v2 fallback in one place.
+ *
+ * **A v2 document is not a bug and not rare**: routes deploy before the pipeline
+ * republishes, so a new page reading an old document is the first thing that
+ * happens in production every time this ships. v2 has no `status` and cannot
+ * distinguish the three nulls, so the fallback says only what a v2 document
+ * actually knows — there is a game, or there is not. It reproduces the old
+ * behaviour for old documents rather than guessing a better answer out of
+ * data that does not contain one.
+ */
+export function statusOf(document: NextGameDocument): NextGameStatus {
+  if (document.status) return document.status;
+  return document.game === null ? 'bye' : 'forecast';
+}
+
 export interface NextGameDocument extends Envelope {
   team: string;
-  /** `null` on a bye week. `as_of` is still populated. */
+  /**
+   * Optional because a v2 document has no `status`, and a v2 document is what a
+   * newly deployed route reads until the pipeline republishes. `statusOf()` is
+   * the only thing that should read this field — it supplies the v2 fallback.
+   */
+  status?: NextGameStatus;
+  /** `null` unless `status` is `forecast`. `as_of` is populated either way. */
   game: PublishedGame | null;
+  /** Present only on `awaiting_forecast`. */
+  upcoming?: UpcomingFixture | null;
   as_of: AsOf;
   /**
    * Optional on purpose. **The first thing that happens in production every time

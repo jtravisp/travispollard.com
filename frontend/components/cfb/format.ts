@@ -131,6 +131,18 @@ export function formatKickoff(iso: string): string {
   });
 }
 
+/**
+ * The weekday a kickoff falls on, in the reader's own timezone.
+ *
+ * Separate from `formatKickoff` because the awaiting-forecast copy reads as a
+ * sentence -- "Texas hosts UTSA on Saturday" -- and the full stamp with a
+ * timezone abbreviation does not fit one. The exact kickoff is printed beneath
+ * it, so the short form loses nothing.
+ */
+export function formatKickoffDay(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { weekday: 'long' });
+}
+
 /** A generation timestamp, for the "as of" line every page carries. */
 export function formatGeneratedAt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {

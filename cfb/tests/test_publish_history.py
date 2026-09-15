@@ -313,17 +313,29 @@ class TestReadingADocumentWrittenBefore:
     republishes, so a page reading a document without its newest fields is the
     first thing that happens in production every time this ships.
 
-    **The schema_version 1 shape is deliberately not tested here.** Renaming
-    `national_rank` to `model_rank` made v1 unreadable by these models, and that
-    is correct: the pipeline *writes* published documents and never reads them
-    back, so nothing in Python has to open one. The page is the only reader that
-    must handle both, and `frontend/tests/cfb-old-document.spec.ts` is where that
-    is checked -- against a real browser, which is where the failure would happen.
+    **The schema_version 1 and 2 shapes are deliberately not tested here**, for
+    one reason that has now applied twice. Renaming `national_rank` to
+    `model_rank` made v1 unreadable by these models; `status` becoming required
+    at v3 does the same to v2. Both are correct, because the pipeline *writes*
+    published documents and only ever reads back the one it just wrote -- see the
+    re-read in `cli._publish`, which runs immediately after `publish()` returns.
+    Nothing in Python opens an archived copy.
+
+    **`status` in particular must not have a default.** Every candidate value is a
+    claim: defaulting to `bye` republishes the exact bug v3 exists to end, and
+    defaulting to `forecast` promises numbers that are not in the document. A
+    missing `status` is a v2 document, and the right reader for a v2 document is
+    the page.
+
+    The page is the only reader that must handle every version, and
+    `frontend/tests/cfb-old-document.spec.ts` is where that is checked -- against
+    a real browser, which is where the failure would happen.
     """
 
     def test_it_loads_with_no_history_and_no_opponent_rank(self):
         stored = {
-            "schema_version": 2,
+            "schema_version": 3,
+            "status": "forecast",
             "generated_at": "2026-08-29T19:41:00Z",
             "season": 2026, "week": "01", "team": "Texas",
             "game": {
@@ -406,3 +418,154 @@ class TestTheLastResult:
         result = self.scored_page(crosswalk, home_points=14, away_points=45).last_result
         assert result.won is False
         assert result.actual_margin == -31
+
+
+# --- (c) the four states ------------------------------------------------------
+
+
+class TestTheDocumentSaysWhichStateItIsIn:
+    """`game: null` was three different facts wearing one shape.
+
+    On 2026-09-15 `/cfb` told readers "Texas is on a bye" while UTSA sat on the
+    week 3 slate for that Saturday. The document was not wrong about what it
+    held -- no forecast had a Texas game ahead of that moment -- but the page
+    turned "we have not forecast it" into "there is no game", which is a claim
+    about the world made from a gap in the data.
+
+    The gap is not rare. `cfb predict` runs Thursday, so from Saturday's kickoffs
+    until Thursday midday the next opponent is known and unforecast every single
+    week.
+    """
+
+    def published(self, crosswalk, store, *, now, week="01"):
+        return build_next_game(
+            store=store, season=SEASON, week=week, now=now, crosswalk=crosswalk
+        )
+
+    def test_a_forecast_game_is_forecast(self, crosswalk):
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        page = self.published(crosswalk, store, now=GENERATED_AT)
+        assert page.status == "forecast"
+        assert page.game is not None
+        assert page.upcoming is None
+
+    def test_a_scheduled_but_unforecast_game_is_awaiting_forecast(self, crosswalk):
+        """**The 2026-09-15 case.**
+
+        Week 1 is forecast and played; week 2 holds a Texas fixture that no
+        forecast covers yet. The old shape answered `game: null` and the page said
+        bye. The opponent was in `raw/cfbd/` the whole time.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        put_games(
+            store, week="02", fetched_at=PLAYED_AT,
+            games=[cfbd_game(game_id=2, week=2, kickoff=LATER,
+                             home="Texas", away="UTSA",
+                             home_points=None, away_points=None)],
+        )
+        # After week 1's kickoff, before week 2 is forecast.
+        page = self.published(crosswalk, store, now=PLAYED_AT)
+
+        assert page.status == "awaiting_forecast"
+        assert page.game is None
+        assert page.upcoming is not None
+        assert page.upcoming.opponent == "UTSA"
+        assert page.upcoming.home is True
+        assert page.upcoming.week == "02"
+        assert page.upcoming.kickoff == LATER
+
+    def test_awaiting_forecast_carries_no_model_numbers(self, crosswalk):
+        """The forecast has not been written, so there is nothing to show.
+
+        A shape that could hold a margin would invite one to be filled in from
+        somewhere else, and a number this page presents as a forecast has to have
+        come from one.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        put_games(
+            store, week="02", fetched_at=PLAYED_AT,
+            games=[cfbd_game(game_id=2, week=2, kickoff=LATER, home="Texas",
+                             away="UTSA", home_points=None, away_points=None)],
+        )
+        upcoming = self.published(crosswalk, store, now=PLAYED_AT).upcoming
+        assert set(upcoming.model_dump()) == {
+            "kickoff", "week", "opponent", "home", "neutral_site"
+        }
+
+    def test_a_real_bye_is_still_a_bye(self, crosswalk):
+        """The state the old shape got right, and which must survive the fix.
+
+        Texas has no fixture ahead; other teams do, so the season is running.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        put_games(
+            store, week="02", fetched_at=PLAYED_AT,
+            games=[cfbd_game(game_id=2, week=2, kickoff=LATER, home="Alabama",
+                             away="Georgia", home_points=None, away_points=None)],
+        )
+        page = self.published(crosswalk, store, now=PLAYED_AT)
+        assert page.status == "bye"
+        assert page.game is None
+        assert page.upcoming is None
+
+    def test_nothing_ahead_for_anyone_is_the_season_running_out(self, crosswalk):
+        """Distinguished from a bye by the same slate, not by the calendar.
+
+        A bye says "not this week"; a finished season says "not again". Reading
+        both off one capture keeps them from disagreeing.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        page = self.published(crosswalk, store, now=PLAYED_AT)
+        assert page.status == "season_over"
+        assert page.game is None
+        assert page.upcoming is None
+
+    def test_the_ratings_are_published_in_every_state(self, crosswalk):
+        """`as_of` is true whether or not there is a fixture. Blanking the page
+        would be a worse statement than the missing game.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        page = self.published(crosswalk, store, now=PLAYED_AT)
+        assert page.status == "season_over"
+        assert page.as_of.elo > 0
+        assert page.as_of.model_rank >= 1
+
+    def test_the_envelope_version_moved(self, crosswalk):
+        """§6.2 moves it for a changed meaning, and `game: null` changed meaning."""
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        assert self.published(crosswalk, store, now=GENERATED_AT).schema_version == 3

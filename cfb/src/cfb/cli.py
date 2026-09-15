@@ -851,7 +851,18 @@ def _publish(args, *, moment: datetime) -> int:
         team=next_game.team,
         # `bye` rather than a missing field: a Friday where `/cfb` shows no game
         # should be visible in the run that put it there.
-        opponent=next_game.game.opponent if next_game.game else "bye",
+        # The document's own four states rather than a game-or-"bye" guess. This
+        # line is what someone reads in an Actions log to check the run, and it
+        # was reporting a bye for a scheduled-but-unforecast fixture in exactly
+        # the way the page was.
+        next_game_status=next_game.status,
+        opponent=(
+            next_game.game.opponent
+            if next_game.game is not None
+            else next_game.upcoming.opponent
+            if next_game.upcoming is not None
+            else next_game.status
+        ),
         win_probability=next_game.game.win_probability if next_game.game else None,
         model_rank=next_game.as_of.model_rank,
         elo_state_week=next_game.as_of.week,
