@@ -163,7 +163,20 @@ _LOGISTIC_DIVISOR = 400
 #: had ever existed and means something much weaker now. The site contract
 #: (``PUBLISHED_SCHEMA_VERSION``) is untouched -- no published document gains,
 #: loses or renames a field.
-SCHEMA_VERSION = 2
+#:
+#: **3 since SPEC-phase3 3.3**, and it is the one bump that phase takes.
+#: ``PredictionLog.model`` became ``models: list[ModelBlock]`` and each game's
+#: flat forecast became a per-model ``forecasts`` map -- a renamed field and one
+#: whose meaning changed, which is exactly what 6.2 reserves a bump for. 3.1's
+#: additive ``probability_scale`` rides along in the same season rather than
+#: costing a second one.
+#:
+#: **A version 2 document is still read, not refused.** ``predict.upgrade_to_v3``
+#: does it in memory at the boundary and nothing is written back: ``predictions/``
+#: is append-only, and the logs already stored for a live season are the record
+#: 6.4 will be judged against. ``PUBLISHED_SCHEMA_VERSION`` is untouched again --
+#: no site document changes shape as a result of any of this.
+SCHEMA_VERSION = 3
 
 #: A canonical team id to its Elo rating. See the module docstring for why this
 #: is a type alias and not a class.
@@ -209,6 +222,40 @@ class ModelConstants(BaseModel):
     #: "read per-run from a manifest" and "nobody recorded it" are different facts
     #: and only one of them is fine.
     hfa_source: str = Field(min_length=1)
+    #: The scale converting a predicted margin to log-odds (SPEC-phase3 3.1).
+    #:
+    #: **``None`` means "the same value as ``elo_per_point``", which is what every
+    #: document written before this field existed actually used.** A statement
+    #: about the past rather than a default -- the same distinction ``PHASE_1``
+    #: draws, and the reason this is not simply initialised to the current scale.
+    #:
+    #: It exists because ``ELO_PER_POINT`` was doing two unrelated jobs: Elo gap to
+    #: predicted margin (and the seeding scale), and predicted margin to log-odds.
+    #: SPEC-phase2 4.2 fitted the pair jointly against *margin* error, which served
+    #: the first job well and left the held-out calibration slope at 1.1070 --
+    #: outside the [0.90, 1.10] band the challenger is held to, so the gate was
+    #: asymmetric in the champion's favour.
+    #:
+    #: **The identity survives, which is why this is the admissible fix.** The
+    #: log-odds are ``margin * scale / 400``; multiplying log-odds by a constant is
+    #: arithmetically identical to using a different scale. So a slope-only Platt
+    #: recalibration *is* a second constant rather than a post-hoc transform, and
+    #: win probability remains a deterministic function of predicted margin --
+    #: through its own scale. Isotonic regression was rejected for exactly this
+    #: reason: it maps probability to probability with no expressible relationship
+    #: back to the margin, breaking ``test_margin_and_probability_cannot_disagree``
+    #: outright.
+    probability_scale: float | None = None
+
+    @property
+    def effective_probability_scale(self) -> float:
+        """The scale ``win_probability`` actually uses.
+
+        One place to ask, so a reader cannot get the fallback subtly different
+        from the writer -- which is how two constants doing one job becomes two
+        answers to one question.
+        """
+        return self.elo_per_point if self.probability_scale is None else self.probability_scale
 
 
 #: The Phase 1 constants, and what ``constants_of`` reports for a state written
@@ -500,8 +547,16 @@ def win_probability(predicted_margin: float, *, constants: ModelConstants = FITT
     to state that as an identity rather than a hope is to make one a function of
     the other. A refactor that computed them from separate quantities would break
     ``test_margin_and_probability_cannot_disagree`` and nothing else.
+
+    **The scale is ``probability_scale``, falling back to ``elo_per_point``**
+    (SPEC-phase3 3.1). The fallback is not a default: it is what every set of
+    constants written before that field existed actually used, so a stored state
+    replays to the same probability it was published with. A new fitted value
+    changes only this function, and the identity above is untouched -- probability
+    is still a deterministic function of margin, through its own scale.
     """
-    return 1 / (1 + 10 ** (-(predicted_margin * constants.elo_per_point) / _LOGISTIC_DIVISOR))
+    scale = constants.effective_probability_scale
+    return 1 / (1 + 10 ** (-(predicted_margin * scale) / _LOGISTIC_DIVISOR))
 
 
 def predict(

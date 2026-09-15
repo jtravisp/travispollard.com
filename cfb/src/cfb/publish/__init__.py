@@ -47,7 +47,7 @@ from cfb.elo.scoring import (
     scored_weeks,
 )
 from cfb.elo.state import load_state, partition_position, season_states
-from cfb.errors import ReplayError
+from cfb.errors import ReplayError, ShadowRoleError
 from cfb.models import validating
 from cfb.predict import (
     PredictedGame,
@@ -244,6 +244,24 @@ class AsOf(BaseModel):
 
     week: str = Field(min_length=1)
     elo: float
+    #: **The `elo/` document this rating was read from** (SPEC-phase3 3.1a).
+    #:
+    #: A published Elo number could not name its own scale, and the defect was
+    #: live rather than theoretical. `as_of.elo` is the state the *forecast*
+    #: named; `history[].elo` is the *newest* state for that week. Both selections
+    #: are correct and they resolved to the same object until the 2026-09-01
+    #: mid-season reseed wrote a third preseason state no prediction references --
+    #: after which the same team, in the same document, read 2112.90 on scale 20
+    #: and 1990.32 on scale 16, with nothing in the document able to say so. It
+    #: went unseen only because `RatingChart` renders nothing below two points.
+    #:
+    #: The transient self-heals on the next `cfb-predict`; the inability of a
+    #: document to name a rating's scale does not. The key is enough, because that
+    #: document records its own `model` block.
+    #:
+    #: Additive and optional, so `PUBLISHED_SCHEMA_VERSION` does not move (Phase 1
+    #: 6.2) and the routes deploy before the publisher emits it.
+    elo_state: str | None = None
     #: **This model's own rank, not a poll's.** Named ``model_rank`` rather than
     #: ``national_rank`` because a reader on a college football page assumes AP
     #: unless told otherwise, and this one will disagree with AP visibly and
@@ -302,6 +320,10 @@ class RatingPoint(BaseModel):
     #: This model's rank among the FBS, not a poll's. See ``AsOf.model_rank``.
     model_rank: int = Field(ge=1)
     fbs_teams: int = Field(ge=1)
+    #: The `elo/` document this rating came out of, and through it the scale it is
+    #: on (SPEC-phase3 3.1a). See ``AsOf.elo_state`` for why one number is not
+    #: enough without it.
+    elo_state: str | None = None
 
 
 class SeasonSoFar(BaseModel):
@@ -1222,6 +1244,22 @@ def publish(
     accuracy = build_accuracy(store=store, season=season, week=week, now=now)
     models = build_models(store=store, season=season, week=week, now=now)
 
+    # SPEC-phase3 3.3, checked rather than assumed. Shadow forecasts are already
+    # excluded structurally -- every builder reads the published model by name --
+    # so this catches the case that structure cannot: a future field, or a future
+    # builder, carrying one out by a route nobody thought about.
+    _refuse_shadow_leak(
+        store,
+        season=season,
+        week=week,
+        documents={
+            "next-game": next_game,
+            "slate": slate,
+            "accuracy": accuracy,
+            "models": models,
+        },
+    )
+
     store.put_json(
         NEXT_GAME_KEY, next_game.model_dump(mode="json"), cache_control=CACHE_CONTROL
     )
@@ -1234,6 +1272,50 @@ def publish(
         ACCURACY_KEY: "accuracy",
         MODELS_KEY: "models",
     }
+
+
+def _refuse_shadow_leak(
+    store: SnapshotStore,
+    *,
+    season: int,
+    week: str,
+    documents: dict[str, BaseModel],
+) -> None:
+    """No shadow model may appear in anything the site serves (SPEC-phase3 3.3).
+
+    **The separation is the only thing between a challenger and the front page.**
+    §6.4 needs four weeks of live pre-kickoff evidence and cannot be satisfied
+    retroactively, so a shadow model that reached a page would not be a cosmetic
+    bug -- it would spend the property Phase 1 §1.1 gave up git to keep, and no
+    later care would recover it.
+
+    Checked on the serialised documents rather than on the builders, because the
+    builders are exactly what a future change would alter. A name is looked for
+    anywhere in the JSON: that is blunt, and blunt is the point -- it does not
+    need to know which field a leak would arrive in.
+
+    Silent when the log carries no shadows, which is every week until one is
+    fitted. The cost of the check is one prediction read that `build_slate` has
+    already done.
+    """
+    generations = prediction_generations(store, season=season, week=week)
+    if not generations:
+        return
+    shadows = {block.name for block in read_predictions(store, generations[-1][1]).shadows}
+    if not shadows:
+        return
+
+    for what, document in documents.items():
+        body = document.model_dump_json()
+        leaked = sorted(name for name in shadows if f'"{name}"' in body)
+        if leaked:
+            raise ShadowRoleError(
+                f"{what}.json for season {season} week {week} names the shadow "
+                f"model(s) {leaked}. `role: shadow` forecasts reach the append-only "
+                f"log and nothing else -- §6.4's four weeks of live evidence cannot "
+                f"be assembled after the fact, so a model on a page before it has "
+                f"served them can never be un-published (SPEC-phase3 3.3)."
+            )
 
 
 # --- the pieces ---------------------------------------------------------------
@@ -1438,8 +1520,14 @@ def _history(
     would have read.
     """
     newest: dict[str, EloState] = {}
+    keys: dict[str, str] = {}
     for stored in season_states(store, season=season):
         newest[stored.state.week] = stored.state
+        # The key travels with the rating, because the rating cannot be read
+        # without it (SPEC-phase3 3.1a). `season_states` is ordered oldest
+        # generation first, so the last write for a week is the newest -- the same
+        # selection the chart has always made, now said out loud.
+        keys[stored.state.week] = stored.key
 
     points = []
     for week in sorted(newest, key=partition_position):
@@ -1454,7 +1542,11 @@ def _history(
         rank, fbs_teams = _fbs_rank(state, resolver, team=team)
         points.append(
             RatingPoint(
-                week=week, elo=state.ratings[team], model_rank=rank, fbs_teams=fbs_teams
+                week=week,
+                elo=state.ratings[team],
+                model_rank=rank,
+                fbs_teams=fbs_teams,
+                elo_state=keys[week],
             )
         )
     return points
@@ -1522,6 +1614,9 @@ def _next_game_document(
             as_of=AsOf(
                 week=state.week,
                 elo=state.ratings[team],
+                # The state the forecast named, not the newest one -- which is the
+                # whole distinction 3.1a is about.
+                elo_state=log.model.elo_state,
                 model_rank=rank,
                 fbs_teams=fbs_teams,
             ),

@@ -66,7 +66,7 @@ import pytest
 from cfb.crosswalk import load_supersessions
 from cfb.elo.scoring import AtsRecord, ScoredWeek, score_week
 from cfb.errors import ReplayError, UnscoredGameError
-from cfb.predict import ModelBlock, PredictedGame, PredictionLog
+from cfb.predict import PUBLISHED_MODEL, Forecast, ModelBlock, PredictedGame, PredictionLog
 from cfb.sources import RawGame, market_home_margin
 
 SEASON = 2026
@@ -111,10 +111,14 @@ def predicted(
         home=home,
         away=away,
         neutral_site=neutral,
-        predicted_margin=margin,
-        win_probability=probability,
-        elo_home=2358.0,
-        elo_away=2486.0,
+        forecasts={
+            PUBLISHED_MODEL: Forecast(
+                predicted_margin=margin,
+                win_probability=probability,
+                elo_home=2358.0,
+                elo_away=2486.0,
+            )
+        },
         market_line=market_line,
         market_line_source=source,
         sagarin_predictor_margin=sagarin,
@@ -127,7 +131,7 @@ def log(*games: PredictedGame) -> PredictionLog:
         season=SEASON,
         week=WEEK,
         generated_at=datetime(2026, 9, 3, 12, 0, tzinfo=UTC),
-        model=MODEL,
+        models=[MODEL],
         games=list(games),
     )
 
@@ -805,7 +809,7 @@ class TestTheScoredDocument:
         ``k`` to float at the same time, which a stored integer still satisfies.
         ``PUBLISHED_SCHEMA_VERSION`` -- the site contract -- is untouched.
         """
-        assert week.schema_version == 2
+        assert week.schema_version == 3
         assert week.generated_at == SCORED_AT
 
     def test_it_round_trips(self):

@@ -29,19 +29,20 @@ what the vendor said. ``sources.market_home_margin`` is the single place the two
 conventions meet.
 """
 
+import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION, Game, constants_of
 from cfb.elo import predict as forecast
 from cfb.elo.state import previous_state
-from cfb.errors import ReplayError, UnmappedTeamError
+from cfb.errors import ReplayError, ShadowRoleError, UnmappedTeamError
 from cfb.models import Manifest, SagarinSnapshot, validating
 from cfb.sources import (
     HFA_COLUMN,
@@ -58,6 +59,10 @@ from cfb.storage import SnapshotStore
 
 __all__ = [
     "INDEX_KEY",
+    "PUBLISHED_MODEL",
+    "Forecast",
+    "parse_predictions",
+    "upgrade_to_v3",
     "ModelBlock",
     "PredictedGame",
     "PredictionIndex",
@@ -83,36 +88,111 @@ _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
 _STAMP_FORMAT = "%Y-%m-%dT%H%M%SZ"
 
 
+#: The forecasting system whose numbers the site shows, and the key its per-game
+#: forecast is filed under. Named once so the reader, the writer and the v2 upgrade
+#: cannot disagree about it.
+PUBLISHED_MODEL = "elo"
+
+
 class ModelBlock(BaseModel):
-    """What produced the numbers, in enough detail to reproduce them (§4.2)."""
+    """What produced the numbers, in enough detail to reproduce them (§4.2).
+
+    **One entry per forecasting system since SPEC-phase3 3.3**, each carrying its
+    own constants and provenance -- the shape ``ModelConstants`` already
+    established for ``EloState``.
+    """
 
     model_config = _STRICT
 
-    name: Literal["elo"]
+    #: No longer ``Literal["elo"]``: the log has to be able to name a challenger
+    #: before there is one, which is the entire point of building the slot early.
+    name: str = Field(min_length=1)
+    #: **Normative, not descriptive** (SPEC-phase3 3.3). ``published`` forecasts
+    #: reach ``/cfb/data/*``; ``shadow`` forecasts reach this log and nothing else.
+    #:
+    #: Defaulted to ``published`` so a v2 document -- which predates roles and had
+    #: exactly one model, the one on the site -- upgrades to the truth about
+    #: itself rather than to an assumption.
+    role: Literal["published", "shadow"] = "published"
+    #: SPEC-phase3 3.1, riding along in the same bump. ``None`` means the same
+    #: value as ``elo_per_point``, which is what every log written before this
+    #: field existed actually used.
+    probability_scale: float | None = None
+    #: A challenger's own version and lineage. ``None`` for the Elo champion,
+    #: which is versioned by this repository rather than by an experiment record.
+    version: str | None = None
+    base: str | None = None
+    fitted_from: str | None = None
     #: ``float``, not ``int``, since SPEC-phase2 4.2 made these fitted: a grid
     #: search has no reason to land on a whole number and 4.1's own example
     #: carries 17.5. Stored logs holding integers still load -- pydantic's strict
     #: mode accepts an int for a float -- so no written document changes meaning.
-    elo_per_point: float = Field(gt=0)
-    k: float = Field(gt=0)
+    #: Elo's own constants. Optional because a challenger has none of them and a
+    #: block that required them could not describe one -- but every field stays
+    #: required *in practice* for the published Elo model, which `predict_week`
+    #: always fills. ``float``, not ``int``, since SPEC-phase2 4.2 made these
+    #: fitted: a grid search has no reason to land on a whole number.
+    elo_per_point: float | None = Field(default=None, gt=0)
+    k: float | None = Field(default=None, gt=0)
     #: The value used for every game in this slate, and the manifest it came from.
     #: One per run rather than one per game -- see ``predict_week``.
-    hfa: float
-    hfa_source: str = Field(min_length=1)
-    seeded_from: str = Field(min_length=1)
-    elo_state: str = Field(min_length=1)
+    hfa: float | None = None
+    hfa_source: str | None = None
+    seeded_from: str | None = None
+    elo_state: str | None = None
     #: The Sagarin page the benchmark margins were read off. Not in §4.2's example,
     #: and it belongs: ``sagarin_predictor_margin`` is a number from a source, and a
     #: number whose source the document cannot name is the thing the model block
     #: exists to prevent.
-    sagarin_predictions_from: str = Field(min_length=1)
+    sagarin_predictions_from: str | None = None
     #: The ``/lines`` capture the market lines came from, or ``None`` when the week
     #: has none stored. Same reasoning as the field above.
     market_lines_from: str | None = None
 
 
+class Forecast(BaseModel):
+    """What one model said about one game (SPEC-phase3 3.3).
+
+    **Only the numbers a model produces live here.** The kickoff, the teams, the
+    market line and Sagarin's margin stay on ``PredictedGame`` because they are
+    facts about the game rather than claims about it -- two models forecasting the
+    same fixture read the same line, and duplicating it per model would create two
+    places for it to be different.
+
+    ``extra="allow"`` rather than ``forbid``, uniquely in this project, and the
+    reason is the slot this whole section exists to build: a challenger publishes
+    numbers Elo has no name for -- §3.3's own example carries ``sigma`` on the
+    NGBoost block -- and a log that refused them could not hold the model it was
+    built to hold. The fields below are still validated; anything extra is carried
+    verbatim and read by nothing until something declares it.
+    """
+
+    model_config = ConfigDict(strict=True, extra="allow", frozen=True)
+
+    predicted_margin: float
+    #: Unclamped. §3.7's ``[0.001, 0.999]`` is presentational and applied at
+    #: publish; the Brier scores of §5.3 are computed on what the model said.
+    win_probability: float
+    #: Full precision, not the rounded values §4.2's example shows. Rounding here
+    #: would make the row unable to reproduce its own margin. ``None`` for a model
+    #: that has no Elo ratings behind it.
+    elo_home: float | None = None
+    elo_away: float | None = None
+
+
 class PredictedGame(BaseModel):
-    """One game's forecast (§4.2). Home perspective throughout."""
+    """One game's forecast (§4.2). Home perspective throughout.
+
+    **Since SPEC-phase3 3.3 the model-produced numbers live in ``forecasts``**,
+    keyed by model name, so a shadow challenger's opinion can sit beside the
+    published one in the same append-only row.
+
+    ``predicted_margin``, ``win_probability``, ``elo_home`` and ``elo_away``
+    remain readable as attributes and mean what they always meant: **the published
+    model's** numbers. Everything downstream -- scoring, the board, the site --
+    reads them and none of it needed changing, which is what keeps a schema bump
+    from becoming a rewrite of the pipeline that depends on it.
+    """
 
     model_config = _STRICT
 
@@ -123,14 +203,8 @@ class PredictedGame(BaseModel):
     home: str = Field(min_length=1)
     away: str = Field(min_length=1)
     neutral_site: bool
-    predicted_margin: float
-    #: Unclamped. §3.7's ``[0.001, 0.999]`` is presentational and applied at
-    #: publish; the Brier scores of §5.3 are computed on what the model said.
-    win_probability: float
-    #: Full precision, not the rounded values §4.2's example shows. Rounding here
-    #: would make the row unable to reproduce its own margin.
-    elo_home: float
-    elo_away: float
+    #: One entry per model that forecast this game, keyed by ``ModelBlock.name``.
+    forecasts: dict[str, Forecast]
     #: The market spread **exactly as CFBD published it**, which is the opposite
     #: sign convention to ``predicted_margin``: negative here means the home team
     #: is favoured. Stored verbatim so the document records what the vendor said;
@@ -151,6 +225,36 @@ class PredictedGame(BaseModel):
     #: Sagarin PREDICTOR, home perspective, benchmark only and an input to
     #: nothing (§1.2). ``None`` when the game is not on the page.
     sagarin_predictor_margin: float | None
+
+    @property
+    def published(self) -> Forecast:
+        """The forecast the site shows, and the one every mean is computed over."""
+        try:
+            return self.forecasts[PUBLISHED_MODEL]
+        except KeyError:
+            raise ShadowRoleError(
+                f"game {self.cfbd_game_id} carries forecasts from "
+                f"{sorted(self.forecasts) or 'no model at all'} and none from "
+                f"{PUBLISHED_MODEL!r}. A row with only shadow forecasts has nothing "
+                f"the site may show, and scoring it would grade a model that has not "
+                f"served its four weeks (SPEC-phase3 3.3)."
+            ) from None
+
+    @property
+    def predicted_margin(self) -> float:
+        return self.published.predicted_margin
+
+    @property
+    def win_probability(self) -> float:
+        return self.published.win_probability
+
+    @property
+    def elo_home(self) -> float | None:
+        return self.published.elo_home
+
+    @property
+    def elo_away(self) -> float | None:
+        return self.published.elo_away
 
 
 class PredictionLog(BaseModel):
@@ -173,8 +277,47 @@ class PredictionLog(BaseModel):
     #: half a week. `scoring` reads this to tell a game nobody could have
     #: forecast from a join that failed.
     forecast_from: datetime | None = None
-    model: ModelBlock
+    #: One entry per forecasting system (SPEC-phase3 3.3). Exactly one carries
+    #: ``role: "published"``; the rest are shadows and reach no page.
+    models: list[ModelBlock]
     games: list[PredictedGame]
+
+    @model_validator(mode="after")
+    def _exactly_one_published_model(self) -> "PredictionLog":
+        published = [block for block in self.models if block.role == "published"]
+        if len(published) == 1:
+            return self
+        if not published:
+            raise ShadowRoleError(
+                f"the week {self.week} log of season {self.season} carries "
+                f"{len(self.models)} model(s) and none is published: "
+                f"{sorted(block.name for block in self.models)}. A log of shadows "
+                f"only has nothing the site may show (SPEC-phase3 3.3)."
+            )
+        raise ShadowRoleError(
+            f"the week {self.week} log of season {self.season} carries "
+            f"{len(published)} published models: "
+            f"{sorted(block.name for block in published)}. "
+            f"Which forecast the site shows would have no answer, and a reader "
+            f"would silently take whichever came first (SPEC-phase3 3.3)."
+        )
+
+    @property
+    def model(self) -> ModelBlock:
+        """The published model's block.
+
+        Kept as an attribute so every existing reader -- scoring, replay, the
+        publisher, the CLI -- goes on meaning "the model whose numbers the site
+        shows" without a single call site changing. A schema bump that forced nine
+        files to be rewritten would be a much larger change to review for a
+        property that was already true.
+        """
+        return next(block for block in self.models if block.role == "published")
+
+    @property
+    def shadows(self) -> list[ModelBlock]:
+        """Every non-published model, in declaration order."""
+        return [block for block in self.models if block.role != "published"]
 
 
 class IndexEntry(BaseModel):
@@ -355,10 +498,17 @@ def predict_week(
                 home=home,
                 away=away,
                 neutral_site=raw.neutral_site,
-                predicted_margin=prediction.predicted_margin,
-                win_probability=prediction.win_probability,
-                elo_home=ratings[home],
-                elo_away=ratings[away],
+                # One entry, because one model forecasts today. The slot exists
+                # so that a challenger can be added here without the log, the
+                # scorer or the site changing shape again (SPEC-phase3 3.3).
+                forecasts={
+                    PUBLISHED_MODEL: Forecast(
+                        predicted_margin=prediction.predicted_margin,
+                        win_probability=prediction.win_probability,
+                        elo_home=ratings[home],
+                        elo_away=ratings[away],
+                    )
+                },
                 market_line=market[0] if market else None,
                 market_line_source=market[1] if market else None,
                 sagarin_predictor_margin=_benchmark_for(benchmark, home, away),
@@ -374,8 +524,10 @@ def predict_week(
             # Only when the log is partial. A full slate says nothing, so an
             # ordinary week's document is unchanged by any of this.
             forecast_from=first_kickoff if played else None,
-            model=ModelBlock(
-                name="elo",
+            models=[ModelBlock(
+                name=PUBLISHED_MODEL,
+                role="published",
+                probability_scale=constants.probability_scale,
                 elo_per_point=constants.elo_per_point,
                 k=constants.k,
                 hfa=hfa,
@@ -387,7 +539,7 @@ def predict_week(
                 elo_state=state.key,
                 sagarin_predictions_from=hfa_manifest.snapshot_key,
                 market_lines_from=lines_keys[0] if lines_keys else None,
-            ),
+            )],
             games=games,
         )
 
@@ -404,15 +556,84 @@ def write_predictions(store: SnapshotStore, log: PredictionLog) -> str:
     return key
 
 
+def upgrade_to_v3(payload: dict) -> dict:
+    """A schema 2 prediction log, in the shape schema 3 reads (SPEC-phase3 3.3).
+
+    **In memory, at the read boundary, and never written back.** ``predictions/``
+    is append-only and tamper-evident -- Phase 1 §1.1 gave up git to keep the
+    property that the public record is of forecasts made before kickoff, and
+    rewriting eight stored documents to suit a newer reader would spend exactly
+    that. The eight already written for weeks 1 and 2 of a live season are re-read
+    every Monday by ``cfb score`` and ``cfb elo replay``; a reader that could not
+    parse them would not be a schema bump, it would be the season's record
+    becoming unreadable.
+
+    Two moves, and both are faithful rather than assumed:
+
+    * ``model`` becomes a one-entry ``models`` list with ``role: "published"``. A
+      v2 log had exactly one model and it was the one on the site, so this is the
+      truth about the document rather than a default applied to it.
+    * each game's flat ``predicted_margin``/``win_probability``/``elo_home``/
+      ``elo_away`` become a single ``elo`` entry in ``forecasts``.
+
+    **A dict in and a dict out, rather than a pydantic validator**, and that is
+    forced. A ``model_validator(mode="before")`` on a ``strict=True`` model makes
+    every subsequent field validate under Python rules instead of JSON ones, so
+    ``generated_at`` and every ``kickoff`` in the document stop parsing from their
+    own ISO strings -- a failure with nothing to do with the upgrade, on fields the
+    upgrade never touches. Proven by construction: a before-validator that returns
+    its input unchanged breaks them just the same.
+    """
+    if payload.get("models") is not None:
+        return payload
+
+    upgraded = dict(payload)
+    block = upgraded.pop("model", None)
+    if isinstance(block, dict):
+        upgraded["models"] = [{**block, "role": "published"}]
+    elif block is not None:
+        upgraded["models"] = [block]
+
+    upgraded["games"] = [_upgrade_game(game) for game in upgraded.get("games", [])]
+    return upgraded
+
+
+def _upgrade_game(game: dict) -> dict:
+    if not isinstance(game, dict) or "forecasts" in game:
+        return game
+    row = dict(game)
+    forecast = {
+        key: row.pop(key)
+        for key in ("predicted_margin", "win_probability", "elo_home", "elo_away")
+        if key in row
+    }
+    if forecast:
+        row["forecasts"] = {PUBLISHED_MODEL: forecast}
+    return row
+
+
+def parse_predictions(data: bytes | str) -> PredictionLog:
+    """Validate one prediction log's bytes, upgrading a v2 document on the way.
+
+    Re-serialised after the upgrade so validation still runs in JSON mode, which
+    is what lets ``strict=True`` read an ISO string as a ``datetime``. The cost is
+    one round-trip through ``json`` on a ~50KB document; the alternative is a
+    reader that rejects every log this project has written.
+    """
+    return PredictionLog.model_validate_json(json.dumps(upgrade_to_v3(json.loads(data))))
+
+
 def read_predictions(store: SnapshotStore, key: str) -> PredictionLog:
     """One stored prediction log, validated at the boundary.
 
     These bytes were written by an earlier run rather than by the code reading
     them, so nothing guarantees they still match the schema this reader was built
-    against -- the same reason ``elo.state.load_state`` validates.
+    against -- the same reason ``elo.state.load_state`` validates. Since
+    SPEC-phase3 3.3 that includes the schema *version*: a v2 document is upgraded
+    in memory rather than refused.
     """
     with validating(f"prediction log at {key}"):
-        return PredictionLog.model_validate_json(store.get_bytes(key))
+        return parse_predictions(store.get_bytes(key))
 
 
 def prediction_generations(
