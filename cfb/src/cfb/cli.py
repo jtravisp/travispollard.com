@@ -133,6 +133,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="bypass the in_season guard, for manual testing",
     )
 
+    roster = sources.add_parser(
+        "roster",
+        help="who each team is expected to start (SPEC-phase3 3.2)",
+    )
+    _add_store(roster)
+    roster.add_argument("--season", type=int)
+    roster.add_argument(
+        "--week",
+        type=int,
+        help="the week the expectation is FOR; defaults to the coming week. The box "
+             "scores are read from the week before it",
+    )
+    roster.add_argument(
+        "--force",
+        action="store_true",
+        help="bypass the in_season guard, for manual testing",
+    )
+
     freshness = commands.add_parser(
         "check-freshness", help="has the source's own date stamp advanced"
     )
@@ -312,6 +330,8 @@ def _dispatch(args, *, moment: datetime, fetch) -> int:
         return _fetch_sagarin(args, moment=moment, fetch=fetch)
     if args.command == "fetch" and args.source == "cfbd":
         return _fetch_cfbd(args, moment=moment, fetch=fetch)
+    if args.command == "fetch" and args.source == "roster":
+        return _fetch_roster(args, moment=moment, fetch=fetch)
     if args.command == "check-freshness":
         return _check_freshness(args, moment=moment)
     if args.command == "crosswalk":
@@ -360,6 +380,104 @@ def _fetch_sagarin(args, *, moment: datetime, fetch) -> int:
         predictions=len(snapshot.predictions),
     )
     return 0
+
+
+def _fetch_roster(args, *, moment: datetime, fetch) -> int:
+    """SPEC-phase3 3.2. Thursday, fifteen minutes ahead of `cfb predict`.
+
+    **The week this writes and the week it reads are not the same week**, and the
+    asymmetry is the feature. A Thursday run inside week 3 answers "who is
+    expected to start in week 3" using week 2's completed box scores -- the one
+    definition of the expectation whose historical and live versions are the same
+    function of the same information (3.2). So the partition is the coming week
+    and the query is the one before it.
+
+    A `--week` names the week being forecast, for the same reason: it is the
+    document's own subject, and a flag that meant the source week would invert the
+    relationship every other caller assumes.
+    """
+    from cfb.collectors.roster import fetch_roster
+    from cfb.crosswalk import load as load_crosswalk
+
+    calendar = load_calendar(_season_of(moment), data_dir=_data_dir())
+
+    if not args.force and not in_season(moment, calendar=calendar):
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="roster",
+            result=RESULT_SKIP,
+            reason=REASON_NOT_IN_SEASON,
+        )
+        return 0
+
+    season = args.season or _season_of(moment)
+    week = _week_arg(args) if args.week is not None else coming_week(moment, calendar=calendar)
+    if week is None:
+        # Past the last regular week. Nothing is coming, so there is nothing to
+        # form an expectation about -- exit 0 rather than reddening a January
+        # Thursday over a season that has ended.
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="roster",
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMING_WEEK,
+        )
+        return 0
+
+    source_week = _previous_week(week)
+    if source_week is None:
+        # Week 1 has no previous game to read. Not an error and not a gap this
+        # collector can close: the expectation simply does not exist yet, and the
+        # preseason depth-chart basis that would cover it is a different capture
+        # with a different backfill story (3.2).
+        log(
+            EVENT_SNAPSHOT_WRITTEN,
+            source="roster",
+            season=season,
+            week=week,
+            result=RESULT_SKIP,
+            reason=REASON_NO_COMPLETED_WEEK,
+        )
+        return 0
+
+    snapshot = fetch_roster(
+        store=_store(args.store),
+        client=CfbdClient(fetch=fetch or http_fetch()),
+        resolver=load_crosswalk(season, data_dir=_data_dir()),
+        season=season,
+        week=week,
+        source_week=source_week,
+        now=moment,
+    )
+    named = sum(1 for team in snapshot.teams if team.expected_qb is not None)
+    log(
+        EVENT_SNAPSHOT_WRITTEN,
+        source="roster",
+        season=season,
+        week=week,
+        source_week=source_week,
+        result=RESULT_OK,
+        teams=len(snapshot.teams),
+        # Teams whose previous game recorded no pass attempts get no expectation
+        # rather than a guessed one, so the two counts coming apart is a fact
+        # about the slate rather than a failure.
+        expected_qb=named,
+        derived_from=snapshot.derived_from,
+    )
+    return 0
+
+
+def _previous_week(week: str) -> str | None:
+    """The numbered week before ``week``, or ``None`` at the season's start.
+
+    Only regular weeks. A postseason partition has no "week before" in the sense
+    this collector means -- the field it would read is a different population --
+    so it is refused rather than mapped onto the last regular week.
+    """
+    if not week.isdigit():
+        return None
+    number = int(week)
+    return f"{number - 1:02d}" if number > 1 else None
 
 
 def _fetch_cfbd(args, *, moment: datetime, fetch) -> int:

@@ -1,0 +1,194 @@
+[
+  {
+    "id": 401917001,
+    "teams": [
+      {
+        "team": "Texas",
+        "conference": "SEC",
+        "homeAway": "home",
+        "points": 24,
+        "categories": [
+          {
+            "name": "passing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": [
+                  {
+                    "id": "4361",
+                    "name": "Arch Manning",
+                    "stat": "28"
+                  },
+                  {
+                    "id": "9001",
+                    "name": "Trey Owens",
+                    "stat": "3"
+                  }
+                ]
+              },
+              {
+                "name": "YDS",
+                "athletes": [
+                  {
+                    "id": "4361",
+                    "name": "Arch Manning",
+                    "stat": "250"
+                  },
+                  {
+                    "id": "9001",
+                    "name": "Trey Owens",
+                    "stat": "250"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "rushing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": [
+                  {
+                    "id": "5001",
+                    "name": "CJ Baxter",
+                    "stat": "12"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "team": "Ohio State",
+        "conference": "SEC",
+        "homeAway": "home",
+        "points": 24,
+        "categories": [
+          {
+            "name": "passing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": [
+                  {
+                    "id": "7001",
+                    "name": "Julian Sayin",
+                    "stat": "31"
+                  }
+                ]
+              },
+              {
+                "name": "YDS",
+                "athletes": [
+                  {
+                    "id": "7001",
+                    "name": "Julian Sayin",
+                    "stat": "250"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "rushing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 401917002,
+    "teams": [
+      {
+        "team": "Alabama",
+        "conference": "SEC",
+        "homeAway": "home",
+        "points": 24,
+        "categories": [
+          {
+            "name": "passing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": [
+                  {
+                    "id": "8001",
+                    "name": "Ty Simpson",
+                    "stat": "17"
+                  },
+                  {
+                    "id": "8002",
+                    "name": "Austin Mack",
+                    "stat": "15"
+                  }
+                ]
+              },
+              {
+                "name": "YDS",
+                "athletes": [
+                  {
+                    "id": "8001",
+                    "name": "Ty Simpson",
+                    "stat": "250"
+                  },
+                  {
+                    "id": "8002",
+                    "name": "Austin Mack",
+                    "stat": "250"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "rushing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "team": "Georgia",
+        "conference": "SEC",
+        "homeAway": "home",
+        "points": 24,
+        "categories": [
+          {
+            "name": "passing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": []
+              },
+              {
+                "name": "YDS",
+                "athletes": []
+              }
+            ]
+          },
+          {
+            "name": "rushing",
+            "types": [
+              {
+                "name": "ATT",
+                "athletes": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

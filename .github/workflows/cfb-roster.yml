@@ -1,0 +1,88 @@
+# SPEC-phase3 §3.2. Thursday: capture who each team is expected to start.
+#
+# **11:45 UTC, fifteen minutes ahead of `cfb-predict`.** The ordering is the whole
+# point of the offset: an expectation captured after the forecast it informs is a
+# fact about the past wearing a feature's clothes. Fifteen minutes is tighter than
+# the half-hour gaps elsewhere in this pipeline because nothing downstream reads
+# this yet — when something does, the gap wants revisiting against §8.1's measured
+# 5–15 minutes of Actions cron drift, not left at whatever happened to work.
+#
+# **This job is a clock, and it is the only genuinely urgent item in Phase 3.**
+# "Who started the previous game" is backfillable from `/games/players` across the
+# whole window. What is not backfillable is the news layer — who was ruled out on
+# a Thursday — and every week that passes uncaptured is a week no model will ever
+# cover. Unlike everything else in the phase, that cost cannot be recovered later,
+# which is why this ships before anything consumes it.
+#
+# **Every step is a command a human runs locally**, the same design SPEC-phase0 §8
+# sets for `cfb-sagarin`: no inline Python, no workflow-only branch, no date
+# arithmetic. The off-season guard lives inside `cfb fetch roster`, which calls
+# `calendar.in_season(now)` and exits 0 with `reason=not_in_season` when false.
+# Putting that check here would give the workflow a behaviour the local command
+# does not have, and a green Actions run would stop meaning what a green local run
+# means.
+#
+# **The season's first Thursday does nothing, and that is correct.** Week 1 has no
+# previous game to read, so the run exits 0 with `reason=no_completed_week`. The
+# preseason depth-chart basis that would cover it is a different capture with a
+# different backfill story (§3.2) and is deliberately not this job.
+#
+# **Call budget.** One `/games/players` call per week — roughly 15 a season. The
+# per-run cap of 25 in `CfbdClient` still applies; this is written down because
+# Phase 2 §3.5 requires the budget measured rather than assumed, and a cheap call
+# is still a call.
+#
+# **Alerting is the failure itself** (§11). Any CfbError is exit 1, which turns the
+# run red and emails it.
+name: cfb-roster
+
+on:
+  schedule:
+    - cron: "45 11 * * 4" # Thursday 11:45 UTC, ahead of cfb-predict
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week the expectation is FOR (2-15). Blank uses the coming week."
+        required: false
+        type: string
+
+# id-token to assume the publisher role; contents to check the repo out. The role
+# is assumed by OIDC and nothing here names a profile — AWS_PROFILE and tp-site
+# are how a human reaches this account, and a workflow that referenced either
+# would be relying on a credential it cannot have.
+permissions:
+  contents: read
+  id-token: write
+
+defaults:
+  run:
+    working-directory: cfb
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      # --extra s3: the default store is s3:// and this job writes two prefixes
+      # through it. `CfbdClient` also reads its key from SSM through boto3
+      # (SPEC-phase0 §5.5), so the extra is needed twice over.
+      - name: Install
+        run: uv sync --extra s3
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
+          aws-region: us-east-1
+
+      # No `--week` on the scheduled path: the CLI resolves the coming week from
+      # the committed calendar and reads the box scores from the week before it.
+      # A `--week ${{ ... }}` expression here would be the duplicated arithmetic
+      # these workflows exist to avoid.
+      - name: Capture the expected starters
+        run: |
+          uv run cfb fetch roster ${{ inputs.week && format('--week {0}', inputs.week) || '' }}

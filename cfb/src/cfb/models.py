@@ -227,7 +227,7 @@ class Manifest(BaseModel):
     model_config = _STRICT
 
     schema_version: int = Field(ge=1)
-    source: Literal["sagarin", "cfbd"]
+    source: Literal["sagarin", "cfbd", "roster"]
     resource: str = Field(min_length=1)
     source_url: str = Field(min_length=1)
     http_status: int
