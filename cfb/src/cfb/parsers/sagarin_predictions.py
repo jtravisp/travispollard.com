@@ -67,6 +67,26 @@ _ANCHOR_LINE = re.compile(r"^\s*<")
 
 _FLOAT = r"-?\d+\.\d{2}"
 
+# The leading `win_pct` is unsigned and the trailing `split_win_pct` is not, which
+# is a distinction the page only started drawing in week 3 of 2026.
+#
+# The leading pair states the game in the favorite's favour, so its percentage is
+# always positive -- 0 negatives across every capture held. The trailing triple
+# restates it from the home/away split, and on 2026-09-15 that percentage arrived
+# signed: 30 of the block's 119 rows carry one, and they are **exactly** the 30
+# rows whose favorite is the away team. The 2026-09-08 page has none at all, so
+# the sign is new rather than rare.
+#
+# **The sign is not `split_margin`'s.** The two disagree on 11 of those rows: the
+# margin is signed from the home team's side, and this marks which side the page's
+# own favorite is on. Reading either as the other inverts a third of the block.
+#
+# Left as an explicit `-?` on this one field rather than enforced as "negative iff
+# the favorite is away". That correlation is 30/30 on one capture, which is a
+# description of a single page and not yet a rule -- and nothing consumes these
+# three fields. They are matched only so that a tail changing shape raises here
+# instead of being absorbed by a loosened end anchor, which is the job they were
+# added to do.
 _ROW = re.compile(
     rf"^\s*(?P<rank>\d+)\s+"
     rf"(?:(?P<flag>[NC])\s+)?"
@@ -79,7 +99,7 @@ _ROW = re.compile(
     rf"(?:"
     rf"(?P<split_pct>\d+)%"
     rf"|"
-    rf"(?P<split_margin>{_FLOAT})\s+(?P<split_win_pct>\d+)%\s+(?P<split_moneyline>-?\d+)"
+    rf"(?P<split_margin>{_FLOAT})\s+(?P<split_win_pct>-?\d+)%\s+(?P<split_moneyline>-?\d+)"
     rf")\s*$"
 )
 
