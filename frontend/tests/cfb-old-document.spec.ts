@@ -191,6 +191,44 @@ test.describe('the version 2 rename', () => {
     await expect(page.getByText('#5')).toBeVisible();
   });
 
+
+  test('a version 3 document with no status falls back rather than breaking', async ({ page }) => {
+    /**
+     * `statusOf` covers the other direction of the same skew: a document the page
+     * can read but which predates `status`. It claims only what such a document
+     * knows -- there is a game, or there is not.
+     */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: { ...NEW_DOCUMENT, game: null } }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/is on a bye/)).toBeVisible();
+  });
+
+  test('an unknown version still shows the stale state', async ({ page }) => {
+    /** The mechanism must not have been widened into uselessness. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: { ...NEW_DOCUMENT, schema_version: 99 } }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
+  });
+});
+
+/**
+ * **Pinned, because the weekday is the reader's and not the page's.**
+ *
+ * `formatKickoffDay` calls `toLocaleDateString(undefined, ...)`, so a 00:00Z
+ * kickoff is Saturday evening in Austin and Sunday in UTC. The assertion passed
+ * on a Central-time laptop and failed in CodeBuild, which runs UTC -- the test
+ * was reading the machine's timezone, not the behaviour.
+ *
+ * America/Chicago is the right zone to pin: the page is about Texas, the real
+ * kickoff is 7:00 PM CDT, and "Saturday" is what a reader of this page sees.
+ */
+test.describe('the fixture is named in the reader’s timezone', () => {
+  test.use({ timezoneId: 'America/Chicago' });
+
   test('a version 3 awaiting_forecast document names the opponent', async ({ page }) => {
     /** The state the whole schema bump exists for, end to end in a browser. */
     await page.route('**/cfb/data/next-game.json*', (route) =>
@@ -216,26 +254,32 @@ test.describe('the version 2 rename', () => {
     await expect(page.getByText(/is on a bye/)).toBeHidden();
   });
 
-  test('a version 3 document with no status falls back rather than breaking', async ({ page }) => {
-    /**
-     * `statusOf` covers the other direction of the same skew: a document the page
-     * can read but which predates `status`. It claims only what such a document
-     * knows -- there is a game, or there is not.
-     */
-    await page.route('**/cfb/data/next-game.json*', (route) =>
-      route.fulfill({ json: { ...NEW_DOCUMENT, game: null } }),
+  test('the same kickoff reads as Sunday in UTC, which is why this is pinned', async ({
+    browser,
+  }) => {
+    /** The failure itself, asserted rather than left as a story in a comment. */
+    const context = await browser.newContext({ timezoneId: 'UTC' });
+    const utc = await context.newPage();
+    await utc.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...NEW_DOCUMENT,
+          schema_version: 3,
+          status: 'awaiting_forecast',
+          game: null,
+          upcoming: {
+            kickoff: '2026-09-20T00:00:00Z',
+            week: '03',
+            opponent: 'UTSA',
+            home: true,
+            neutral_site: false,
+          },
+        },
+      }),
     );
-    await page.goto('/cfb/');
-    await expect(page.getByText(/is on a bye/)).toBeVisible();
-  });
-
-  test('an unknown version still shows the stale state', async ({ page }) => {
-    /** The mechanism must not have been widened into uselessness. */
-    await page.route('**/cfb/data/next-game.json*', (route) =>
-      route.fulfill({ json: { ...NEW_DOCUMENT, schema_version: 99 } }),
-    );
-    await page.goto('/cfb/');
-    await expect(page.getByText(/This data is newer than this page/)).toBeVisible();
+    await utc.goto('/cfb/');
+    await expect(utc.getByText(/Texas hosts UTSA on Sunday/)).toBeVisible();
+    await context.close();
   });
 });
 
