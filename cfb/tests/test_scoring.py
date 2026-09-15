@@ -63,6 +63,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from cfb.crosswalk import load_supersessions
 from cfb.elo.scoring import AtsRecord, ScoredWeek, score_week
 from cfb.errors import ReplayError, UnscoredGameError
 from cfb.predict import ModelBlock, PredictedGame, PredictionLog
@@ -942,3 +943,126 @@ class TestAnHonestRerunKeepsBothGenerations:
         graded = score(only, [result(1, kickoff=SATURDAY)])
 
         assert graded.games[0].predicted_margin == 7.0
+
+
+# --- a vendor re-id -----------------------------------------------------------
+
+
+class TestASupersededGameId:
+    """§5.2's first two failure modes firing on one physical game.
+
+    CFBD replaced week 1's Western Carolina at Campbell rather than amending it:
+    the Friday capture holds `401866625` kicking off Saturday, the Sunday capture
+    holds `401917058` kicking off Sunday and no longer holds the Saturday row at
+    all. The forecast was written before either kickoff and was right about the
+    game; only the vendor's key moved under it.
+
+    The committed record is what relaxes the join, and these tests are mostly
+    about what it does *not* relax. The redirect is an exact second key -- a human
+    assertion, reviewed and committed -- so everything downstream of it stays
+    strict: an unlisted id raises, a redirect onto the wrong fixture raises, and
+    the scored row still names both ids so the renumbering is visible.
+    """
+
+    RETIRED = 401866625
+    CURRENT = 401917058
+
+    @pytest.fixture
+    def record(self, tmp_path):
+        (tmp_path / f"games-superseded-{SEASON}.yaml").write_text(
+            f"{self.RETIRED}:\n"
+            f"  superseded_by: {self.CURRENT}\n"
+            f"  season: {SEASON}\n"
+            f"  week: 1\n"
+            f"  home: Texas\n"
+            f"  away: Ohio State\n"
+            f"  noticed: 2026-09-15\n",
+            encoding="utf-8",
+        )
+        return load_supersessions(SEASON, data_dir=tmp_path)
+
+    def test_the_forecast_is_graded_against_the_replacement(self, record):
+        graded = score(
+            log(predicted(self.RETIRED)), [result(self.CURRENT)], supersessions=record
+        )
+        assert len(graded.games) == 1
+        assert graded.games[0].actual_margin == 7
+        assert graded.unplayed == 0
+
+    def test_the_scored_row_names_both_ids(self, record):
+        """The id a reader looks up is the one the game was played under; the id
+        the forecast was filed under is kept beside it. A document that renumbered
+        a game with nothing saying so is the tamper-evident log rewriting itself.
+        """
+        game = score(
+            log(predicted(self.RETIRED)), [result(self.CURRENT)], supersessions=record
+        ).games[0]
+        assert game.cfbd_game_id == self.CURRENT
+        assert game.superseded_cfbd_game_id == self.RETIRED
+
+    def test_an_ordinary_game_records_no_supersession(self, record):
+        game = score(log(predicted(1)), [result(1)], supersessions=record).games[0]
+        assert game.cfbd_game_id == 1
+        assert game.superseded_cfbd_game_id is None
+
+    def test_without_the_record_the_same_pair_still_raises(self, tmp_path):
+        """The point of the whole exercise: nothing about the join got looser.
+        The committed file is doing the work, and only where a human put an entry.
+        """
+        empty = load_supersessions(SEASON, data_dir=tmp_path)
+        with pytest.raises(UnscoredGameError, match=str(self.CURRENT)):
+            score(log(predicted(self.RETIRED)), [result(self.CURRENT)], supersessions=empty)
+
+    def test_an_unlisted_orphan_result_still_raises(self, record):
+        """A genuinely new game on the slate is still a red run, with the record
+        loaded and consulted.
+        """
+        with pytest.raises(UnscoredGameError, match="have no prediction"):
+            score(
+                log(predicted(self.RETIRED)),
+                [result(self.CURRENT), result(777, home="Texas", away="Ohio State")],
+                supersessions=record,
+            )
+
+    def test_an_unlisted_played_prediction_still_raises(self, record):
+        with pytest.raises(UnscoredGameError, match="kicked off"):
+            score(log(predicted(555)), [], supersessions=record)
+
+    def test_the_error_names_the_file_that_repairs_it(self, tmp_path):
+        """SPEC 6.4's rule, applied here: the message is the fix."""
+        empty = load_supersessions(SEASON, data_dir=tmp_path)
+        with pytest.raises(UnscoredGameError, match=r"games-superseded-2026\.yaml"):
+            score(log(predicted(self.RETIRED)), [result(self.CURRENT)], supersessions=empty)
+
+    def test_a_redirect_onto_the_wrong_fixture_raises_on_the_teams(self, record):
+        """The safety property that makes an asserted equality acceptable.
+
+        The record only redirects a lookup; `_refuse_mismatched_teams` then runs
+        exactly as it does for every other game. So a mistyped replacement id
+        cannot quietly grade the wrong fixture -- it lands on the third failure
+        mode instead.
+        """
+        with pytest.raises(UnscoredGameError, match="disagrees on teams"):
+            score(
+                log(predicted(self.RETIRED)),
+                [result(self.CURRENT, home="Alabama", away="Georgia")],
+                supersessions=record,
+            )
+
+    def test_two_forecasts_resolving_to_one_result_raise(self, record):
+        """A regenerate that picked up the new id while an earlier generation held
+        the old one. Only one can be graded and silently keeping either drops a
+        prediction from the record.
+        """
+        with pytest.raises(UnscoredGameError, match="both resolve to"):
+            score(
+                log(predicted(self.RETIRED), predicted(self.CURRENT)),
+                [result(self.CURRENT)],
+                supersessions=record,
+            )
+
+    def test_the_committed_record_is_used_when_none_is_passed(self):
+        """`cfb score` passes nothing, so the default has to be the real file."""
+        graded = score(log(predicted(self.RETIRED)), [result(self.CURRENT)])
+        assert graded.games[0].cfbd_game_id == self.CURRENT
+        assert graded.games[0].superseded_cfbd_game_id == self.RETIRED

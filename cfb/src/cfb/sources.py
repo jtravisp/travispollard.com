@@ -124,27 +124,42 @@ class RawGame(BaseModel):
         return (1 if self.is_postseason else 0, self.week)
 
     @property
-    def is_modelled(self) -> bool:
-        """Whether both teams are in the universe the model rates.
+    def has_classification(self) -> bool:
+        """Whether the vendor classified either side of this row."""
+        return bool(self.home_classification or self.away_classification)
 
-        **Absent on both sides means yes**, and that asymmetry is the whole rule.
-        A capture where the vendor classified nobody is one this project has no
-        division evidence about, so the crosswalk stays the authority and an
-        unmapped name still raises -- which is the hard rule in `cfb/CLAUDE.md`
-        and must not be quietly turned into a filter.
+    def is_modelled(self, *, capture_classifies: bool) -> bool:
+        """Whether both teams are in the universe the model rates.
 
         **Classified on one side and not the other means no.** The opponent of an
         NCAA team that the NCAA does not classify is an NAIA school, and there
         are nine of them on week 1's slate. They have no rating and never will.
 
-        The two rules together select exactly the 171 games of that slate whose
-        names the crosswalk resolves -- the vendor's classification and this
-        project's crosswalk agreeing, independently, on the same set.
+        **Absent on both sides is decided by the capture, not by the row**, and
+        that asymmetry is the whole rule. A capture where the vendor classified
+        nobody is one this project has no division evidence about at all, so the
+        crosswalk stays the authority and an unmapped name still raises -- the
+        hard rule in `cfb/CLAUDE.md`, which must not be quietly turned into a
+        filter. But a capture that classifies 302 rows and leaves one blank is
+        not evidence-free: it is evidence, with a hole in it, and reading that
+        hole as "no evidence anywhere" inverts the answer for the one row.
+
+        ``capture_classifies`` is therefore a fact about the file this row came
+        out of, which is why this is a method rather than a property -- a row
+        cannot answer it alone. ``week_slate`` computes it once per capture.
+
+        **This was a live failure, not a hypothetical.** CFBD carried Oklahoma
+        Panhandle (NAIA) at Schreiner (D-III) in 2026 week 2 as
+        ``homeClassification: "ii"`` and then, between the 2026-09-14 and
+        2026-09-15 captures, dropped the field to null with nothing else in the
+        file changing. Per row, that flipped an NAIA-vs-D-III game into the
+        modelled set and stopped the season's scoring on an unmapped team name.
+        Per capture, the 302 classified rows beside it say what the blank means.
         """
         home = (self.home_classification or "").lower()
         away = (self.away_classification or "").lower()
         if not home and not away:
-            return True
+            return not capture_classifies
         return home in MODELLED_DIVISIONS and away in MODELLED_DIVISIONS
 
     @property
@@ -337,6 +352,13 @@ def week_slate(
     failures: those teams have no rating, no crosswalk entry and no prediction to
     make, and CFBD's own classification is the evidence rather than a guess.
 
+    That question is asked **per capture**: whether the vendor classified anybody
+    in this file decides what an unclassified row means in it. A file that
+    classifies nobody is evidence-free and every row in it stays in; a file that
+    classifies almost everybody is evidence with a hole, and the hole reads as
+    "not ours". Evaluating it per row instead lets one dropped field promote an
+    NAIA game into the slate -- which is exactly what stopped week 2 of 2026.
+
     Returned in capture order rather than sorted. Callers that care about ordering
     say so -- ``replay`` and ``advance`` sort by kickoff because Elo is
     path-dependent; ``predict`` sorts for readability.
@@ -348,7 +370,13 @@ def week_slate(
     for manifest in _newest_manifest_per_week(store, season, "games"):
         key = manifest.snapshot_key
         read_keys.append(key)
-        for raw_game in _rows(store.get_bytes(key), key):
+        rows = list(_rows(store.get_bytes(key), key))
+        # One pass over the capture before any row is judged by it. Scoped to the
+        # capture rather than the run: two files are two separate pieces of
+        # evidence, and an old classification-free capture must not make a
+        # complete one speak for it, nor the reverse.
+        capture_classifies = any(row.has_classification for row in rows)
+        for raw_game in rows:
             if raw_game.season != season:
                 # A `/games` response filed under this season but describing
                 # another is a mis-partitioned capture, and folding it in would
@@ -357,7 +385,7 @@ def week_slate(
                     f"{key} is filed under season {season} and holds game {raw_game.id} "
                     f"from season {raw_game.season}"
                 )
-            if not raw_game.is_modelled:
+            if not raw_game.is_modelled(capture_classifies=capture_classifies):
                 # Ahead of the malformed-row check below on purpose. The one
                 # partially-scored row in week 1's capture is a D-II game, and
                 # policing the shape of a row the model will never read would

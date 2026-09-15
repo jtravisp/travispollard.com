@@ -99,6 +99,26 @@ class UnmappedTeamError(CfbError):
     """A source team name has no crosswalk entry."""
 
 
+class SupersessionError(CfbError):
+    """The committed game-supersession record is malformed (SPEC-phase1 5.2).
+
+    The record exists because CFBD does not always amend a game in place. A
+    postponement can arrive as a *new* ``/games`` row with a new id while the
+    retired id disappears, which leaves the prediction log filed under an id the
+    results no longer contain -- both of §5.2's first two failure modes firing on
+    one physical game.
+
+    This is the error for the mapping itself being wrong, never for a join that
+    failed: an unlisted id still raises ``UnscoredGameError`` exactly as before.
+    The distinction matters because the record is the one place in the pipeline
+    where a human asserts that two vendor ids are the same game, and an assertion
+    nobody can check is worth less than the strict join it relaxes. So the loader
+    refuses a chain, a self-reference, and two retired ids claiming one
+    replacement -- each of which would quietly merge or lose a game -- and the
+    scorer still compares the teams afterwards.
+    """
+
+
 class UnratedTeamError(CfbError):
     """A game named a canonical team the ratings do not hold (SPEC-phase1 3.4).
 

@@ -25,9 +25,21 @@ from typing import Literal
 
 import yaml
 
+from cfb.crosswalk.superseded import (
+    Supersessions,
+    load_supersessions,
+    supersessions_path,
+)
 from cfb.errors import UnmappedTeamError
 
-__all__ = ["Crosswalk", "crosswalk_path", "load"]
+__all__ = [
+    "Crosswalk",
+    "Supersessions",
+    "crosswalk_path",
+    "load",
+    "load_supersessions",
+    "supersessions_path",
+]
 
 _DEFAULT_DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "crosswalk"
 
