@@ -30,6 +30,7 @@ to find the newest one would be doing the composition the PRD forbids it.
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -82,6 +83,7 @@ __all__ = [
     "SlateDocument",
     "SlateGame",
     "SeedDisclosure",
+    "UpcomingFixture",
     "WeekPoint",
     "build_accuracy",
     "build_next_game",
@@ -105,7 +107,16 @@ __all__ = [
 #: renamed field, a removed field, or a changed meaning -- and a rename is the
 #: case it exists for: a page reading the old name off a new document gets
 #: ``undefined`` and renders "#undefined".
-PUBLISHED_SCHEMA_VERSION = 2
+#:
+#: **3, because `game: null` changed meaning.** It used to be the page's only
+#: signal and the page read it as "on a bye". It was never that: it meant "no
+#: forecast holds a game for this team ahead of now", which is a bye, a finished
+#: season, and -- every week between Saturday's kickoffs and Thursday's
+#: `cfb predict` -- a fixture that simply has not been forecast yet. On
+#: 2026-09-15 `/cfb` told readers Texas was on a bye while UTSA sat on the week 3
+#: slate for that Saturday. A changed meaning is exactly what §6.2 moves this
+#: for, and `status` is the field that ends the guessing.
+PUBLISHED_SCHEMA_VERSION = 3
 
 #: §6.1. The keys match the URL path exactly -- ``cfb/data/next-game.json`` is
 #: served at ``/cfb/data/next-game.json`` with no origin_path stripping, which is
@@ -311,6 +322,36 @@ class SeasonSoFar(BaseModel):
     full_slate: "Record"
 
 
+class UpcomingFixture(BaseModel):
+    """A scheduled game the model has not forecast yet.
+
+    **Read from ``raw/cfbd/`` rather than from ``predictions/``**, which is the
+    whole point of it: the schedule is known days before the forecast is written,
+    and the page used to have no way to say so. Texas's week 3 fixture was in the
+    bucket from the Monday and unforecast until the Thursday, and `/cfb` spent
+    those days reporting a bye.
+
+    **It carries no model numbers, and that is deliberate rather than
+    incidental.** There is no margin, no win probability and no market line here,
+    because none of them exist yet -- the forecast that would produce them runs on
+    Thursday. A shape that could hold them would invite a later edit to fill them
+    from somewhere else, and "somewhere else" for a number this page presents as a
+    forecast is how a page starts publishing a claim the model never made.
+    """
+
+    model_config = _STRICT
+
+    kickoff: datetime
+    #: The CFBD week this game is filed under, which is not necessarily the week
+    #: the document is published for -- the same reason ``PublishedGame`` carries
+    #: its own.
+    week: str = Field(min_length=1)
+    #: A rendered name, not a canonical id (§6.3).
+    opponent: str = Field(min_length=1)
+    home: bool
+    neutral_site: bool
+
+
 class NextGameDocument(BaseModel):
     """``cfb/data/next-game.json`` (§6.3), rendered by ``/cfb``."""
 
@@ -323,12 +364,32 @@ class NextGameDocument(BaseModel):
 
     #: The rendered name of the team this document is about.
     team: str = Field(min_length=1)
-    #: ``None`` on a bye. §6.3 gives no shape for one, and a bye is an ordinary
-    #: week, so the page has to be told rather than left to infer it from an
-    #: absence. ``as_of`` is still populated: the ratings are true whether or not
-    #: there is a fixture, and blanking the whole page for a bye would be a worse
-    #: statement than the missing game.
+    #: Which of the four states this document is in, so the page never has to
+    #: infer one from a gap.
+    #:
+    #: ``game`` used to be the only signal and the page read ``null`` as "on a
+    #: bye". Three different situations produce that null and only one of them is
+    #: a bye:
+    #:
+    #:     forecast           a forecast holds the team's next game
+    #:     awaiting_forecast  a fixture is scheduled and not yet forecast
+    #:     bye               no fixture, and the season is still running
+    #:     season_over       nothing is scheduled ahead for anyone
+    #:
+    #: The middle one is not an edge case. `cfb predict` runs Thursday, so every
+    #: week between Saturday's kickoffs and Thursday midday the team's next
+    #: opponent is known and unforecast -- roughly five days in seven.
+    status: Literal["forecast", "awaiting_forecast", "bye", "season_over"]
+    #: ``None`` unless a forecast holds the game. §6.3 gives no shape for a week
+    #: without one, so the page has to be told rather than left to infer it from
+    #: an absence. ``as_of`` is still populated in every state: the ratings are
+    #: true whether or not there is a fixture, and blanking the whole page would
+    #: be a worse statement than the missing game.
     game: PublishedGame | None
+    #: The scheduled fixture, on ``awaiting_forecast`` only. Populated from the
+    #: CFBD slate so the page can name the opponent it is waiting on instead of
+    #: reporting an absence.
+    upcoming: UpcomingFixture | None = None
     as_of: AsOf
     #: The subject team's rating and rank at every stored state of the season,
     #: oldest first. **A pure projection of ``elo/``**, which already holds every
@@ -667,6 +728,16 @@ def build_next_game(
     log, fixture = _next_fixture(store, season=season, week=week, team=team, now=now)
     state = load_state(store, log.model.elo_state)
 
+    # Only consulted when no forecast holds the game. A forecast that exists is
+    # the better answer by definition -- it carries the numbers the page is for --
+    # and reading the schedule anyway would cost a full slate walk on the ordinary
+    # Thursday-to-Saturday path to produce a fixture nothing would render.
+    upcoming, season_live = (
+        (None, True)
+        if fixture is not None
+        else _scheduled_next(store, resolver, season=season, team=team, now=now)
+    )
+
     return _next_game_document(
         log,
         fixture,
@@ -674,6 +745,8 @@ def build_next_game(
         resolver,
         team=team,
         now=now,
+        upcoming=upcoming,
+        season_live=season_live,
         history=_history(store, resolver, season=season, team=team),
         last_result=_last_result(store, resolver, season=season, team=team),
         scored=scored_weeks(store, season=season),
@@ -1194,6 +1267,56 @@ def _finished(
     return {raw.id for raw, _ in games if raw.is_complete}, capture.fetched_at
 
 
+def _scheduled_next(
+    store: SnapshotStore,
+    resolver: Crosswalk,
+    *,
+    season: int,
+    team: str,
+    now: datetime,
+) -> tuple[UpcomingFixture | None, bool]:
+    """The team's next scheduled game, and whether the season has games left.
+
+    **Reads ``raw/cfbd/`` rather than ``predictions/``**, which is the only way to
+    answer the question the page actually asks. A forecast is written on Thursday
+    and the schedule is in the bucket days earlier, so a producer that can only
+    see forecasts cannot tell "no fixture" from "not forecast yet" -- and reported
+    the first for both.
+
+    Returns ``(fixture, season_has_games_ahead)``. The second is what separates a
+    bye from a finished season, and it is derived from the same slate rather than
+    from the calendar: if no game anywhere has a kickoff ahead, there is nothing
+    left to forecast for anyone. That keeps both answers resting on one piece of
+    evidence, which is the rule §3.3 and §5.2 both settled on -- a wall clock
+    cannot be replayed, and a capture can.
+
+    ``week_slate`` already excludes divisions the model does not rate and takes
+    the newest capture per week, so a fixture reaching here is one the crosswalk
+    resolves and one a later pull has not dropped.
+    """
+    ahead, _ = week_slate(store, season, lambda raw: raw.start_date >= now)
+    if not ahead:
+        return None, False
+
+    best: tuple[datetime, UpcomingFixture] | None = None
+    for raw, _key in ahead:
+        home, away = resolver.from_cfbd(raw.home_team), resolver.from_cfbd(raw.away_team)
+        if team not in (home, away):
+            continue
+        at_home = home == team
+        fixture = UpcomingFixture(
+            kickoff=raw.start_date,
+            week=raw.partition,
+            opponent=resolver.display_name(away if at_home else home),
+            home=at_home,
+            neutral_site=raw.neutral_site,
+        )
+        if best is None or raw.start_date < best[0]:
+            best = (raw.start_date, fixture)
+
+    return (best[1] if best else None), True
+
+
 def _next_fixture(
     store: SnapshotStore, *, season: int, week: str, team: str, now: datetime
 ) -> tuple[PredictionLog, PredictedGame | None]:
@@ -1348,6 +1471,8 @@ def _next_game_document(
     history: list[RatingPoint],
     last_result: LastResult | None,
     scored: list[ScoredWeek],
+    upcoming: UpcomingFixture | None = None,
+    season_live: bool = True,
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
     same_week = [game for game in log.games if team in (game.home, game.away)]
@@ -1367,6 +1492,20 @@ def _next_game_document(
             season=log.season,
             week=log.week,
             team=resolver.display_name(team),
+            # Ordered so the strongest evidence wins: a forecast beats a schedule
+            # entry, and a schedule entry beats an absence. Only the last step is
+            # an inference, and it is the one this field exists to stop the page
+            # making on its own.
+            status=(
+                "forecast"
+                if fixture is not None
+                else "awaiting_forecast"
+                if upcoming is not None
+                else "bye"
+                if season_live
+                else "season_over"
+            ),
+            upcoming=upcoming if fixture is None else None,
             game=(
                 _published_game(
                     fixture,

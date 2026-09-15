@@ -21,7 +21,13 @@ import Link from 'next/link';
 import CfbNav from '@/components/cfb/CfbNav';
 import RatingChart, { MINIMUM_POINTS } from '@/components/cfb/RatingChart';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
-import { LastResult, NextGameDocument, SeasonSoFar } from '@/components/cfb/contract';
+import {
+  LastResult,
+  NextGameDocument,
+  SeasonSoFar,
+  UpcomingFixture,
+  statusOf,
+} from '@/components/cfb/contract';
 import { SeedDisclosure } from '@/components/cfb/contract';
 import {
   describeFavorite,
@@ -30,6 +36,7 @@ import {
   favorite,
   formatGeneratedAt,
   formatKickoff,
+  formatKickoffDay,
   formatLine,
   formatMargin,
   formatMean,
@@ -63,27 +70,87 @@ export default function CfbPage() {
   );
 }
 
+/**
+ * The card shown when a fixture is known and unforecast.
+ *
+ * **This is the ordinary state for most of the week**, not an edge case.
+ * `cfb predict` runs Thursday, so from Saturday's kickoffs until Thursday midday
+ * the opponent is on the CFBD slate and no forecast covers it. Before schema 3
+ * the page had no way to say that and announced a bye instead -- on 2026-09-15 it
+ * told readers Texas was idle while UTSA sat on the week 3 slate for that
+ * Saturday.
+ *
+ * It shows the fixture and no numbers, because there are no numbers yet.
+ */
+function AwaitingForecast({
+  team,
+  upcoming,
+}: {
+  team: string;
+  upcoming: UpcomingFixture;
+}) {
+  const verb = upcoming.neutral_site ? 'meets' : upcoming.home ? 'hosts' : 'visits';
+
+  return (
+    <div className="card bg-base-200">
+      <div className="card-body">
+        <h2 className="card-title">
+          {team} {verb} {upcoming.opponent} on {formatKickoffDay(upcoming.kickoff)}
+          {upcoming.neutral_site ? ' at a neutral site' : ''}
+        </h2>
+        <p className="text-sm text-base-content/60">
+          {formatWeek(upcoming.week)} &middot; {formatKickoff(upcoming.kickoff)}
+        </p>
+        <p className="text-base-content/70">
+          The forecast lands Thursday. Predictions are written before kickoff and never
+          after, so this page shows the fixture and no numbers until the run that
+          produces them has happened. The ratings below are current, and{' '}
+          <Link href="/cfb/slate" className="link link-primary">
+            the rest of the slate
+          </Link>{' '}
+          is forecast through the week just played.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function NextGame({ document }: { document: NextGameDocument }) {
   const { game, as_of: asOf, team } = document;
+  const status = statusOf(document);
 
-  if (game === null) {
-    // A bye is a fact, not an absence. §6.3: the document says so explicitly
-    // rather than leaving the page to infer it from a gap.
+  if (status !== 'forecast' || game === null) {
+    // Four states, and the document names which one rather than leaving the page
+    // to infer it from a gap. §6.3 used to give `game: null` alone, which meant
+    // "no forecast holds a game" and was rendered as "on a bye" -- a claim about
+    // the world made from a fact about the data.
     return (
       <div className="space-y-6">
-        <div className="card bg-base-200">
-          <div className="card-body">
-            <h2 className="card-title">{team} is on a bye</h2>
-            <p className="text-base-content/70">
-              No game on the {formatWeek(document.week)} slate. The ratings below are still
-              current, and{' '}
-              <Link href="/cfb/slate" className="link link-primary">
-                the rest of the slate
-              </Link>{' '}
-              is still forecast.
-            </p>
+        {status === 'awaiting_forecast' && document.upcoming ? (
+          <AwaitingForecast team={team} upcoming={document.upcoming} />
+        ) : (
+          <div className="card bg-base-200">
+            <div className="card-body">
+              <h2 className="card-title">
+                {status === 'season_over' ? `${team}’s season is over` : `${team} is on a bye`}
+              </h2>
+              <p className="text-base-content/70">
+                {status === 'season_over' ? (
+                  <>Nothing is scheduled ahead. The ratings below are where the season ended.</>
+                ) : (
+                  <>
+                    No game on the {formatWeek(document.week)} slate. The ratings below are
+                    still current, and{' '}
+                    <Link href="/cfb/slate" className="link link-primary">
+                      the rest of the slate
+                    </Link>{' '}
+                    is still forecast.
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
         <Ratings asOf={asOf} team={team} />
         <Published document={document} />
       </div>
