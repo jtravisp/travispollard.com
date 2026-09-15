@@ -100,6 +100,8 @@ export interface PublishedGame {
 export interface RatingPoint {
   week: string;
   elo: number;
+  /** The `elo/` document behind this point. See `AsOf.elo_state`. */
+  elo_state?: string | null;
   model_rank: number;
   fbs_teams: number;
 }
@@ -127,6 +129,22 @@ export interface LastResult {
 export interface AsOf {
   week: string;
   elo: number;
+  /**
+   * The `elo/` document this rating was read from (SPEC-phase3 3.1a).
+   *
+   * **A published Elo number could not name its own scale**, and the defect was
+   * live. `as_of.elo` is the state the *forecast* named; `history[].elo` is the
+   * *newest* state for that week. Both selections are correct, and they resolved
+   * to the same object until the 2026-09-01 mid-season reseed wrote a third
+   * preseason state no prediction references — after which the same team, in the
+   * same document, read 2112.90 on scale 20 and 1990.32 on scale 16 with nothing
+   * able to say so. It went unseen only because `RatingChart` renders nothing
+   * below two points.
+   *
+   * Optional: additive, so `PUBLISHED_SCHEMA_VERSION` did not move and this route
+   * deploys before the publisher emits it.
+   */
+  elo_state?: string | null;
   /**
    * **This model's rank, never a poll's**, and the page must say so. Ours will
    * disagree with AP visibly and often, and a bare "#5" on a college football

@@ -99,6 +99,24 @@ class UnmappedTeamError(CfbError):
     """A source team name has no crosswalk entry."""
 
 
+class ShadowRoleError(CfbError):
+    """A model's role and the place it was about to appear disagree (SPEC-phase3 3.3).
+
+    **``role`` is normative, not descriptive.** ``published`` forecasts reach
+    ``/cfb/data/*``; ``shadow`` forecasts reach the append-only log and nothing
+    else. That separation is the only thing standing between a challenger and the
+    front page, and §6.4's four weeks of live pre-kickoff evidence cannot be
+    assembled retroactively -- a shadow model that leaked onto a page would spend
+    the property Phase 1 §1.1 gave up git to keep.
+
+    So a leak is an error rather than a filtered row. This raises when a shadow
+    model reaches a published artifact, when a log carries no published model at
+    all, and when it carries more than one -- the last because "which forecast is
+    the site showing" would then have no answer, and a reader would silently pick
+    whichever came first.
+    """
+
+
 class RosterBasisError(CfbError):
     """A roster expectation could not name how it was formed (SPEC-phase3 3.2).
 

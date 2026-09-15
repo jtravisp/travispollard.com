@@ -132,7 +132,7 @@ class TestTheEnvelope:
         ``k`` to float at the same time, which a stored integer still satisfies.
         ``PUBLISHED_SCHEMA_VERSION`` -- the site contract -- is untouched.
         """
-        assert log.schema_version == 2
+        assert log.schema_version == 3
         assert log.season == SEASON
         assert log.week == "01"
         assert log.generated_at == GENERATED_AT
