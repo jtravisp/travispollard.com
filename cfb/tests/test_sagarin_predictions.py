@@ -345,3 +345,118 @@ def test_the_preseason_tail_is_still_rejected_when_truncated(in_season_page):
 
     with pytest.raises(ParseError):
         parse_predictions(broken)
+
+
+# --- the signed split percentage ------------------------------------------
+
+@pytest.fixture(scope="module")
+def week03_page() -> str:
+    """The 2026-09-15 capture, byte-exact off the wire.
+
+    Stored because it is the first page in this project's history to sign the
+    trailing win percentage, and a format change that has no fixture is one the
+    suite cannot stop happening twice.
+    """
+    return _read("sagarin_2026_week03.txt")
+
+
+@pytest.fixture(scope="module")
+def week03_games(week03_page):
+    return parse_predictions(week03_page)
+
+
+def test_a_signed_split_percentage_parses(week03_page, week03_games):
+    r"""The regression. `cfb-sagarin` went red on 2026-09-15 at rank 4 --
+    `Miami-Florida ... @ Wake Forest  462  82% ... -14.89 -82%  462` -- because
+    the trailing percentage arrived with a minus sign and `\d+%` would not take
+    it. The raw bytes were stored first, so the page survived the failure; only
+    the parse was lost.
+    """
+    assert "-82%" in week03_page
+    assert len(week03_games) == 119
+
+
+def test_the_signed_rows_are_exactly_the_away_favorites(week03_page):
+    """What the sign means, measured rather than assumed.
+
+    30 of the block's 119 rows carry a negative trailing percentage and they are
+    precisely the 30 whose favorite is the away team. This pins the observation
+    that the comment on `_ROW` refuses to promote into a rule -- if a later page
+    breaks the correlation, this test says so without a red Tuesday having to.
+    """
+    rows = [m for m in (_ROW.match(line) for _, line in _first_block(week03_page)) if m]
+    assert len(rows) == 119
+
+    signed = {int(r["rank"]) for r in rows if int(r["split_win_pct"]) < 0}
+    away_favorite = {int(r["rank"]) for r in rows if r["favorite_home"] is None}
+    assert len(signed) == 30
+    assert signed == away_favorite
+
+
+def test_the_sign_is_not_the_split_margins(week03_page):
+    """The two conventions genuinely differ, so one cannot stand in for the other.
+
+    `split_margin` is signed from the home team's side; the percentage marks which
+    side the page's own favorite is on. They disagree on 11 of this page's rows,
+    and reading either as the other would invert a third of the block.
+    """
+    rows = [m for m in (_ROW.match(line) for _, line in _first_block(week03_page)) if m]
+    disagree = [
+        r for r in rows if (float(r["split_margin"]) < 0) != (int(r["split_win_pct"]) < 0)
+    ]
+    assert len(disagree) == 11
+
+
+def test_the_leading_percentage_is_never_signed(week03_page):
+    """Only the trailing one gained a sign.
+
+    The leading pair states the game in the favorite's favour, so it has no side
+    to disagree about. Loosening it too would have accepted a page shape that has
+    never been published.
+    """
+    rows = [m for m in (_ROW.match(line) for _, line in _first_block(week03_page)) if m]
+    assert all(int(r["win_pct"]) > 0 for r in rows)
+    assert not _ROW.match(
+        "    4     Miami-Florida         14.89  15.27  15.99  16.22  23.33 "
+        "@ Wake Forest              462   -82%    9.93  24.82  34.75 -14.89 -82%   462"
+    )
+
+
+def test_the_new_columns_still_did_not_shift(week03_page):
+    """The arithmetic check from the 09-01 regression, re-run on the signed page.
+
+    A sign absorbed by the wrong group would still return a full row, so the
+    page's own arithmetic is what proves nothing slid: the split scores sum to
+    the total and their difference is MARG.
+    """
+    rows = [m for m in (_ROW.match(line) for _, line in _first_block(week03_page)) if m]
+    for row in rows:
+        home, away, total = (float(row[c]) for c in ("home_points", "away_points", "total"))
+        assert home + away == pytest.approx(total, abs=0.011)
+        assert home - away == pytest.approx(float(row["split_margin"]), abs=0.011)
+
+
+def test_the_away_favorite_row_that_failed_reads_correctly(week03_games):
+    """End to end, not just a regex match: the row that stopped the season."""
+    game = next(g for g in week03_games if g.rank == 4)
+    assert (game.away, game.home) == ("Miami-Florida", "Wake Forest")
+    # PREDICTOR is 15.27 in the favorite's favour; the favorite is away.
+    assert game.predicted_margin == pytest.approx(-15.27)
+    assert game.site == "home"
+
+
+def test_every_captured_week_still_parses(week03_games):
+    """No regression on the standard rows.
+
+    Four captures, four shapes: the preseason degenerate state, the 09-01 page
+    that first grew the three-column tail, the 09-08 page that grew a week label,
+    and this one. Each is a format change this parser was taught separately, and
+    the earlier three must keep parsing after the fourth.
+    """
+    counts = {
+        "sagarin_2026_preseason.txt": 53,
+        "sagarin_2026_week01.txt": 118,
+        "sagarin_2026_week02.txt": 120,
+        "sagarin_2026_week03.txt": 119,
+    }
+    assert {name: len(parse_predictions(_read(name))) for name in counts} == counts
