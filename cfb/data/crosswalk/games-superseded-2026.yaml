@@ -1,0 +1,41 @@
+# Vendor game-id supersessions for the 2026 season (SPEC-phase1 5.2).
+#
+# CFBD sometimes replaces a postponed game with a new `/games` row under a new id
+# rather than amending the existing one. The prediction log, written before
+# kickoff and correct when written, is then filed under an id the results no
+# longer contain -- which is a join that failed on the vendor's key, not a slate
+# that changed.
+#
+# Each entry asserts that two CFBD ids name one physical game. That assertion is
+# the only thing in this pipeline a human states rather than derives, so every
+# field below is evidence: a reviewer should be able to agree with the mapping
+# without opening S3. `score_week` still compares the two teams after following
+# the redirect, so a wrong entry here raises rather than grading the wrong game.
+#
+# Append only. A key is a retired id and never changes meaning; correcting one
+# rewrites history that the scored documents were already built against.
+#
+#   key            the retired id, as the prediction log holds it
+#   superseded_by  the id the results carry now
+#   noticed        when this project found out, not when the vendor changed it
+#
+# Chains (a -> b -> c), self-references and two ids claiming one replacement are
+# all refused at load. See src/cfb/crosswalk/superseded.py.
+
+401866625:
+  superseded_by: 401917058
+  season: 2026
+  week: 1
+  home: Campbell
+  away: Western Carolina
+  original_kickoff: 2026-09-05T19:30:00Z
+  replacement_kickoff: 2026-09-06T15:00:00Z
+  noticed: 2026-09-15
+  note: >-
+    Postponed from Saturday to Sunday. The 2026-08-29 week 1 capture holds
+    401866625 at Sat 19:30Z; the 2026-09-13 capture holds 401917058 at Sun
+    15:00Z, final Campbell 28 Western Carolina 19, and no longer holds
+    401866625 at all. Both captures carry 455 games and 171 modelled, so the
+    slate did not change size -- one id replaced the other. All three week 1
+    prediction generations forecast 401866625, which is why the first Monday
+    scoring run of the season raised UnscoredGameError on 401917058.

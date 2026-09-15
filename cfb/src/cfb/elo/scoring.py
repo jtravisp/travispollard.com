@@ -10,6 +10,16 @@ about, or repairs a row.
     a prediction with no result        -> only if the game was played
     the id matches, the teams do not   -> UnscoredGameError
 
+**One physical game can trip the first two at once**, and that is the case the
+committed supersession record exists for: CFBD replaces a postponed game with a
+new row under a new id rather than amending the old one, so the forecast is filed
+under an id the results no longer contain and the result appears unforecast. The
+join therefore resolves every prediction id through ``crosswalk.superseded``
+before looking it up -- an exact second key, reviewed and committed, never a
+fallback match. An id nobody wrote down still raises, and a redirected one is
+still team-checked afterwards, so a wrong entry raises rather than grading the
+wrong fixture.
+
 The third is the one that would never announce itself. The join succeeds on the
 id, so the arithmetic runs cleanly and every number produced describes a different
 game from the one it is filed under. Its worst form is a straight home/away swap,
@@ -33,7 +43,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from cfb.crosswalk import Crosswalk
+from cfb.crosswalk import Crosswalk, Supersessions, load_supersessions
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import SCHEMA_VERSION
 from cfb.errors import ReplayError, UnscoredGameError
@@ -154,7 +164,18 @@ class ScoredGame(BaseModel):
 
     model_config = _STRICT
 
+    #: The id the *result* carries, which is the game as it was actually played.
     cfbd_game_id: int
+    #: The retired id this game's forecast was filed under, when CFBD replaced the
+    #: row rather than amending it (SPEC-phase1 5.2).
+    #:
+    #: ``None`` for every ordinary game, and optional for the same reason
+    #: ``forecast_generated_at`` is: ``scored/`` is write-once. It is recorded
+    #: rather than dropped because ``cfbd_game_id`` moving between the prediction
+    #: log and the scored document, with nothing saying so, is the tamper-evident
+    #: record quietly renumbering its own history -- and it is the only trace in
+    #: the published document that a human assertion was involved in the join.
+    superseded_cfbd_game_id: int | None = None
     kickoff: datetime
     home: str = Field(min_length=1)
     away: str = Field(min_length=1)
@@ -262,6 +283,7 @@ def score_week(
     now: datetime,
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
+    supersessions: Supersessions | None = None,
 ) -> ScoredWeek:
     """Grade one week. Raises on any of §5.2's three join failures.
 
@@ -313,6 +335,13 @@ def score_week(
 
     predictions = max(logs, key=lambda log: log.generated_at)
     resolver = crosswalk or load_crosswalk(predictions.season, data_dir=crosswalk_dir)
+    # Same directory as the team crosswalk, so one `crosswalk_dir` still points a
+    # test or a backfill at a whole alternative set of join artifacts.
+    retired = (
+        supersessions
+        if supersessions is not None
+        else load_supersessions(predictions.season, data_dir=crosswalk_dir)
+    )
 
     chosen: dict[int, tuple[PredictedGame, datetime]] = {}
     if len(logs) == 1:
@@ -338,15 +367,37 @@ def score_week(
 
     forecast = sorted(chosen.values(), key=lambda pair: (pair[0].kickoff, pair[0].cfbd_game_id))
     written_at = {game.cfbd_game_id: at for game, at in chosen.values()}
-    predicted_by_id = {game.cfbd_game_id: game for game, _ in chosen.values()}
     results_by_id = {game.id: game for game in results}
+
+    # Keyed by the id the *results* use, which is the retired id's replacement
+    # wherever one is recorded and the prediction's own id everywhere else. Doing
+    # this once, here, is what keeps the redirect out of both checks below: they
+    # compare like with like and neither needs to know a supersession exists.
+    predicted_by_id: dict[int, PredictedGame] = {}
+    for game, _ in chosen.values():
+        current_id = retired.current(game.cfbd_game_id)
+        clash = predicted_by_id.get(current_id)
+        if clash is not None:
+            # A regenerate that picked up the new id while an earlier generation
+            # held the old one. Both forecast the same game and only one can be
+            # graded; silently keeping either would drop a prediction from the
+            # record, which is the failure this module exists to refuse.
+            raise UnscoredGameError(
+                f"games {clash.cfbd_game_id} and {game.cfbd_game_id} both resolve to "
+                f"{current_id} for season {predictions.season} week {predictions.week}, "
+                f"so two forecasts claim one result.\n"
+                f"The supersession record redirects a retired id onto its replacement; a "
+                f"log holding both is one the redirect cannot disambiguate (SPEC-phase1 "
+                f"5.2)."
+            )
+        predicted_by_id[current_id] = game
 
     _refuse_unpredicted_results(results, predicted_by_id, predictions)
 
     scored: list[ScoredGame] = []
     unplayed = 0
     for prediction, _ in forecast:
-        outcome = results_by_id.get(prediction.cfbd_game_id)
+        outcome = results_by_id.get(retired.current(prediction.cfbd_game_id))
         if outcome is None or not outcome.is_complete:
             # The result's own kickoff wins when there is one: a game that moved
             # is played when it was actually played, not when it was scheduled.
@@ -523,6 +574,10 @@ def _refuse_unpredicted_results(
     Either the slate changed after generation or the prediction run missed a game,
     and both are worth a red run: the first means the published predictions no
     longer describe the week, the second means they never did.
+
+    ``predicted_by_id`` arrives keyed by the ids the *results* use, supersessions
+    already applied, so this compares like with like and a recorded re-id never
+    reaches here. A game that is genuinely new to the slate still does.
     """
     # A game that kicked off before this log began forecasting was already played
     # when the log was written, so no run could have predicted it. That is a fact
@@ -547,7 +602,11 @@ def _refuse_unpredicted_results(
         f"{predictions.season} week {predictions.week} have no prediction: {listed}{more}.\n"
         f"Either the slate changed after the predictions were generated or the run missed "
         f"a game. Both leave the published predictions describing a different week from the "
-        f"one that was played, so neither is something to score around (SPEC-phase1 5.2)."
+        f"one that was played, so neither is something to score around (SPEC-phase1 5.2).\n"
+        f"If CFBD replaced a postponed game with a new id rather than amending the old row, "
+        f"that is the third possibility and the only one with a repair: confirm the two ids "
+        f"are one fixture in raw/, then record it in "
+        f"data/crosswalk/games-superseded-{predictions.season}.yaml."
     )
 
 
@@ -601,7 +660,10 @@ def _score_game(prediction: PredictedGame, outcome: RawGame) -> ScoredGame:
     pick, beat, push = _settle(prediction.predicted_margin, market_margin, actual)
 
     return ScoredGame(
-        cfbd_game_id=prediction.cfbd_game_id,
+        cfbd_game_id=outcome.id,
+        superseded_cfbd_game_id=(
+            prediction.cfbd_game_id if outcome.id != prediction.cfbd_game_id else None
+        ),
         kickoff=prediction.kickoff,
         home=prediction.home,
         away=prediction.away,
