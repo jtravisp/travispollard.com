@@ -86,6 +86,37 @@ jobs:
       - name: Fetch the closed week's lines
         run: uv run cfb fetch cfbd --resource lines
 
+      # --- capture the opening week, before anything that can fail -----------
+      #
+      # **These ran after the scoring and it cost a week of the market benchmark.**
+      # On 2026-09-14 `cfb score` failed on a game CFBD had re-issued under a new
+      # id. Steps 9 through 12 were skipped with it, so the opening week's lines
+      # were never captured -- and Thursday's `cfb predict`, which is the only
+      # reader of them, wrote week 3 with 0 of 119 games priced. The scoring bug
+      # was fixed the next day; the missing lines were not noticed for six, and
+      # `predictions/` is write-once, so that week's market column is empty for
+      # good.
+      #
+      # Capturing last week's results and capturing next week's slate are
+      # independent concerns, and nothing about the second depends on the first
+      # having worked. `coming_week` resolves the same partition either side of
+      # the scoring step. So the captures move ahead of it and a red Monday now
+      # costs only the thing that actually broke.
+      #
+      # The *forecast* stays downstream, because it genuinely depends on scoring:
+      # a prediction written before `cfb score` would be built on ratings that
+      # have not seen the week that just ended.
+      #
+      # Skipped when a human dispatched a `--week` to rescore: that run is
+      # repairing an old week and has no business capturing the current one.
+      - name: Capture the opening week's slate
+        if: ${{ !inputs.week }}
+        run: uv run cfb fetch cfbd --resource games --in-progress
+
+      - name: Capture the opening week's lines
+        if: ${{ !inputs.week }}
+        run: uv run cfb fetch cfbd --resource lines --in-progress
+
       # `--week` only when a human dispatched one; that path rescores a week that
       # already has a document, which is how a crosswalk fix or a corrected score
       # is applied. The scheduled path passes nothing and takes every closed week
@@ -125,17 +156,12 @@ jobs:
       # have not seen the week that just ended, and cron offsets do not order two
       # jobs — §8.3 measured over three hours of Actions drift.
       #
+      # The captures this used to carry now sit above the scoring step; see the
+      # note there for what it cost to have them here.
+      #
       # Skipped when a human dispatched a `--week` to rescore: that run is
       # repairing an old week and has no business writing a new forecast for the
       # current one.
-      - name: Capture the opening week's slate
-        if: ${{ !inputs.week }}
-        run: uv run cfb fetch cfbd --resource games --in-progress
-
-      - name: Capture the opening week's lines
-        if: ${{ !inputs.week }}
-        run: uv run cfb fetch cfbd --resource lines --in-progress
-
       # No `--week`: `coming_week` is the partition that opened this morning.
       # Out of season, and once the last regular week has closed, this exits 0
       # with a reason rather than failing.

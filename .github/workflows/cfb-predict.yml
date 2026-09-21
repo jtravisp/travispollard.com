@@ -54,19 +54,25 @@ jobs:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1
 
-      # **The market lines for the week about to be forecast, and this is the
-      # only job that captures them.**
+      # **The market lines for the week about to be forecast, so this job does not
+      # depend on Monday's having succeeded.**
       #
-      # `--resource lines` had exactly one fetcher -- `cfb-score.yml`, which
-      # resolves `last_completed_week` -- and exactly one reader, `predict_week`,
-      # which wants the *coming* week. Producer and consumer were a week apart, so
-      # Monday archived the lines of a week already played and Thursday found
-      # nothing for the week it was forecasting. Weeks 1 and 2 of 2026 had lines
-      # only because of manual fetches during bring-up (22:34Z and 04:19Z, matching
-      # no cron); week 3 was the first with neither, and published 0 of 119 games
-      # priced. The market column of the bake-off had been quietly emptying since
-      # `cfb-cfbd.yml` was folded into `cfb-score.yml` -- the games pull found a
-      # correct home there and the lines pull came along and lost its purpose.
+      # `cfb-score.yml` captures them too, and did so correctly. What it could not
+      # survive was failing: on 2026-09-14 its scoring step died on a game CFBD had
+      # re-issued under a new id, and the four steps below it were skipped --
+      # including the opening week's lines. Thursday's `cfb predict` is the only
+      # reader of those lines, so week 3 was forecast with 0 of 119 games priced,
+      # and `predictions/` being write-once, that week's market column is empty for
+      # good. The scoring bug was fixed the next day. The missing lines were not
+      # noticed for six, because an empty benchmark reads exactly like a week no
+      # book priced.
+      #
+      # That coupling is fixed at its source -- the captures now run ahead of the
+      # scoring step there -- and this exists so the Thursday forecast is
+      # self-sufficient rather than downstream of a job it has no ordering
+      # guarantee with. Re-fetching is cheap, one call, and `predict_week` takes
+      # the newest capture, which on Thursday is the one books have had all week
+      # to sharpen.
       #
       # A step rather than a job, for the reason SPEC-phase1 §8.3 gives: two jobs
       # a few minutes apart are not ordered, and a forecast written before its
