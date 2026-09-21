@@ -1,0 +1,70 @@
+# The gate `.github/workflows/` did not have.
+#
+# `cfb-ci.yml` triggers on `cfb/**` and `frontend-ci.yml` on `frontend/**`, so a
+# PR touching only this directory was reviewed by nothing. That is not
+# hypothetical twice over: #82 -- the fix for a workflow ordering bug -- merged
+# through the gap it was closing, and the bug it fixed had already cost a week of
+# the market benchmark.
+#
+# **The ordering rules are the part that needs a test, not the syntax.** A step in
+# the wrong place is valid YAML and valid Actions. On 2026-09-14 `cfb score`
+# failed and skipped every step below it, including the capture of the opening
+# week's lines -- the only input to Thursday's forecast. Week 3 published 119
+# games with 0 priced, and `predictions/` being write-once, it stays that way.
+# `actionlint` would have passed that file every day of the week.
+#
+# So this runs both halves: `actionlint` for what is generic, and
+# `cfb/tests/test_workflows.py` for what is this pipeline's own.
+name: workflows-ci
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      # The CodeBuild spec is the deploy's half of the same contract, and is the
+      # other file where a change ships straight to production.
+      - "buildspec.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflows-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned to a release rather than tracking latest: a linter that changes
+      # under you turns an unrelated PR red, and the version is then a fact in
+      # the diff rather than whatever shipped that morning.
+      - name: Install actionlint
+        run: |
+          curl -fsSL -o actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          tar -xzf actionlint.tar.gz actionlint
+          sudo mv actionlint /usr/local/bin/
+
+      # shellcheck is on the runner already and actionlint uses it for `run:`
+      # blocks, which is most of what these files are.
+      - name: Lint the workflows
+        run: actionlint -color
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      # No `--extra s3`: this reads YAML off the filesystem and touches nothing
+      # else. Same reasoning as `cfb-ci.yml` -- a job that cannot reach AWS
+      # cannot accidentally depend on it.
+      - name: Install
+        run: uv sync
+        working-directory: cfb
+
+      - name: Check the pipeline's own invariants
+        run: uv run pytest tests/test_workflows.py -q
+        working-directory: cfb

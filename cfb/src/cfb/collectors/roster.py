@@ -71,8 +71,6 @@ ROSTER_SCHEMA_VERSION = 1
 #: not cover the backfill (SPEC-phase3 3.2).
 BACKFILLABLE_BASES = frozenset({"previous-game-starter"})
 
-_BASES = ("previous-game-starter", "depth-chart", "reported-out")
-
 _STRICT = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 #: The category `/games/players` files quarterbacks under.

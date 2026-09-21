@@ -396,3 +396,72 @@ test.describe('the copy a visitor actually reads', () => {
     await expect(page.getByText(/before kickoff/).first()).toBeVisible();
   });
 });
+
+test.describe('a rating names the basis it is on', () => {
+  /**
+   * SPEC-phase3 §3.1a. `as_of.elo` is the state the *forecast* named;
+   * `history[].elo` is the *newest* state for each week. Both are correct and
+   * they diverge after every Monday scoring.
+   *
+   * Recording `elo_state` was half the fix. §3.1a requires the page use it —
+   * "a document that records the scale while the page prints two numbers from
+   * different ones has moved the defect rather than fixed it".
+   */
+  const twoBases = {
+    ...NEW_DOCUMENT,
+    schema_version: 3,
+    status: 'forecast',
+    as_of: {
+      week: '02',
+      elo: 2004.27,
+      elo_state: 'elo/season=2026/week=02/a.json',
+      model_rank: 4,
+      fbs_teams: 138,
+    },
+    history: [
+      { week: '01', elo: 1992.74, model_rank: 5, fbs_teams: 138,
+        elo_state: 'elo/season=2026/week=01/a.json' },
+      { week: '02', elo: 2004.27, model_rank: 4, fbs_teams: 138,
+        elo_state: 'elo/season=2026/week=02/a.json' },
+      { week: '03', elo: 2007.1, model_rank: 4, fbs_teams: 138,
+        elo_state: 'elo/season=2026/week=03/a.json' },
+    ],
+  };
+
+  test('it says which number came from where when they differ', async ({ page }) => {
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: twoBases }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/which is what the forecast used/)).toBeVisible();
+    await expect(page.getByText(/newest for each week/)).toBeVisible();
+  });
+
+  test('it stays quiet when both readings share a basis', async ({ page }) => {
+    /** The ordinary Thursday-to-Saturday case. An explanation for a difference
+     *  that is not there would be noise, and would train the reader to skip it. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: { ...twoBases, history: twoBases.history.slice(0, 2) },
+      }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/which is what the forecast used/)).toBeHidden();
+  });
+
+  test('a document with no elo_state says nothing rather than guessing', async ({ page }) => {
+    /** Schema 2, and every document published before 2026-09-15. The field is
+     *  optional, so the page must not infer a disagreement from its absence. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...twoBases,
+          as_of: { week: '02', elo: 2004.27, model_rank: 4, fbs_teams: 138 },
+          history: twoBases.history.map(({ elo_state, ...rest }) => rest),
+        },
+      }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/which is what the forecast used/)).toBeHidden();
+  });
+});
