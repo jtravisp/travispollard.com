@@ -120,7 +120,7 @@ function NextGame({ document }: { document: NextGameDocument }) {
   const status = statusOf(document);
 
   if (status !== 'forecast' || game === null) {
-    // Four states, and the document names which one rather than leaving the page
+    // Five states, and the document names which one rather than leaving the page
     // to infer it from a gap. §6.3 used to give `game: null` alone, which meant
     // "no forecast holds a game" and was rendered as "on a bye" -- a claim about
     // the world made from a fact about the data.
@@ -132,11 +132,28 @@ function NextGame({ document }: { document: NextGameDocument }) {
           <div className="card bg-base-200">
             <div className="card-body">
               <h2 className="card-title">
-                {status === 'season_over' ? `${team}’s season is over` : `${team} is on a bye`}
+                {status === 'season_over'
+                  ? `${team}’s season is over`
+                  : status === 'schedule_unknown'
+                    ? `${team}’s next game isn’t known yet`
+                    : `${team} is on a bye`}
               </h2>
               <p className="text-base-content/70">
                 {status === 'season_over' ? (
                   <>Nothing is scheduled ahead. The ratings below are where the season ended.</>
+                ) : status === 'schedule_unknown' ? (
+                  // Deliberately not "on a bye". The schedule for the coming week
+                  // has not been captured, so this page does not know whether
+                  // there is a fixture -- and saying either way would be a guess.
+                  <>
+                    The coming week’s schedule hasn’t been captured yet, so this page
+                    can’t name the next opponent. It updates when the week’s slate
+                    lands. The ratings below are still current, and{' '}
+                    <Link href="/cfb/slate" className="link link-primary">
+                      the slate
+                    </Link>{' '}
+                    shows the week just played.
+                  </>
                 ) : (
                   <>
                     No game on the {formatWeek(document.week)} slate. The ratings below are

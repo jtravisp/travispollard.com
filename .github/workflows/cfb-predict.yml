@@ -54,6 +54,30 @@ jobs:
           role-to-assume: arn:aws:iam::679878703800:role/cfb-data-publisher
           aws-region: us-east-1
 
+      # **The market lines for the week about to be forecast, and this is the
+      # only job that captures them.**
+      #
+      # `--resource lines` had exactly one fetcher -- `cfb-score.yml`, which
+      # resolves `last_completed_week` -- and exactly one reader, `predict_week`,
+      # which wants the *coming* week. Producer and consumer were a week apart, so
+      # Monday archived the lines of a week already played and Thursday found
+      # nothing for the week it was forecasting. Weeks 1 and 2 of 2026 had lines
+      # only because of manual fetches during bring-up (22:34Z and 04:19Z, matching
+      # no cron); week 3 was the first with neither, and published 0 of 119 games
+      # priced. The market column of the bake-off had been quietly emptying since
+      # `cfb-cfbd.yml` was folded into `cfb-score.yml` -- the games pull found a
+      # correct home there and the lines pull came along and lost its purpose.
+      #
+      # A step rather than a job, for the reason SPEC-phase1 §8.3 gives: two jobs
+      # a few minutes apart are not ordered, and a forecast written before its
+      # lines landed is one with an empty benchmark and nothing saying so.
+      #
+      # `--in-progress` resolves `coming_week`, the same week `cfb predict` below
+      # resolves. Out of season, and past the last regular week, it exits 0 with a
+      # reason rather than failing.
+      - name: Fetch the coming week's market lines
+        run: uv run cfb fetch cfbd --resource lines --in-progress
+
       # No `--week` on the scheduled path: `calendar.coming_week` is the mirror
       # of the `last_completed_week` that `cfb-cfbd.yml` and `cfb-score.yml`
       # already use, and it lives in tested Python rather than in a cron

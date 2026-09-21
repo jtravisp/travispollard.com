@@ -931,7 +931,13 @@ def _publish(args, *, moment: datetime) -> int:
         return 0
 
     store = _store(args.store)
-    written = publish(store=store, season=season, week=week, now=moment)
+    # The calendar this run already resolved its week against, handed on rather
+    # than re-read. `build_next_game` asks it whether the season has a week left,
+    # and a second load could in principle answer differently from the one that
+    # chose the week being published.
+    written = publish(
+        store=store, season=season, week=week, now=moment, calendar=calendar
+    )
 
     # Re-read rather than re-derive: the numbers on this line are the ones a
     # person would check the live page against, so they should come from the

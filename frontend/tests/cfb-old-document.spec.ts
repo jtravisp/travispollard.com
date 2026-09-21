@@ -192,6 +192,49 @@ test.describe('the version 2 rename', () => {
   });
 
 
+  test('an uncaptured coming week says so rather than claiming a bye', async ({ page }) => {
+    /**
+     * **The 2026-09-21 regression.** The live page read "Texas's season is over"
+     * on a Monday in September, because the producer decided that from the stored
+     * slate rather than from the calendar.
+     *
+     * The replacement state has to say what is actually true -- the schedule is
+     * not in hand -- and must not reach for either of the two claims the evidence
+     * cannot support.
+     */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...NEW_DOCUMENT,
+          schema_version: 3,
+          status: 'schedule_unknown',
+          game: null,
+        },
+      }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/next game isn’t known yet/)).toBeVisible();
+    await expect(page.getByText(/schedule hasn’t been captured yet/)).toBeVisible();
+    await expect(page.getByText(/is on a bye/)).toBeHidden();
+    await expect(page.getByText(/season is over/)).toBeHidden();
+  });
+
+  test('the ratings still render when the schedule is unknown', async ({ page }) => {
+    /** Blanking the page would be a worse statement than the missing game. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({
+        json: {
+          ...NEW_DOCUMENT,
+          schema_version: 3,
+          status: 'schedule_unknown',
+          game: null,
+        },
+      }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText('#5')).toBeVisible();
+  });
+
   test('a version 3 document with no status falls back rather than breaking', async ({ page }) => {
     /**
      * `statusOf` covers the other direction of the same skew: a document the page

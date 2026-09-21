@@ -523,16 +523,20 @@ class TestTheDocumentSaysWhichStateItIsIn:
             games=[cfbd_game(game_id=2, week=2, kickoff=LATER, home="Alabama",
                              away="Georgia", home_points=None, away_points=None)],
         )
+        # The coming week's slate is held and Texas is not on it, which is what
+        # makes this a bye rather than a gap in the captures.
         page = self.published(crosswalk, store, now=PLAYED_AT)
         assert page.status == "bye"
         assert page.game is None
         assert page.upcoming is None
 
-    def test_nothing_ahead_for_anyone_is_the_season_running_out(self, crosswalk):
-        """Distinguished from a bye by the same slate, not by the calendar.
+    def test_an_uncaptured_coming_week_is_not_a_bye(self, crosswalk):
+        """**The state that replaced a false "season is over".**
 
-        A bye says "not this week"; a finished season says "not again". Reading
-        both off one capture keeps them from disagreeing.
+        Only week 1 is stored and its games are played, so no stored game is
+        ahead. The calendar still has weeks left, so nothing here knows Texas's
+        next opponent -- and both of the answers this used to give were claims the
+        evidence does not support.
         """
         store = seeded(crosswalk, [texas_game()])
         write_predictions(
@@ -541,9 +545,50 @@ class TestTheDocumentSaysWhichStateItIsIn:
                          now=GENERATED_AT, crosswalk=crosswalk),
         )
         page = self.published(crosswalk, store, now=PLAYED_AT)
+        assert page.status == "schedule_unknown"
+        assert page.game is None
+        assert page.upcoming is None
+
+    def test_the_season_is_over_only_when_the_calendar_says_so(self, crosswalk):
+        """**The bug this replaced put "Texas's season is over" on the front page
+        in September.**
+
+        `season_over` used to mean "no stored game has a kickoff ahead", which is
+        a fact about the last capture rather than about the season: between
+        Sunday's refresh and Monday's, the newest games on hand are the ones just
+        played. The calendar is the authority, and past its last week -- here,
+        February -- the claim is finally true.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        page = self.published(
+            crosswalk, store, now=datetime(2027, 2, 1, 12, 0, tzinfo=UTC)
+        )
         assert page.status == "season_over"
         assert page.game is None
         assert page.upcoming is None
+
+    def test_a_played_week_in_september_never_reads_as_season_over(self, crosswalk):
+        """The regression, stated as the calendar date it actually fired on.
+
+        2026-09-20 is a Sunday inside the season with weeks 1-3 captured and
+        played. Every one of those facts was true when the live page announced the
+        season had ended.
+        """
+        store = seeded(crosswalk, [texas_game()])
+        write_predictions(
+            store,
+            predict_week(store=store, season=SEASON, week="01",
+                         now=GENERATED_AT, crosswalk=crosswalk),
+        )
+        page = self.published(
+            crosswalk, store, now=datetime(2026, 9, 20, 16, 43, tzinfo=UTC)
+        )
+        assert page.status != "season_over"
 
     def test_the_ratings_are_published_in_every_state(self, crosswalk):
         """`as_of` is true whether or not there is a fixture. Blanking the page
@@ -556,7 +601,7 @@ class TestTheDocumentSaysWhichStateItIsIn:
                          now=GENERATED_AT, crosswalk=crosswalk),
         )
         page = self.published(crosswalk, store, now=PLAYED_AT)
-        assert page.status == "season_over"
+        assert page.status == "schedule_unknown"
         assert page.as_of.elo > 0
         assert page.as_of.model_rank >= 1
 
