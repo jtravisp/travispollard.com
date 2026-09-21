@@ -208,11 +208,6 @@ export function statusOf(document: NextGameDocument): NextGameStatus {
   return document.game === null ? 'bye' : 'forecast';
 }
 
-/** Statuses with no fixture to render. */
-export function hasNoFixture(status: NextGameStatus): boolean {
-  return status !== 'forecast' && status !== 'awaiting_forecast';
-}
-
 export interface NextGameDocument extends Envelope {
   team: string;
   /**

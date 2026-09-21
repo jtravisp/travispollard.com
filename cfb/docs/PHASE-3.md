@@ -4,21 +4,20 @@ Sequence of work against `SPEC-phase3.md`. Phase 0 and 1 tracking stays in `PHAS
 `PHASE-1.md`; Phase 2 never had a file of its own and does not get one retroactively — its record is
 the spec, the experiment JSONs, and `git log`.
 
-**This file is a plan, not yet a progress record.** Nothing below has started. The marks follow the
-rule the earlier phase files set: **a module with exhaustive offline tests and no live run is `[~]`,
-not `[x]`.**
+**This file became a progress record on 2026-09-15.** The marks follow the rule the earlier phase
+files set: **a module with exhaustive offline tests and no live run is `[~]`, not `[x]`.**
 
 ---
 
-## Where this stands (2026-09-01)
+## Where this stands (2026-09-21)
 
 | | |
 |---|---|
 | Phase 2 | Closed and deployed. Elo at 16.0 / 30.0 / 0.05, `models.json` live, `/cfb/models` live |
-| Phase 3 | Specified, not started |
-| Season | 2026 week 2. Regular season ends **2026-12-12**; postseason runs to 2027-01-28 |
+| Phase 3 | **Track A landed and running. Track B not started** |
+| Season | 2026 week 4 opening. Weeks 1-3 scored; regular season ends **2026-12-12**, postseason to 2027-01-28 |
 | Target | **A headline switch in 2027, not 2026.** §6.4 needs four weeks of live pre-kickoff evidence after a gate pass, and the only 2026 path lands that switch in the postseason — the worst population to promote a regular-season-fitted model into |
-| Urgent | **A1 only.** Everything else can slip without cost |
+| Urgent | **Nothing.** A1 has been capturing since 2026-09-17 and the clock it was racing is stopped |
 
 ---
 
@@ -50,11 +49,20 @@ Bounded, fully specified, no research risk. **Contains both of the phase's clock
 
 | | Item | Repo | SPEC | Notes |
 |---|---|---|---|---|
-| `[ ]` | **A1** Roster capture: collector, `raw/roster/` schema, workflow | prod | §3.2 | **Start first.** A clock — see below |
-| `[ ]` | **A2** Shadow slot: `models: list[ModelBlock]`, `SCHEMA_VERSION` → 3 | prod | §3.3 | The phase's one schema bump. Blocks C2 |
-| `[ ]` | **A3** `cfb fetch roster`, `cfb shadow`, `cfb calibrate` | prod | §8 | `calibrate` reports and never fits |
-| `[ ]` | **A4** `RosterBasisError`, `ShadowRoleError`, `CalibrationError` | prod | §9 | Lands with the code that raises each |
-| `[ ]` | **A5** `AsOf` and `RatingPoint` name the constants behind their number | prod | §3.1a | Found 2026-09-01: one document, two Elo values, two scales. Additive; no version bump |
+| `[x]` | **A1** Roster capture: collector, `raw/roster/` schema, workflow | prod | §3.2 | Live. First scheduled run 2026-09-17: 240 teams, 240 expectations, 0 unmapped |
+| `[x]` | **A2** Shadow slot: `models: list[ModelBlock]`, `SCHEMA_VERSION` → 3 | prod | §3.3 | Live. First v3 log 2026-09-17. v2 and v1 logs still read, in memory, never rewritten |
+| `[~]` | **A3** `cfb fetch roster`, `cfb shadow`, `cfb calibrate` | prod | §8 | `fetch roster` done. `shadow` and `calibrate` wait on something to run |
+| `[~]` | **A4** `RosterBasisError`, `ShadowRoleError`, `CalibrationError` | prod | §9 | First two landed with their code. `CalibrationError` waits on A3's `calibrate` |
+| `[~]` | **A5** `AsOf` and `RatingPoint` name the constants behind their number | prod | §3.1a | Field live 2026-09-15; the page uses it since 2026-09-21. `[~]` until a real divergence renders — the condition self-heals and has not recurred |
+
+**What A1 cost to get right, because none of it was in the spec.** `/games/players` returns every
+division — 131 games against the 120 modelled — so games are selected on the vendor's own
+classification through `week_slate` before any name is resolved; filtering on *whether the crosswalk
+resolved* would turn `cfb/CLAUDE.md`'s hard rule into a silent drop. The passing stat is `C/ATT`
+holding `"23/37"`, and a bare `ATT` exists under *rushing*: reading the wrong one produced 240 teams
+and **zero** expectations while raising nothing. Both were found by a dry run against the live API
+two days before the first cron, and neither was catchable by the fixture, which had been written
+from the shape the spec implied rather than from bytes.
 
 **A1 is the only genuinely urgent item in the phase.** Every Thursday that passes uncaptured is a
 Thursday the news layer will never cover, and unlike everything else here that cost is
@@ -137,8 +145,18 @@ means something.
 
 ## What is left, honestly
 
-**Nothing has been built.** The spec is written, the boundary is decided, and the two clocks are
-identified. That is the whole of the progress.
+**Track A is built and running; Track B has not started.** Both clocks are stopped: roster capture
+has run every Thursday since 2026-09-17, and the log can hold a second model whenever there is one.
+What remains on A is the three items that need a challenger to exist before they can be written.
+
+**The critical path is now entirely B1**, and it is in the other repository. Nothing in this one
+blocks it.
+
+**Two things production taught this phase that the spec did not know.** A dry run against the live
+API is not optional before a cron depends on it — A1 shipped green and did not work, twice over, and
+both faults were invisible to a suite that agreed with its own assumptions. And a fixture written
+from a specification tests the specification: `fixtures/cfbd_players_2026_week02.json` is now three
+real games trimmed out of a stored capture, for that reason.
 
 Three things that are true now and will be easy to forget:
 

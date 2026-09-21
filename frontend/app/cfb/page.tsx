@@ -437,6 +437,23 @@ function Ratings({
   const gap =
     opponentElo != null ? Math.abs(Math.round(asOf.elo - opponentElo)) : null;
 
+  // §3.1a. The headline number and the chart are two different selections: the
+  // headline is the state the *forecast* named, the chart is the *newest* state
+  // for each week. Both are correct and they diverge whenever a state is written
+  // after the forecast that stands -- after the Monday scoring, every week.
+  //
+  // Before schema 3 neither could say which basis it was on, and the same team
+  // read 2112.90 and 1990.32 in one document with nothing to explain it. Naming
+  // the state was half the fix; §3.1a requires the page use it, or the defect has
+  // only moved. So when the series continues past the state the headline came
+  // from, the page says so rather than leaving two numbers to be compared.
+  const newest = points.length > 0 ? points[points.length - 1] : null;
+  const seriesMovedOn =
+    newest != null &&
+    asOf.elo_state != null &&
+    newest.elo_state != null &&
+    newest.elo_state !== asOf.elo_state;
+
   return (
     <div className="card bg-base-200">
       <div className="card-body">
@@ -463,6 +480,7 @@ function Ratings({
             <div className="text-2xl font-semibold">{Math.round(asOf.elo)}</div>
             <div className="text-xs text-base-content/60">
               after {formatWeek(asOf.week).toLowerCase()}
+              {seriesMovedOn && ', which is what the forecast used'}
             </div>
           </div>
           <div>
@@ -505,6 +523,15 @@ function Ratings({
               {points.length} week{points.length === 1 ? '' : 's'} of the season.
               {points.length < 4 &&
                 ' Too few to read as a trend yet — it is a record, not a shape.'}
+              {/* §3.1a: two selections, named rather than left to be compared. */}
+              {seriesMovedOn && (
+                <>
+                  {' '}
+                  The line runs through {formatWeek(newest!.week).toLowerCase()}, past the
+                  rating above — that one is the state the forecast was made from, and this
+                  is the newest for each week.
+                </>
+              )}
             </p>
           </div>
         ) : (
