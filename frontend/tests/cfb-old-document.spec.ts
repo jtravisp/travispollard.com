@@ -465,3 +465,64 @@ test.describe('a rating names the basis it is on', () => {
     await expect(page.getByText(/which is what the forecast used/)).toBeHidden();
   });
 });
+
+test.describe('the ratings chart survives a week with no forecast', () => {
+  /**
+   * The no-fixture branch was rendering `<Ratings>` without `history`, so the
+   * chart vanished on every bye, every awaiting-forecast Monday, and every
+   * schedule-unknown window — and the placeholder in its place read "the rating
+   * history appears here once the season has been scored for the first time",
+   * beside three scored weeks. A placeholder asserting the opposite of the truth.
+   */
+  const scoredHistory = [
+    { week: 'preseason', elo: 1990.32, model_rank: 5, fbs_teams: 138,
+      elo_state: 'elo/season=2026/week=preseason/a.json' },
+    { week: '01', elo: 1992.74, model_rank: 5, fbs_teams: 138,
+      elo_state: 'elo/season=2026/week=01/a.json' },
+    { week: '02', elo: 2004.27, model_rank: 4, fbs_teams: 138,
+      elo_state: 'elo/season=2026/week=02/a.json' },
+    { week: '03', elo: 2007.1, model_rank: 4, fbs_teams: 138,
+      elo_state: 'elo/season=2026/week=03/a.json' },
+  ];
+
+  const noFixture = (status: string) => ({
+    ...NEW_DOCUMENT,
+    schema_version: 3,
+    status,
+    game: null,
+    as_of: {
+      week: '02', elo: 2004.27,
+      elo_state: 'elo/season=2026/week=02/a.json',
+      model_rank: 4, fbs_teams: 138,
+    },
+    history: scoredHistory,
+    upcoming:
+      status === 'awaiting_forecast'
+        ? { kickoff: '2026-09-26T16:00:00Z', week: '04', opponent: 'Tennessee',
+            home: false, neutral_site: false }
+        : null,
+  });
+
+  for (const status of ['awaiting_forecast', 'bye', 'schedule_unknown', 'season_over']) {
+    test(`the chart renders on ${status}`, async ({ page }) => {
+      await page.route('**/cfb/data/next-game.json*', (route) =>
+        route.fulfill({ json: noFixture(status) }),
+      );
+      await page.goto('/cfb/');
+      await expect(page.getByRole('img', { name: /Elo rating by week/ })).toBeVisible();
+      await expect(
+        page.getByText(/rating history appears here once the season has been scored/),
+      ).toBeHidden();
+    });
+  }
+
+  test('and it names the two bases there too', async ({ page }) => {
+    /** §3.1a applies wherever both numbers are on the page, and the Monday this
+     *  was found was an awaiting-forecast day. */
+    await page.route('**/cfb/data/next-game.json*', (route) =>
+      route.fulfill({ json: noFixture('awaiting_forecast') }),
+    );
+    await page.goto('/cfb/');
+    await expect(page.getByText(/which is what the forecast used/)).toBeVisible();
+  });
+});
