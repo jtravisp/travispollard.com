@@ -168,7 +168,12 @@ function NextGame({ document }: { document: NextGameDocument }) {
             </div>
           </div>
         )}
-        <Ratings asOf={asOf} team={team} />
+        {/* `history` belongs here as much as on the forecast branch. Omitting
+            it blanked the chart on every no-fixture state and showed "the rating
+            history appears here once the season has been scored" beside three
+            scored weeks -- a placeholder asserting the opposite of the truth.
+            There is no opponent to pass, because there is no forecast. */}
+        <Ratings asOf={asOf} team={team} history={document.history} />
         <Published document={document} />
       </div>
     );
