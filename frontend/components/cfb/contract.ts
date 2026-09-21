@@ -176,11 +176,20 @@ export interface UpcomingFixture {
  * Texas bye while UTSA sat on the week 3 slate for that Saturday. `cfb predict`
  * runs Thursday, so "scheduled but not yet forecast" covers roughly five days in
  * seven, and it was the state being misreported all of them.
+ *
+ * `schedule_unknown` was added on 2026-09-21, when the live page announced
+ * "Texas's season is over" in September. The producer had been deciding that
+ * from the stored slate, which only reaches as far as the last capture — so from
+ * Sunday's refresh until Monday's, "we have not fetched next week yet" read as
+ * "the season ended". The calendar is the authority now, and this is the state
+ * for a coming week whose slate is not in hand: `bye` would be a claim the
+ * evidence does not support.
  */
 export type NextGameStatus =
   | 'forecast'
   | 'awaiting_forecast'
   | 'bye'
+  | 'schedule_unknown'
   | 'season_over';
 
 /**
@@ -197,6 +206,11 @@ export type NextGameStatus =
 export function statusOf(document: NextGameDocument): NextGameStatus {
   if (document.status) return document.status;
   return document.game === null ? 'bye' : 'forecast';
+}
+
+/** Statuses with no fixture to render. */
+export function hasNoFixture(status: NextGameStatus): boolean {
+  return status !== 'forecast' && status !== 'awaiting_forecast';
 }
 
 export interface NextGameDocument extends Envelope {

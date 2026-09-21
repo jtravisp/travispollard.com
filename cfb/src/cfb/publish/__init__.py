@@ -34,6 +34,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cfb.calendar import Calendar, coming_week, load_calendar
 from cfb.crosswalk import Crosswalk
 from cfb.crosswalk import load as load_crosswalk
 from cfb.elo import EloState
@@ -395,13 +396,20 @@ class NextGameDocument(BaseModel):
     #:
     #:     forecast           a forecast holds the team's next game
     #:     awaiting_forecast  a fixture is scheduled and not yet forecast
-    #:     bye               no fixture, and the season is still running
-    #:     season_over       nothing is scheduled ahead for anyone
+    #:     bye                the coming week's slate is held and omits the team
+    #:     schedule_unknown   a week is coming and its slate is not captured yet
+    #:     season_over        the calendar has no week left
     #:
     #: The middle one is not an edge case. `cfb predict` runs Thursday, so every
     #: week between Saturday's kickoffs and Thursday midday the team's next
     #: opponent is known and unforecast -- roughly five days in seven.
-    status: Literal["forecast", "awaiting_forecast", "bye", "season_over"]
+    #: ``schedule_unknown`` is the honest answer for the window between the last
+    #: capture of a played week and the first capture of the next one -- roughly
+    #: Sunday's refresh to Monday's. Reporting ``bye`` there would be the same
+    #: conflation this field was added to end.
+    status: Literal[
+        "forecast", "awaiting_forecast", "bye", "schedule_unknown", "season_over"
+    ]
     #: ``None`` unless a forecast holds the game. §6.3 gives no shape for a week
     #: without one, so the page has to be told rather than left to infer it from
     #: an absence. ``as_of`` is still populated in every state: the ratings are
@@ -725,6 +733,8 @@ def build_next_game(
     team: str = TEXAS,
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
+    calendar: Calendar | None = None,
+    calendar_dir: Path | None = None,
 ) -> NextGameDocument:
     """§6.3, from the newest predictions stored for ``week``.
 
@@ -754,10 +764,17 @@ def build_next_game(
     # the better answer by definition -- it carries the numbers the page is for --
     # and reading the schedule anyway would cost a full slate walk on the ordinary
     # Thursday-to-Saturday path to produce a fixture nothing would render.
-    upcoming, season_live = (
-        (None, True)
+    upcoming, scheduled_status = (
+        (None, "forecast")
         if fixture is not None
-        else _scheduled_next(store, resolver, season=season, team=team, now=now)
+        else _scheduled_next(
+            store,
+            resolver,
+            season=season,
+            team=team,
+            now=now,
+            calendar=calendar or load_calendar(season, data_dir=calendar_dir),
+        )
     )
 
     return _next_game_document(
@@ -768,7 +785,7 @@ def build_next_game(
         team=team,
         now=now,
         upcoming=upcoming,
-        season_live=season_live,
+        scheduled_status=scheduled_status,
         history=_history(store, resolver, season=season, team=team),
         last_result=_last_result(store, resolver, season=season, team=team),
         scored=scored_weeks(store, season=season),
@@ -1211,6 +1228,8 @@ def publish(
     now: datetime,
     crosswalk: Crosswalk | None = None,
     crosswalk_dir: Path | None = None,
+    calendar: Calendar | None = None,
+    calendar_dir: Path | None = None,
 ) -> dict[str, str]:
     """Build every document and write them. Returns ``{key: what it describes}``.
 
@@ -1232,6 +1251,8 @@ def publish(
         now=now,
         crosswalk=crosswalk,
         crosswalk_dir=crosswalk_dir,
+        calendar=calendar,
+        calendar_dir=calendar_dir,
     )
     slate = build_slate(
         store=store,
@@ -1356,8 +1377,9 @@ def _scheduled_next(
     season: int,
     team: str,
     now: datetime,
-) -> tuple[UpcomingFixture | None, bool]:
-    """The team's next scheduled game, and whether the season has games left.
+    calendar: Calendar,
+) -> tuple[UpcomingFixture | None, str]:
+    """The team's next scheduled game, and which state that leaves the page in.
 
     **Reads ``raw/cfbd/`` rather than ``predictions/``**, which is the only way to
     answer the question the page actually asks. A forecast is written on Thursday
@@ -1365,23 +1387,43 @@ def _scheduled_next(
     see forecasts cannot tell "no fixture" from "not forecast yet" -- and reported
     the first for both.
 
-    Returns ``(fixture, season_has_games_ahead)``. The second is what separates a
-    bye from a finished season, and it is derived from the same slate rather than
-    from the calendar: if no game anywhere has a kickoff ahead, there is nothing
-    left to forecast for anyone. That keeps both answers resting on one piece of
-    evidence, which is the rule §3.3 and §5.2 both settled on -- a wall clock
-    cannot be replayed, and a capture can.
+    **Whether the season is over is the calendar's answer, not the slate's**, and
+    getting that backwards put "Texas's season is over" on the front page in
+    September. The first version asked whether any *stored* game had a kickoff
+    ahead, reasoning that resting both answers on one piece of evidence kept them
+    from disagreeing. But a stored slate only reaches as far as the last capture:
+    between Sunday's refresh and Monday's, the newest games on hand are the ones
+    just played, nothing is ahead, and "we have not fetched next week yet" reads
+    as "the season ended". The committed calendar knows every week of the season
+    and is evidence in exactly the sense §5.2 means -- it is a file, replayable,
+    not a wall clock -- so it is the authority for this and the slate is not.
+
+    **Three answers when there is no fixture, because there are three facts.** The
+    calendar says whether a week is coming. If one is and we hold its slate, the
+    team is genuinely idle. If one is and we do *not* hold its slate, nothing here
+    knows the team's next opponent -- and saying "on a bye" would be the same
+    class of error the four-state split was introduced to remove, just quieter.
 
     ``week_slate`` already excludes divisions the model does not rate and takes
     the newest capture per week, so a fixture reaching here is one the crosswalk
     resolves and one a later pull has not dropped.
     """
-    ahead, _ = week_slate(store, season, lambda raw: raw.start_date >= now)
-    if not ahead:
-        return None, False
+    coming = coming_week(now, calendar=calendar)
+    if coming is None:
+        # Past the last week the calendar holds. The one state where "nothing is
+        # scheduled ahead" is a fact about the season rather than about this
+        # bucket's contents.
+        return None, "season_over"
+
+    # One walk, filtered twice. `week_slate` reads the newest capture of every
+    # stored week, so asking it two questions would double the reads to answer
+    # them from the same bytes.
+    games, _ = week_slate(store, season, lambda raw: True)
 
     best: tuple[datetime, UpcomingFixture] | None = None
-    for raw, _key in ahead:
+    for raw, _key in games:
+        if raw.start_date < now:
+            continue
         home, away = resolver.from_cfbd(raw.home_team), resolver.from_cfbd(raw.away_team)
         if team not in (home, away):
             continue
@@ -1396,7 +1438,14 @@ def _scheduled_next(
         if best is None or raw.start_date < best[0]:
             best = (raw.start_date, fixture)
 
-    return (best[1] if best else None), True
+    if best is not None:
+        return best[1], "awaiting_forecast"
+
+    # No fixture for this team. Whether that is a bye turns on whether the coming
+    # week's slate is something this bucket holds an opinion about at all.
+    if not any(raw.partition == coming for raw, _ in games):
+        return None, "schedule_unknown"
+    return None, "bye"
 
 
 def _next_fixture(
@@ -1564,7 +1613,7 @@ def _next_game_document(
     last_result: LastResult | None,
     scored: list[ScoredWeek],
     upcoming: UpcomingFixture | None = None,
-    season_live: bool = True,
+    scheduled_status: str = "season_over",
 ) -> NextGameDocument:
     rank, fbs_teams = _fbs_rank(state, resolver, team=team)
     same_week = [game for game in log.games if team in (game.home, game.away)]
@@ -1584,19 +1633,11 @@ def _next_game_document(
             season=log.season,
             week=log.week,
             team=resolver.display_name(team),
-            # Ordered so the strongest evidence wins: a forecast beats a schedule
-            # entry, and a schedule entry beats an absence. Only the last step is
-            # an inference, and it is the one this field exists to stop the page
-            # making on its own.
-            status=(
-                "forecast"
-                if fixture is not None
-                else "awaiting_forecast"
-                if upcoming is not None
-                else "bye"
-                if season_live
-                else "season_over"
-            ),
+            # A forecast beats everything -- it carries the numbers the page is
+            # for. Every other state was decided by `_scheduled_next`, which is
+            # the one place that reads the calendar and the slate together; a
+            # second ladder here would be a second opinion about the same facts.
+            status="forecast" if fixture is not None else scheduled_status,
             upcoming=upcoming if fixture is None else None,
             game=(
                 _published_game(
