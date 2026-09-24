@@ -94,7 +94,7 @@ function RingedPhoto() {
 
 export default function Hero() {
   return (
-    <section className="mb-24 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
+    <section className="mb-32 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
       <div className="w-full lg:flex-1">
         <Eyebrow />
         <Title />

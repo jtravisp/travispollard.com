@@ -27,7 +27,7 @@ export default function Home() {
 
             Tags are middot-separated text. The only link styling is one arrow
             per destination. */}
-        <section className="mb-24">
+        <section className="mb-32">
           <div className="mb-8 flex items-baseline justify-between gap-4">
             <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
             <Link
@@ -81,10 +81,12 @@ export default function Home() {
           </ul>
         </section>
 
-        {/* Writing. One list, one row shape for posts and profiles alike:
-            title on the left; platform and year (or "Profile") on the right.
+        {/* Writing. One list and one row layout, title left and platform right,
+            but two weights: a post is the thing to read, so it keeps full
+            colour and medium weight; a profile row is a way out to more, so
+            it is muted, normal weight, and carries an external arrow.
             Adding a row is one object in content/site.ts. */}
-        <section className="mb-24">
+        <section className="mb-32">
           <h2 className="mb-8 text-2xl font-bold tracking-tight">Writing</h2>
           <ul className="divide-y divide-base-300 border-t border-base-300">
             {writing.map((post) => (
@@ -95,7 +97,16 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"
                 >
-                  <span className="font-medium group-hover:text-primary">{post.title}</span>
+                  {post.kind === 'profile' ? (
+                    <span className="text-base-content/70 group-hover:text-primary">
+                      {post.title}
+                      <span aria-hidden="true" className="ml-1.5">
+                        &#8599;
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="font-medium group-hover:text-primary">{post.title}</span>
+                  )}
                   <span className="text-sm text-base-content/70">
                     {post.outlet}
                     {post.kind === 'profile' ? ' · Profile' : post.year ? ` · ${post.year}` : ''}
