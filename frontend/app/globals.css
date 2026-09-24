@@ -100,3 +100,15 @@ body {
   padding-left: 1.5rem;
   text-indent: -1.5rem;
 }
+
+/* The terminal's prompt colour, nudged over the AA line.
+   Business puts --color-info at #0291d5, which on the mockup-code surface
+   (#23282e) measures 4.25:1 -- under WCAG AA's 4.5 for body text, and the only
+   contrast failure Lighthouse found on the site that was not self-inflicted.
+   mockup-code always paints on --color-neutral regardless of the active theme,
+   so mixing toward white raises contrast on every one of the four rather than
+   trading one theme's legibility for another's. Measured, not assumed:
+   Business 4.25 -> 6.35, Synthwave 4.76, Dracula 7.54, Cyberpunk 9.22. */
+.mockup-code .text-info {
+  color: color-mix(in oklab, var(--color-info) 72%, white);
+}

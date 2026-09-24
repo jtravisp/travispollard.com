@@ -46,6 +46,9 @@ export default function Headshot({ className = '' }: { className?: string }) {
       alt={variant.alt}
       width={288}
       height={288}
+      // This is the LCP element on the home page. Without the hint the browser
+      // discovers it at normal priority behind the CSS and the chunk graph.
+      fetchPriority="high"
       // Explicit dimensions plus a fixed box: the intrinsic size is 900x900, and
       // without them the layout jumps by ~600px while it loads.
       className={`w-44 sm:w-56 lg:w-72 h-auto shadow-lg ${variant.className} ${className}`}

@@ -112,6 +112,8 @@ export default function Stack() {
           >
             <img
               src="/images/travispollard.comv6.drawio.png"
+              width={1101}
+              height={726}
               alt="Architecture diagram: Route 53 and CloudFront serving a static Next.js site from S3, with CodePipeline and CodeBuild handling deployments and a Lambda + DynamoDB visitor counter behind API Gateway"
               className="rounded-lg shadow-lg mx-auto max-w-full h-auto"
             />
@@ -191,7 +193,7 @@ export default function Stack() {
               href="https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o"
               target="_blank"
               rel="noopener noreferrer"
-              className="link link-primary"
+              className="link font-medium"
             >
               From S3 to CI/CD: My Cloud Resume Challenge Journey
             </a>
@@ -211,7 +213,7 @@ export default function Stack() {
               href="https://github.com/jtravisp/travispollard.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="link link-primary"
+              className="link font-medium"
             >
               github.com/jtravisp/travispollard.com
             </a>

@@ -52,9 +52,14 @@ const NAV: NavItem[] = [
   { href: 'https://ncoer.travispollard.com', label: 'NCOER Writer', external: true },
 ];
 
-/** Shared by the desktop bar and the drawer so focus is visible in both. */
+/** Shared by the desktop bar and the drawer so focus is visible in both.
+ *
+ * `outline-base-content`, not `outline-primary`, for the reason the active-page
+ * marker gives up its colour below: Business's primary measures 1.9:1 against
+ * this background, and a focus ring nobody can see is the same as no focus ring.
+ * Lighthouse does not catch this one, because it never tabs anything. */
 const FOCUS =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded';
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content rounded';
 
 export default function HeaderWithTheme() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,8 +120,14 @@ export default function HeaderWithTheme() {
       'link link-hover inline-flex items-center gap-1 whitespace-nowrap',
       FOCUS,
       onDrawer ? 'py-2 text-base' : '',
-      // Colour is not the only signal -- see aria-current below.
-      current ? 'font-semibold text-primary underline underline-offset-4' : 'text-base-content/80',
+      // Not text-primary. Business's primary is a dark navy that measures
+      // 1.9:1 as text on this background -- the active page would have been the
+      // least readable item in the bar. Weight and a persistent underline mark
+      // it instead, which were already the non-colour signals; dropping the
+      // colour loses nothing and fixes the contrast.
+      current
+        ? 'font-semibold text-base-content underline underline-offset-4 decoration-2'
+        : 'text-base-content/80',
     ].join(' ');
 
     if (item.external) {
@@ -211,7 +222,7 @@ export default function HeaderWithTheme() {
         <Link
           href="/"
           aria-current={here === '/' ? 'page' : undefined}
-          className={`text-xl font-bold tracking-tight text-base-content hover:text-primary ${FOCUS}`}
+          className={`text-xl font-bold tracking-tight text-base-content hover:underline hover:underline-offset-4 ${FOCUS}`}
         >
           Travis Pollard
         </Link>

@@ -14,6 +14,8 @@ export default function Techstack() {
       >
         <img
           src="/images/travispollard.comv6.drawio.png"
+          width={1101}
+          height={726}
           alt="Architecture diagram: Route 53 and CloudFront serving a static Next.js site from S3, with CodePipeline and CodeBuild handling deployments and a Lambda + DynamoDB visitor counter behind API Gateway"
           className="rounded-lg shadow-lg mx-auto max-w-full h-auto"
         />

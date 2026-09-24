@@ -100,7 +100,7 @@ export default function Home() {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="link link-primary inline-flex items-center gap-1"
+                          className="link text-base-content/90 hover:text-base-content inline-flex items-center gap-1"
                         >
                           {link.label}
                           <ArrowUpRight size={13} aria-hidden="true" className="opacity-70" />
