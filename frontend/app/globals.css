@@ -210,5 +210,10 @@ body {
     transparent 1.5px
   );
   background-size: 22px 22px;
+  /* Pinned to the viewport: the page scrolls over a still grid rather than
+     dragging it along. iOS Safari ignores fixed backgrounds and scrolls it
+     with the page, which is the same as before this line -- a graceful
+     fallback, not a break. */
+  background-attachment: fixed;
 }
 
