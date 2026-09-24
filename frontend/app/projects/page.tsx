@@ -35,7 +35,7 @@ function ProjectBlock({ project, index }: { project: Project; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index, 4) * 0.1 }}
     >
-      <pre data-prefix="$" className="text-success">
+      <pre data-prefix="$" className="text-info">
         <code>{`# ${project.title}`}</code>
       </pre>
       {visibleItems(project).map((item, i) => (
@@ -106,7 +106,7 @@ function EarlierWork() {
         </span>
       </summary>
       <div className={TERMINAL}>
-        <pre data-prefix="$" className="text-success">
+        <pre data-prefix="$" className="text-info">
           <code># Before the cloud work: helpdesk to identity automation</code>
         </pre>
         {earlierWork.items.map((item, i) => (
@@ -157,7 +157,7 @@ export default function Projects() {
         <EarlierWork />
 
         <div className={`${TERMINAL} mt-10`}>
-          <pre data-prefix="$" className="text-success">
+          <pre data-prefix="$" className="text-info">
             <code># Also on this site</code>
           </pre>
           <pre data-prefix=">">

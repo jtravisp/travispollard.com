@@ -20,7 +20,7 @@ const requestPath = [
 // rather than a bad deploy -- so leaving it out made the interesting half of
 // the story invisible.
 const pipeline = [
-  'A pull request runs the GitHub Actions gate: typecheck, a full static export, and the Playwright suite on Chromium and Firefox',
+  'A pull request runs the GitHub Actions gate: typecheck, lint, a full static export, and the Playwright suite on Chromium and Firefox',
   'That job pins TZ=UTC and the same Node version CodeBuild uses, because a gate running a different environment from the deploy has a gap in exactly the shape of the bug it is meant to catch',
   'A merge to main fires a webhook that starts CodePipeline within seconds',
   'CodeBuild installs with npm ci, builds the static export into frontend/out, and runs the same Playwright suite again',
@@ -51,7 +51,7 @@ const inventory = [
   },
   {
     resource: 'GitHub Actions',
-    detail: 'Pre-merge gate: typecheck, static export, and Playwright on two browsers, pinned to UTC',
+    detail: 'Pre-merge gate: typecheck, lint, static export, and Playwright on two browsers, pinned to UTC',
   },
   {
     resource: 'CodePipeline + CodeBuild',
@@ -63,7 +63,8 @@ const inventory = [
   },
   {
     resource: 'Terraform',
-    detail: 'Every resource above is defined in modules: route53, s3, acm, cloudfront',
+    detail:
+      'S3, CloudFront, Route 53 and ACM are the modules s3, cloudfront, route53 and acm; the SSM parameters sit beside them. The visitor counter and the CodePipeline were built outside Terraform',
   },
 ];
 

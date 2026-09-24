@@ -161,7 +161,7 @@ export const cloudAiProjects: Project[] = [
     links: [{ label: 'repo', url: 'https://github.com/jtravisp/travispollard.com' }],
     items: [
       'Next.js static export served from S3 through CloudFront, with Route 53 and an ACM certificate, provisioned end to end by Terraform modules for s3, cloudfront, acm, and route53',
-      'GitHub Actions gates every pull request: typecheck, a full static export, and the Playwright suite across Chromium and Firefox - pinned to UTC and to the same Node version the deploy builds with, because a gate running a different environment from the deploy has a gap in it',
+      'GitHub Actions gates every pull request: typecheck, lint, a full static export, and the Playwright suite across Chromium and Firefox - pinned to UTC and to the same Node version the deploy builds with, because a gate running a different environment from the deploy has a gap in it',
       'A merge to main triggers CodePipeline: CodeBuild runs the same suite, the export deploys to S3, and a final stage invalidates the CloudFront distribution',
       'Visitor counter is a Python Lambda behind API Gateway incrementing a DynamoDB item',
       'A second CloudFront origin serves the football pipeline JSON from its own bucket over an Origin Access Control, with SSM parameters as the only seam between the two Terraform states',
