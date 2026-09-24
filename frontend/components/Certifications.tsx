@@ -11,13 +11,15 @@
  * chip they used to have, which on the dark theme read as three bright
  * blocks.
  *
- * Dropping the chip exposes the one badge drawn for a light background: the
- * HashiCorp lockup's "Terraform" wordmark is near-black on transparency and
- * vanishes on a dark card. `invertOnDark` flips it on the dark theme only
- * (see globals.css): invert turns the wordmark white, and the 180-degree hue
- * rotation puts the purple mark back to purple. HashiCorp publishes white-
- * wordmark lockups for dark backgrounds, so this is the brand's own reverse
- * treatment rather than a recolour.
+ * One badge is drawn for a light background: the HashiCorp lockup's
+ * "Terraform" wordmark is near-black on transparency and vanishes on a dark
+ * card. It gets a tight white rounded tile (`tile`), so it reads as a
+ * deliberate icon on either theme. (An invert filter on the dark theme was
+ * tried first; a tile is simpler and shows the artwork as drawn. A blend mode
+ * cannot help: screen or lighten leave a black wordmark black.)
+ *
+ * The labels are full-strength text on light and neutral-200 on dark: at 70%
+ * they read as dim against the card.
  */
 
 const CERTIFICATIONS = [
@@ -35,7 +37,7 @@ const CERTIFICATIONS = [
     src: '/images/terraform.webp',
     alt: 'HashiCorp Certified: Terraform Associate',
     label: 'HashiCorp Terraform Associate',
-    invertOnDark: true,
+    tile: true,
   },
 ];
 
@@ -49,16 +51,28 @@ export default function Certifications() {
             key={cert.src}
             className="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200/60 p-4"
           >
-            <img
-              src={cert.src}
-              alt={cert.alt}
-              width={56}
-              height={56}
-              className={`h-14 w-14 shrink-0 object-contain ${
-                'invertOnDark' in cert && cert.invertOnDark ? 'invert-on-dark' : ''
-              }`}
-            />
-            <span className="text-sm leading-snug text-base-content/70">{cert.label}</span>
+            {'tile' in cert && cert.tile ? (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-white p-1">
+                <img
+                  src={cert.src}
+                  alt={cert.alt}
+                  width={48}
+                  height={48}
+                  className="max-h-full w-auto object-contain"
+                />
+              </span>
+            ) : (
+              <img
+                src={cert.src}
+                alt={cert.alt}
+                width={56}
+                height={56}
+                className="h-14 w-14 shrink-0 object-contain"
+              />
+            )}
+            <span className="text-sm leading-snug text-base-content dark:text-neutral-200">
+              {cert.label}
+            </span>
           </li>
         ))}
       </ul>

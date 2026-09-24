@@ -198,14 +198,6 @@ body {
   text-indent: -1.5rem;
 }
 
-/* Vendor artwork drawn for a light background, shown on the dark theme.
-   Invert makes a black wordmark white; hue-rotate(180deg) undoes the colour
-   half of the inversion, so a purple mark stays purple. Used by the
-   Terraform certification badge (components/Certifications.tsx). */
-[data-theme="dark"] .invert-on-dark {
-  filter: invert(1) hue-rotate(180deg);
-}
-
 /* A faint dot grid behind the main-site pages: one 1px dot every 22px,
    drawn from the theme's own text colour at 9% so it follows dark and
    light. It sits on top of background-color (bg-base-100), which it does
