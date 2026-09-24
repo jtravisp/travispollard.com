@@ -6,8 +6,8 @@
  * to a real photograph, that has happened, and a constant with one reachable
  * value is just a comment that can go out of date.
  *
- * Sizing is the caller's job via `className`, because the two hero layouts want
- * different diameters from the same image.
+ * Sizing is the caller's job via `className`: the hero's ring sets the
+ * diameter, and the image fills it.
  */
 
 export default function Headshot({ className = '' }: { className?: string }) {

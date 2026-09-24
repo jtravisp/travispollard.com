@@ -1,14 +1,12 @@
 'use client';
 
 /**
- * Two hero layouts behind one constant, for choosing between.
+ * Text left, photograph right, with one muted `$ whoami` line above the
+ * eyebrow. Chosen on 2026-09-24 over a centred layout: at 1440 it puts the
+ * Featured Projects heading inside the fold where the centred one pushed it
+ * below, and the terminal nod stays a single quiet line rather than chrome.
  *
- * `HERO_VARIANT` picks the layout and `HERO_SHOW_WHOAMI` decides whether the
- * single muted terminal line survives above the eyebrow. Both are constants
- * rather than props because exactly one of these ships; once the choice is
- * made, the loser and this comment go.
- *
- * What both drop, deliberately:
+ * What it drops, deliberately:
  *
  * - **The h1 that repeated the name.** The header already says "Travis
  *   Pollard" 80px above. The h1 is the role now, which is also the thing a
@@ -18,22 +16,16 @@
  *   terminal motif still owns /projects where it means something.
  * - **The third button.** Contact moves to the footer as a mailto. Two
  *   buttons, one filled and one outlined, is a choice; three peers is a menu.
+ *
+ * On a phone the photo stacks above the text (flex-col-reverse), still
+ * left-aligned with everything below it.
  */
 
 import Link from 'next/link';
 import Headshot from './Headshot';
 import { site } from '@/content/site';
 
-export type HeroVariant = 'A' | 'B';
-
-/** 'A' = text left, photo right. 'B' = centred, photo on top. */
-export const HERO_VARIANT: HeroVariant = 'A';
-
-/** The single muted `$ whoami` line above the eyebrow. */
-export const HERO_SHOW_WHOAMI = true;
-
 function Whoami() {
-  if (!HERO_SHOW_WHOAMI) return null;
   return (
     <p className="mb-3 font-mono text-sm text-base-content/45">
       <span className="text-base-content/30">$</span> whoami
@@ -82,12 +74,10 @@ function Buttons({ className = '' }: { className?: string }) {
  * `color-mix` against `--color-primary` keeps it on the accent when the theme
  * swaps the accent for its darker light-mode value.
  */
-function RingedPhoto({ size }: { size: 'lg' | 'md' }) {
+function RingedPhoto() {
   return (
     <div
-      className={`relative shrink-0 rounded-full p-[3px] ${
-        size === 'lg' ? 'w-56 sm:w-64 lg:w-80' : 'w-40 sm:w-48'
-      }`}
+      className="relative w-56 shrink-0 rounded-full p-[3px] sm:w-64 lg:w-80"
       style={{
         background: 'var(--color-primary)',
         boxShadow: '0 0 60px -12px color-mix(in oklab, var(--color-primary) 65%, transparent)',
@@ -99,21 +89,6 @@ function RingedPhoto({ size }: { size: 'lg' | 'md' }) {
 }
 
 export default function Hero() {
-  if (HERO_VARIANT === 'B') {
-    return (
-      <section className="mb-24 flex flex-col items-center pt-6 text-center sm:pt-10">
-        <RingedPhoto size="md" />
-        <div className="mt-8 max-w-2xl">
-          <Whoami />
-          <Eyebrow />
-          <Title />
-          <ValueLine className="mx-auto max-w-xl" />
-          <Buttons className="mt-8 justify-center" />
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="mb-24 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
       <div className="w-full lg:flex-1">
@@ -123,7 +98,7 @@ export default function Hero() {
         <ValueLine className="max-w-xl" />
         <Buttons className="mt-8" />
       </div>
-      <RingedPhoto size="lg" />
+      <RingedPhoto />
     </section>
   );
 }

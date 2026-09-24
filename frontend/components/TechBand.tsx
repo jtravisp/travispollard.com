@@ -12,6 +12,8 @@
  * place on the page a container earns itself.
  */
 
+import { Fragment } from 'react';
+
 const TECHNOLOGIES = [
   'AWS',
   'Terraform',
@@ -44,16 +46,29 @@ const CERTIFICATIONS = [
 export default function TechBand() {
   return (
     <section className="mb-24 border-y border-base-300 py-10">
-      <p className="text-center text-sm leading-loose text-base-content/60">
+      {/* Left-aligned with the hero text above it and the project list below:
+          a centred band between two left edges was the one thing on the page
+          lining up with neither. Each name is nowrap so a phone breaks the
+          line between technologies, never inside "GitHub Actions". */}
+      <p className="text-sm leading-loose text-base-content/60">
+        {/* The space between spans is the only break opportunity; without it
+            the nowrap spans fuse into one unbreakable run that overflows. The
+            middot trails its name, so a wrapped line can end on one but never
+            start with one. */}
         {TECHNOLOGIES.map((tech, i) => (
-          <span key={tech}>
-            {i > 0 && <span className="mx-2 text-base-content/25">&middot;</span>}
-            {tech}
-          </span>
+          <Fragment key={tech}>
+            {i > 0 && ' '}
+            <span className="whitespace-nowrap">
+              {tech}
+              {i < TECHNOLOGIES.length - 1 && (
+                <span className="ml-2 mr-1 text-base-content/25">&middot;</span>
+              )}
+            </span>
+          </Fragment>
         ))}
       </p>
 
-      <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+      <ul className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-6">
         {CERTIFICATIONS.map((cert) => (
           <li key={cert.src} className="flex items-center gap-3">
             <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-box bg-white p-2">
