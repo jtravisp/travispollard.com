@@ -32,7 +32,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
             <Link
               href="/projects"
-              className="text-sm text-base-content/60 hover:text-primary"
+              className="text-sm text-base-content/70 hover:text-primary"
             >
               All projects &rarr;
             </Link>
@@ -56,7 +56,7 @@ export default function Home() {
                   </p>
                 )}
                 {visibleTags(project).length > 0 && (
-                  <p className="mt-3 font-mono text-xs text-base-content/45">
+                  <p className="mt-3 font-mono text-xs text-base-content/70">
                     {visibleTags(project).join(' · ')}
                   </p>
                 )}
@@ -95,7 +95,7 @@ export default function Home() {
                   className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"
                 >
                   <span className="font-medium group-hover:text-primary">{post.title}</span>
-                  <span className="text-sm text-base-content/50">
+                  <span className="text-sm text-base-content/70">
                     {post.outlet}
                     {post.year ? ` · ${post.year}` : ''}
                   </span>

@@ -27,14 +27,21 @@ import { site } from '@/content/site';
 
 function Whoami() {
   return (
-    <p className="mb-3 font-mono text-sm text-base-content/45">
-      <span className="text-base-content/30">$</span> whoami
+    // 70% is the floor for text on either theme: measured on rendered
+    // pixels, 45% was 2.84:1 on light and 60% was 4.44:1. The prompt
+    // character is decoration, so it alone goes lighter and is hidden from
+    // assistive tech.
+    <p className="mb-3 font-mono text-sm text-base-content/70">
+      <span aria-hidden="true" className="text-base-content/35">
+        $
+      </span>{' '}
+      whoami
     </p>
   );
 }
 
 function Eyebrow() {
-  return <p className="mb-2 text-base text-base-content/60">Hi, I&apos;m Travis</p>;
+  return <p className="mb-2 text-base text-base-content/70">Hi, I&apos;m Travis</p>;
 }
 
 function Title() {

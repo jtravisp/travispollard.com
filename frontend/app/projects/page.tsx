@@ -100,7 +100,7 @@ function EarlierWork() {
     >
       <summary className="mb-6 flex cursor-pointer list-none items-center gap-2 text-xl font-bold tracking-tight">
         {earlierWork.title}
-        <span className="text-sm font-normal text-base-content/50">
+        <span className="text-sm font-normal text-base-content/70">
           <span className="group-open:hidden">show</span>
           <span className="hidden group-open:inline">hide</span>
         </span>

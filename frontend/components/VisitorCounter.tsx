@@ -13,7 +13,7 @@ export default function VisitorCounter() {
       }, []);
     
       return (
-        <div className="pb-6 text-center text-xs text-base-content/40">
+        <div className="pb-6 text-center text-xs text-base-content/70">
           {count !== null ? `${count} visitors to travispollard.com` : ''}
         </div>
       );

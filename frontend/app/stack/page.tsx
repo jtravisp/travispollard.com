@@ -157,7 +157,7 @@ export default function Stack() {
         >
           <h2 className="mb-4 text-xl font-bold tracking-tight">Infrastructure</h2>
           <div className="overflow-x-auto">
-            <table className="table table-zebra bg-base-200 rounded-box">
+            <table className="table table-zebra bg-base-200 rounded-box [&_thead]:text-base-content/80">
               <thead>
                 <tr>
                   <th>Resource</th>

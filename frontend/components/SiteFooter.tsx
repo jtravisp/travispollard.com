@@ -14,7 +14,7 @@ import { site } from '@/content/site';
 export default function SiteFooter() {
   return (
     <footer className="border-t border-base-300 pt-8 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 text-sm text-base-content/60">
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 text-sm text-base-content/70">
         <p>&copy; {new Date().getFullYear()} {site.name}</p>
         <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <li>

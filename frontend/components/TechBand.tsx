@@ -50,7 +50,7 @@ export default function TechBand() {
           a centred band between two left edges was the one thing on the page
           lining up with neither. Each name is nowrap so a phone breaks the
           line between technologies, never inside "GitHub Actions". */}
-      <p className="text-sm leading-loose text-base-content/60">
+      <p className="text-sm leading-loose text-base-content/70">
         {/* The space between spans is the only break opportunity; without it
             the nowrap spans fuse into one unbreakable run that overflows. The
             middot trails its name, so a wrapped line can end on one but never
@@ -61,7 +61,9 @@ export default function TechBand() {
             <span className="whitespace-nowrap">
               {tech}
               {i < TECHNOLOGIES.length - 1 && (
-                <span className="ml-2 mr-1 text-base-content/25">&middot;</span>
+                <span aria-hidden="true" className="ml-2 mr-1 text-base-content/25">
+                  &middot;
+                </span>
               )}
             </span>
           </Fragment>
