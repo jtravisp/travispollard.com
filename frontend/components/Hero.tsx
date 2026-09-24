@@ -32,8 +32,17 @@ function Eyebrow() {
 
 function Title() {
   return (
-    <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-      Platform Engineer
+    // Gradient text: white to neutral-400 on the dark theme. The light theme
+    // cannot take the same stops -- neutral-400 on the light surface is under
+    // 3:1 even at this size -- so it fades from the text colour to 70% of it.
+    // The gradient is on an inline span with box-decoration-clone, so each
+    // line of the wrapped heading gets the full fade across its own words.
+    // On the block h1 it spanned the whole column and most of the fade fell
+    // in empty space. pb-1 keeps the "g" descender inside the clip.
+    <h1 className="mb-3 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+      <span className="box-decoration-clone bg-linear-to-r from-base-content to-base-content/70 bg-clip-text pb-1 text-transparent dark:from-white dark:to-neutral-400">
+        Platform Engineer
+      </span>
     </h1>
   );
 }
@@ -71,23 +80,25 @@ function Buttons({ className = '' }: { className?: string }) {
 }
 
 /**
- * The accent ring and its glow.
+ * The photograph, backlit.
  *
- * One ring, one colour, and the glow is a wide low-alpha shadow in the same
- * hue rather than a second border -- two rings reads as a target.
- * `color-mix` against `--color-primary` keeps it on the accent when the theme
- * swaps the accent for its darker light-mode value.
+ * No ring: a large, heavily blurred, low-opacity coral disc sits behind the
+ * image as ambient light instead of a hard edge around it. `isolate` gives it
+ * its own stacking context, so `-z-10` puts it behind the photo and not behind
+ * the page background, where it would vanish.
+ *
+ * The photo is grayscale at 90% and comes up to full colour on hover. On a
+ * touch screen there is no hover, so a phone always sees the grayscale
+ * version; reduced-motion users get the change without the transition.
  */
-function RingedPhoto() {
+function BacklitPhoto() {
   return (
-    <div
-      className="relative w-56 shrink-0 rounded-full p-[3px] sm:w-64 lg:w-80"
-      style={{
-        background: 'var(--color-primary)',
-        boxShadow: '0 0 60px -12px color-mix(in oklab, var(--color-primary) 65%, transparent)',
-      }}
-    >
-      <Headshot className="!w-full rounded-full" />
+    <div className="relative isolate w-56 shrink-0 sm:w-64 lg:w-80">
+      <div
+        aria-hidden="true"
+        className="absolute -inset-10 -z-10 rounded-full bg-primary opacity-25 blur-3xl"
+      />
+      <Headshot className="!w-full rounded-full opacity-90 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 motion-reduce:transition-none" />
     </div>
   );
 }
@@ -101,7 +112,7 @@ export default function Hero() {
         <ValueLine className="max-w-xl" />
         <Buttons className="mt-8" />
       </div>
-      <RingedPhoto />
+      <BacklitPhoto />
     </section>
   );
 }
