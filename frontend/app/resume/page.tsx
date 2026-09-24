@@ -15,7 +15,7 @@ export default function Resume() {
 
         <div className="w-full">
           {/* Terminal-style intro */}
-          <div className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg">
+          <div className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg [&_pre]:whitespace-pre-wrap">
             <pre data-prefix="$">
               <code className="text-info">whoami</code>
             </pre>

@@ -1,7 +1,7 @@
 export default function NotFoundPage() {
     return (
       <main className="min-h-screen bg-base-100 text-base-content flex flex-col items-center justify-center px-4">
-        <div className="mockup-code w-full max-w-2xl text-left text-lg font-mono">
+        <div className="mockup-code w-full max-w-2xl text-left text-lg font-mono [&_pre]:whitespace-pre-wrap">
           <pre data-prefix="$" className="text-error">
             <code>whoami</code>
           </pre>

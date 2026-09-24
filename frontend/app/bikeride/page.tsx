@@ -134,7 +134,7 @@ export default function BikeRidePlanner() {
         </div>
 
         {/* Easter Egg */}
-        <div className="mockup-code w-full max-w-2xl mx-auto text-left my-12 text-base md:text-lg font-mono">
+        <div className="mockup-code w-full max-w-2xl mx-auto text-left my-12 text-base md:text-lg font-mono [&_pre]:whitespace-pre-wrap">
           <pre data-prefix="$" className="text-info">
             <code># 🚴 Ride bikes!</code>
           </pre>
