@@ -11,6 +11,17 @@
  * on the site before. That drift is the whole reason this file exists.
  */
 
+/** The resume's own header. The PDF prints this; the page has its own. */
+export const header = {
+  name: 'John Travis Pollard',
+  contact: [
+    { label: 'Austin, TX' },
+    { label: 'travis@travispollard.com', href: 'mailto:travis@travispollard.com' },
+    { label: 'linkedin.com/in/travis-pollard', href: 'https://www.linkedin.com/in/travis-pollard' },
+    { label: 'travispollard.com', href: 'https://www.travispollard.com' },
+  ],
+};
+
 export const certifications = [
   'Amazon Web Services Certified Developer - Associate',
   'Amazon Web Services Certified Solutions Architect - Associate',

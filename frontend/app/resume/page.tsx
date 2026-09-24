@@ -2,6 +2,7 @@
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import PageIntro from '@/components/PageIntro';
+import ResumePrint from '@/components/ResumePrint';
 import { cloudAiProjects } from '@/content/projects';
 import { certifications, education, experience, skills } from '@/content/resume';
 import { site } from '@/content/site';
@@ -42,8 +43,10 @@ export default function Resume() {
   const resumeProjects = RESUME_PROJECT_IDS.map((id) => cloudAiProjects.find((p) => p.id === id)!);
 
   return (
-    <main className="min-h-screen bg-base-100 text-base-content">
-      <div className="mx-auto max-w-4xl px-6 py-10">
+    <main className="min-h-screen bg-base-100 text-base-content print:min-h-0">
+      <ResumePrint />
+
+      <div className="mx-auto max-w-4xl px-6 py-10 print:hidden">
         <HeaderWithTheme />
 
         <PageIntro
