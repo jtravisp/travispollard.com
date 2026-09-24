@@ -81,8 +81,9 @@ export default function Home() {
           </ul>
         </section>
 
-        {/* Writing. A list, not cards. Adding a post is one object in
-            content/site.ts. */}
+        {/* Writing. One list, one row shape for posts and profiles alike:
+            title on the left; platform and year (or "Profile") on the right.
+            Adding a row is one object in content/site.ts. */}
         <section className="mb-24">
           <h2 className="mb-8 text-2xl font-bold tracking-tight">Writing</h2>
           <ul className="divide-y divide-base-300 border-t border-base-300">
@@ -97,22 +98,13 @@ export default function Home() {
                   <span className="font-medium group-hover:text-primary">{post.title}</span>
                   <span className="text-sm text-base-content/70">
                     {post.outlet}
-                    {post.year ? ` · ${post.year}` : ''}
+                    {post.kind === 'profile' ? ' · Profile' : post.year ? ` · ${post.year}` : ''}
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </span>
                 </a>
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-sm">
-            <a
-              href="https://medium.com/@travis_17385"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-base-content/70 hover:text-primary"
-            >
-              More on Medium &rarr;
-            </a>
-          </p>
         </section>
 
         <SiteFooter />
