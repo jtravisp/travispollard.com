@@ -215,24 +215,78 @@ export const cloudAiProjects: Project[] = [
 export const featuredProjects: Project[] = cloudAiProjects.filter((p) => p.featured);
 
 /**
- * Pre-cloud work, condensed.
+ * Pre-cloud work: Section B of /projects.
  *
- * This was six separate terminal blocks covering identity, monitoring, imaging,
- * device management, internal tools, and metrics. At that length it read as the
- * main event; what it actually is, is evidence that the cloud work has a decade
- * of operations underneath it. One block, strongest items only.
+ * Supplied by Travis on 2026-09-24, verbatim. It replaces a flat list of
+ * eight lines with two labelled groups -- identity and endpoints -- because
+ * the flat list read as a helpdesk log rather than as the operations work the
+ * platform engineering sits on.
+ *
+ * `title` is the collapsible heading on the page (unchanged); `heading` and
+ * `lead` open the terminal block beneath it.
  */
-export const earlierWork = {
+export type EarlierWorkItem = { label: string; text: string };
+
+export const earlierWork: {
+  title: string;
+  heading: string;
+  lead: string;
+  groups: { heading: string; items: EarlierWorkItem[] }[];
+} = {
   title: 'Earlier IT & Identity Work',
-  items: [
-    'Cleaned up Jira licensing, saving $20K+ annually with no loss of user access',
-    'Wrote a Go tool to automate retrieval and download of security camera footage from S3 Glacier',
-    'Built internal Okta API tooling to batch manage users and group assignments',
-    'Automated Active Directory onboarding with a script that clones department-based templates to create new users',
-    'Rolled out Kandji MDM with custom blueprints and profiles, and opened an Apple Business account to enable zero-touch deployment for every new Mac',
-    'Automated employee data updates across Active Directory, Okta, and Azure with PowerShell, and added alerting for BitLocker keys missing from AD',
-    'Replaced MDT with SmartDeploy for PXE imaging, with BitLocker key escrow into Active Directory',
-    'Built a helpdesk dashboard in Zendesk with automated weekly reporting to stakeholders',
+  heading: 'Systems, Identity & Operations',
+  lead: 'Condensed high-impact work from enterprise IT and identity engineering roles prior to platform focus.',
+  groups: [
+    {
+      heading: 'Identity & Access Management',
+      items: [
+        {
+          label: 'Jira License Optimization',
+          text: 'Audited and restructured Jira access control, saving $20K+ annually while maintaining full cross-departmental operations.',
+        },
+        {
+          label: 'Directory & Cloud Sync Automation',
+          text: 'Developed PowerShell pipeline using Paylocity CSV exports as HR source-of-truth to automate title/manager updates across Active Directory, Okta, and Azure AD / Entra ID.',
+        },
+        {
+          label: 'Automated AD Onboarding',
+          text: 'Built PowerShell department-template onboarding scripts, automating group memberships, OU placements, and resource provisioning.',
+        },
+        {
+          label: 'Okta API Tooling',
+          text: 'Scripted custom Okta API tools for batch user management and group assignments, replacing deprecated manual administrative processes.',
+        },
+        {
+          label: 'SSO Integration',
+          text: 'Integrated Kandji Admin/User auth and CXOne Call Center platforms with Okta SSO, standardizing zero-trust access control.',
+        },
+      ],
+    },
+    {
+      heading: 'Endpoint & Infrastructure Automation',
+      items: [
+        {
+          label: 'Zero-Touch Mac Deployment',
+          text: 'Implemented Kandji MDM from scratch and established Apple Business Manager integration, enabling zero-touch deployment for all new Mac hardware.',
+        },
+        {
+          label: 'Automated S3 Glacier Retrieval',
+          text: 'Built custom Go utility to query, request, and download archived security camera footage from AWS S3 Glacier based on timestamp and camera ID.',
+        },
+        {
+          label: 'Windows Imaging Modernization',
+          text: 'Replaced deprecated MDT with SmartDeploy over WDS/PXE for Windows 11, automating pre-installed applications and BitLocker GPO key escrow to Active Directory.',
+        },
+        {
+          label: 'Automated AD & Storage Monitoring',
+          text: 'Developed PowerShell scripts for AD BitLocker key escrow verification and Power Automate workflows for SharePoint storage threshold alerting (80% trigger).',
+        },
+        {
+          label: 'Automated Helpdesk Operations',
+          text: 'Built Zendesk KPI dashboards, automated weekly stakeholder reporting, and maintained a 99% CSAT rating across 2023–2024.',
+        },
+      ],
+    },
   ],
 };
 
