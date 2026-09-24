@@ -1,115 +1,127 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
+import Hero from '@/components/Hero';
+import SiteFooter from '@/components/SiteFooter';
+import TechBand from '@/components/TechBand';
 import VisitorCounter from '@/components/VisitorCounter';
+import { featuredProjects, isLive, visibleSummary, visibleTags } from '@/content/projects';
+import { writing } from '@/content/site';
 import Link from 'next/link';
-import Techstack from "./techstack";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-base-100 text-base-content">
-      <div className="max-w-5xl mx-auto px-4 py-10">
-
-        {/* Header */}
+      <div className="mx-auto max-w-4xl px-6 py-10">
         <HeaderWithTheme />
 
-        {/* Intro */}
-        <section className="flex flex-col gap-6 mb-16 items-center text-center">
-          <div className="mockup-code w-full max-w-xl text-left">
-            <pre data-prefix="$">
-              <code>whoami</code>
-            </pre>
-            <pre data-prefix=">" className="text-warning">
-              <code><a href="mailto:travis@travispollard.com" className="link">travis@travispollard.com</a></code>
-            </pre>
-            <pre data-prefix=">" className="text-warning">
-              <code>Cloud / DevOps Engineer</code>
-            </pre>
+        <Hero />
+
+        <TechBand />
+
+        {/* Featured projects.
+            A stacked list rather than three cards: it gives each project room
+            for a sentence that says something, it does not go ragged when a
+            fourth is added, and three equal-width bordered boxes is the single
+            most template-looking shape on the internet.
+
+            Tags are middot-separated text. The only link styling is one arrow
+            per destination. */}
+        <section className="mb-24">
+          <div className="mb-8 flex items-baseline justify-between gap-4">
+            <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
+            <Link
+              href="/projects"
+              className="text-sm text-base-content/70 hover:text-primary"
+            >
+              All projects &rarr;
+            </Link>
           </div>
 
-          <img
-            src="/images/travis.webp"
-            alt="Travis Pollard"
-            width={900}
-            height={900}
-            className="rounded-box shadow-lg w-full max-w-[450px] h-auto"
-          />
+          <ul className="divide-y divide-base-300 border-t border-base-300">
+            {featuredProjects.map((project) => (
+              <li key={project.id} className="py-7">
+                <h3 className="flex items-center gap-3 text-lg font-semibold">
+                  {project.cardTitle}
+                  {isLive(project) && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Live
+                    </span>
+                  )}
+                </h3>
+                {visibleSummary(project) && (
+                  <p className="mt-1.5 max-w-2xl text-base-content/75">
+                    {visibleSummary(project)}
+                  </p>
+                )}
+                {visibleTags(project).length > 0 && (
+                  <p className="mt-3 font-mono text-xs text-base-content/70">
+                    {visibleTags(project).join(' · ')}
+                  </p>
+                )}
+                {project.links.length > 0 && (
+                  <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                    {project.links.map((link) => (
+                      <a
+                        key={link.url}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base-content/70 hover:text-primary"
+                      >
+                        {link.label === 'live' ? 'View project' : link.label} &rarr;
+                        <span className="sr-only"> ({project.cardTitle}, opens in a new tab)</span>
+                      </a>
+                    ))}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <Link href="/resume" className="btn btn-accent">
-            View My Resume
-          </Link>
-          <Link href="/projects" className="btn btn-primary">
-            See My Projects
-          </Link>
-          <a
-            href="/Travis%20Pollard%20Resume.pdf"
-            download
-            className="btn btn-secondary"
-          >
-            Download Resume (PDF)
-          </a>
-        </div>
-
-        {/* Writing */}
-        <section className="w-full max-w-3xl mx-auto mb-16">
-          <h2 className="text-xl font-bold mb-4">Writing</h2>
-          <div className="flex flex-col gap-3">
-            <a
-              href="https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
-            >
-              <span className="font-semibold">
-                From S3 to CI/CD: My Cloud Resume Challenge Journey
-              </span>
-              <span className="text-sm opacity-70">dev.to</span>
-            </a>
+        {/* Writing. A list, not cards. Adding a post is one object in
+            content/site.ts. */}
+        <section className="mb-24">
+          <h2 className="mb-8 text-2xl font-bold tracking-tight">Writing</h2>
+          <ul className="divide-y divide-base-300 border-t border-base-300">
+            {writing.map((post) => (
+              <li key={post.url} className="py-5">
+                <a
+                  href={post.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"
+                >
+                  <span className="font-medium group-hover:text-primary">{post.title}</span>
+                  <span className="text-sm text-base-content/70">
+                    {post.outlet}
+                    {post.year ? ` · ${post.year}` : ''}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 text-sm">
             <a
               href="https://medium.com/@travis_17385"
               target="_blank"
               rel="noopener noreferrer"
-              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
+              className="text-base-content/70 hover:text-primary"
             >
-              <span className="font-semibold">More posts on cloud, automation, and career change</span>
-              <span className="text-sm opacity-70">Medium</span>
+              More on Medium &rarr;
             </a>
-          </div>
+          </p>
         </section>
 
-        <section className="flex flex-col items-center gap-6 mb-16 text-center">
-          <Techstack />
-        </section>
-
-        {/* Skill Badges */}
-        <section className="flex flex-wrap justify-center gap-8 mb-20">
-          {[
-            { src: '/images/AWS%20CSA.png', alt: 'AWS Certified Solutions Architect - Associate badge' },
-            { src: '/images/AWS%20Dev.png', alt: 'AWS Certified Developer - Associate badge' },
-            { src: '/images/terraform.webp', alt: 'HashiCorp Certified: Terraform Associate badge' },
-          ].map((badge) => (
-            <img
-              key={badge.src}
-              src={badge.src}
-              alt={badge.alt}
-              className="mask mask-squircle w-[150px] h-auto shadow-md"
-            />
-          ))}
-        </section>
-
-        {/* Footer */}
-        <footer className="footer footer-center p-6 bg-neutral text-neutral-content rounded-lg">
-          <p>&copy; 2026 Travis Pollard - Austin, TX - travis@travispollard.com</p>
-        </footer>
-
+        <SiteFooter />
         <VisitorCounter />
-
       </div>
 
-      <Link href="/campout" className="hidden">Campout</Link>
-
+      <Link href="/campout" className="hidden" aria-hidden="true">
+        Campout
+      </Link>
     </main>
   );
 }

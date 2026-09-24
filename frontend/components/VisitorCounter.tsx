@@ -13,8 +13,8 @@ export default function VisitorCounter() {
       }, []);
     
       return (
-        <div className="text-center text-sm text-gray-400 mt-10">
-          👁️ {count !== null ? `${count} visitors to travispollard.com` : 'Loading visitor count...'}
+        <div className="pb-6 text-center text-xs text-base-content/70">
+          {count !== null ? `${count} visitors to travispollard.com` : ''}
         </div>
       );
     }

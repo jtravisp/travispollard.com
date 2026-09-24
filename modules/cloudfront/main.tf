@@ -43,6 +43,8 @@ resource "aws_cloudfront_distribution" "this" {
       viewer_protocol_policy = "redirect-to-https"
       compress               = true
       cache_policy_id        = ordered_cache_behavior.value.cache_policy_id
+
+      response_headers_policy_id = ordered_cache_behavior.value.response_headers_policy_id
     }
   }
 
@@ -52,6 +54,8 @@ resource "aws_cloudfront_distribution" "this" {
     target_origin_id = var.origin_id
     cache_policy_id  = "658327ea-f89d-4fab-a63d-7e88639e58f6"
     compress         = true
+
+    response_headers_policy_id = var.default_response_headers_policy_id
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0

@@ -73,12 +73,16 @@ jobs:
 
       # **Types first, because it is the cheap half.** A type error fails here in
       # seconds rather than after a browser download and a full build.
-      #
-      # `npm run lint` is deliberately not run: `next lint` has no ESLint config
-      # in this repo and prompts interactively to create one, which in CI is a
-      # job that hangs until the timeout rather than a job that fails.
       - name: Typecheck
         run: npx tsc --noEmit
+
+      # Lint now runs. It used to be skipped because `next lint` had no ESLint
+      # config and dropped into an interactive "how would you like to configure
+      # ESLint?" prompt -- in CI, a job that hangs until the timeout rather than
+      # one that fails. `eslint.config.mjs` exists now and `npm run lint` calls
+      # eslint directly, so there is nothing left to prompt.
+      - name: Lint
+        run: npm run lint
 
       # Playwright's `webServer` serves `out/`, so the export has to exist before
       # the suite runs. This is also the step that catches a build-time failure

@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import Head from "next/head";
+import { site } from "@/content/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,34 +12,81 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Runs before first paint, which is the only place this can run.
+ *
+ * The theme used to be applied in a `useEffect`, so every load painted the
+ * default theme and then swapped -- a visible flash, and on a static export
+ * there is no server render to set the attribute either. An inline script in
+ * `<head>` is synchronous and blocks paint, so the first frame is already
+ * correct.
+ *
+ * Order is deliberate: a stored choice always wins over the OS preference,
+ * because someone who picked light on a dark machine meant it. The try/catch
+ * covers private mode, where reading localStorage throws rather than returning
+ * null, and falls back to the default rather than leaving the page unthemed.
+ *
+ * Kept as a string, minified by hand, because it ships in every HTML file.
+ */
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+
+const TITLE = `${site.name} - ${site.role}`;
+const DESCRIPTION =
+  'Platform Engineer in Austin, TX. I build and operate AWS infrastructure and AI-powered apps: Terraform, serverless, Go, Python. AWS certified, active Secret clearance.';
+
 export const metadata = {
-  title: 'Travis Pollard - Cloud / DevOps Engineer',
-  description: 'Personal website and resume of Travis Pollard, a cloud and DevOps engineer based in Austin, TX. AWS certified, Terraform, active Secret clearance.',
-  keywords: ['Travis Pollard', 'Cloud Engineer', 'DevOps Engineer', 'Platform Engineer', 'DevOps', 'AWS', 'Terraform', 'Salesforce', 'Docker', 'Next.js', 'Resume'],
-  authors: [{ name: 'Travis Pollard', url: 'https://www.travispollard.com' }],
-  creator: 'Travis Pollard',
+  // Without this, a relative image or canonical in any metadata below resolves
+  // against localhost during the build and ships that way.
+  metadataBase: new URL(site.url),
+  title: {
+    default: TITLE,
+    // Sub-pages set their own; they used to inherit this one verbatim, so every
+    // route in the sitemap carried an identical <title>.
+    template: `%s - ${site.name}`,
+  },
+  description: DESCRIPTION,
+  keywords: ['Travis Pollard', 'Platform Engineer', 'Cloud Engineer', 'DevOps Engineer', 'AWS', 'Terraform', 'Bedrock', 'Serverless', 'Go', 'Python', 'Resume'],
+  authors: [{ name: site.name, url: site.url }],
+  creator: site.name,
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: 'Travis Pollard - Cloud / DevOps Engineer',
-    description: 'Resume of Travis Pollard, Cloud and DevOps Engineer.',
-    url: 'https://www.travispollard.com',
-    siteName: 'Travis Pollard Portfolio',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: site.url,
+    siteName: `${site.name} Portfolio`,
+    locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://www.travispollard.com/images/og-card.png',
+        url: '/images/og-card.png',
         width: 1200,
         height: 630,
-        alt: 'Travis Pollard - Cloud / DevOps Engineer',
+        alt: TITLE,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Travis Pollard - Cloud / DevOps Engineer',
-    description: 'Cloud and DevOps engineer in Austin, TX. AWS certified, Terraform, CI/CD.',
-    images: ['https://www.travispollard.com/images/og-card.png'],
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/images/og-card.png'],
   },
-}
+};
+
+/**
+ * `themeColor` belongs here and nowhere else.
+ *
+ * It used to live in a `<Head>` from `next/head`, rendered inside this layout.
+ * That component is Pages Router only -- in the App Router it is inert, and the
+ * proof is that `out/index.html` shipped without the meta tag at all. The
+ * favicon beside it looked like it worked, but only because `app/favicon.ico`
+ * exists and Next's file convention emits the link independently.
+ */
+export const viewport = {
+  themeColor: '#0f172a',
+};
 
 export default function RootLayout({
   children,
@@ -47,11 +94,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <Head>
-        <link rel="icon" href="/images/favicon.ico" sizes="any" />
-        <meta name="theme-color" content="#0f172a" />
-      </Head>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>

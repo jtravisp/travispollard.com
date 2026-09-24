@@ -73,9 +73,17 @@ const SLATE = {
   ],
 };
 
-/** The matchup text of each body row, top to bottom, ignoring detail rows. */
+/**
+ * The matchup text of each body row, top to bottom, ignoring detail rows.
+ *
+ * Waits for a first row: the slate is fetched client-side, and
+ * `allInnerTexts` does not auto-wait, so under a loaded full-suite run it
+ * could read the table before the fetch resolved and see `[]`.
+ */
 async function order(page: import('@playwright/test').Page) {
-  return page.locator('tbody tr td:nth-child(2) button').allInnerTexts();
+  const matchups = page.locator('tbody tr td:nth-child(2) button');
+  await matchups.first().waitFor();
+  return matchups.allInnerTexts();
 }
 
 test.beforeEach(async ({ page }) => {
