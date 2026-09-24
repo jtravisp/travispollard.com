@@ -20,13 +20,15 @@ export default function Home() {
         <Certifications />
 
         {/* Featured projects.
-            A stacked list rather than three cards: it gives each project room
-            for a sentence that says something, it does not go ragged when a
-            fourth is added, and three equal-width bordered boxes is the single
-            most template-looking shape on the internet.
+            Stacked full-width cards rather than a three-up grid, so each
+            project keeps room for its sentence and a fourth does not go
+            ragged. The surface is barely there -- white at 2% with a 5% border
+            on the dark theme, the theme's own base colours on light, where
+            white-on-white would vanish -- and hovering anywhere on a card
+            lifts its border and background.
 
-            Tags are middot-separated text. The only link styling is one arrow
-            per destination. */}
+            Each link's arrow is its own span and slides right on card hover;
+            reduced-motion users get the static arrow. */}
         <section className="mb-32">
           <div className="mb-8 flex items-baseline justify-between gap-4">
             <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
@@ -38,9 +40,12 @@ export default function Home() {
             </Link>
           </div>
 
-          <ul className="divide-y divide-base-300 border-t border-base-300">
+          <ul className="space-y-4">
             {featuredProjects.map((project) => (
-              <li key={project.id} className="py-7">
+              <li
+                key={project.id}
+                className="group rounded-xl border border-base-300/70 bg-base-200/30 p-6 transition-colors duration-200 hover:border-base-content/20 hover:bg-base-200/60 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/15 dark:hover:bg-white/[0.04]"
+              >
                 <h3 className="flex items-center gap-3 text-lg font-semibold">
                   {project.cardTitle}
                   {isLive(project) && (
@@ -70,7 +75,13 @@ export default function Home() {
                         rel="noopener noreferrer"
                         className="text-base-content/70 hover:text-primary"
                       >
-                        {link.label === 'live' ? 'View project' : link.label} &rarr;
+                        {link.label === 'live' ? 'View project' : link.label}{' '}
+                        <span
+                          aria-hidden="true"
+                          className="inline-block transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+                        >
+                          &rarr;
+                        </span>
                         <span className="sr-only"> ({project.cardTitle}, opens in a new tab)</span>
                       </a>
                     ))}
