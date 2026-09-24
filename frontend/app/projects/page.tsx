@@ -6,7 +6,7 @@ import { cloudAiProjects, earlierWork, visibleItems, type Project } from '@/cont
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Typewriter } from 'react-simple-typewriter';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 const TERMINAL = 'mockup-code w-full text-left text-base font-mono [&_pre]:whitespace-pre-wrap';
 
@@ -107,10 +107,24 @@ function EarlierWork() {
       </summary>
       <div className={TERMINAL}>
         <pre data-prefix="$" className="text-info">
-          <code># Before the cloud work: helpdesk to identity automation</code>
+          <code># {earlierWork.heading}</code>
         </pre>
-        {earlierWork.items.map((item, i) => (
-          <Line key={i} text={item} />
+        <pre data-prefix=">">
+          <code>{earlierWork.lead}</code>
+        </pre>
+        {earlierWork.groups.map((group) => (
+          <Fragment key={group.heading}>
+            <pre data-prefix="$" className="mt-3 text-info">
+              <code>## {group.heading}</code>
+            </pre>
+            {group.items.map((item) => (
+              <pre data-prefix=">" key={item.label}>
+                <code>
+                  <strong>{item.label}:</strong> {item.text}
+                </code>
+              </pre>
+            ))}
+          </Fragment>
         ))}
       </div>
     </details>
@@ -125,7 +139,7 @@ export default function Projects() {
 
         <PageIntro
           title="Projects"
-          lead="Things I have built and run, newest and most live first. The terminal is the point here: this is the page where a shell prompt is the subject rather than decoration."
+          lead="Things I have built and run, newest and most live first."
         />
 
         <div className={`${TERMINAL} mb-12`}>

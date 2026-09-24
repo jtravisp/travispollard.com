@@ -9,9 +9,8 @@
 export const site = {
   name: 'Travis Pollard',
   role: 'Platform Engineer',
-  /** One line under the role in every whoami block. */
-  valueStatement:
-    'I build and operate AWS infrastructure and AI-powered apps: Terraform, serverless, Go, Python.',
+  /** The line under the role in the hero, and on the OG card. */
+  valueStatement: 'I build and operate scalable AWS infrastructure and AI-driven platforms.',
   email: 'travis@travispollard.com',
   location: 'Austin, TX',
   url: 'https://www.travispollard.com',
@@ -26,13 +25,18 @@ export type WritingPost = {
   outlet: string;
   /** Publication year. Omitted rather than guessed when it is not known. */
   year?: number;
+  /**
+   * A single post, or an author profile on a platform. Both render as the same
+   * row; a profile shows "Profile" where a post shows its year.
+   */
+  kind: 'post' | 'profile';
   url: string;
 };
 
 /**
- * Adding a post is one object in this array. That is the entire reason this
- * file exists -- the section previously hardcoded a single link plus a "more
- * posts" catch-all, which is a shape that discourages ever adding a second one.
+ * Adding a post is one object in this array. Posts first, then the profiles
+ * that hold everything else -- as rows of the same list, not a separate
+ * "More on Medium" link styled differently from the rest.
  */
 export const writing: WritingPost[] = [
   {
@@ -40,6 +44,19 @@ export const writing: WritingPost[] = [
     outlet: 'dev.to',
     // From the dev.to API rather than guessed: published_at 2025-04-24.
     year: 2025,
+    kind: 'post',
     url: 'https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o',
+  },
+  {
+    title: 'All posts on Medium',
+    outlet: 'Medium',
+    kind: 'profile',
+    url: 'https://medium.com/@travis_17385',
+  },
+  {
+    title: 'All posts on dev.to',
+    outlet: 'dev.to',
+    kind: 'profile',
+    url: 'https://dev.to/jtravisp',
   },
 ];
