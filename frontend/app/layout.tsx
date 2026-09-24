@@ -35,7 +35,7 @@ const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='
 
 const TITLE = `${site.name} - ${site.role}`;
 const DESCRIPTION =
-  'Platform Engineer in Austin, TX. I build and operate AWS infrastructure and AI-powered apps: Terraform, serverless, Go, Python. AWS certified, active Secret clearance.';
+  'Platform Engineer. I build and operate scalable AWS infrastructure and AI-driven platforms.';
 
 export const metadata = {
   // Without this, a relative image or canonical in any metadata below resolves
