@@ -25,17 +25,11 @@
  * than the 20px that made the old bar wrap on a scrollbar's width.
  */
 
-import { ArrowUpRight, Check, Github, Linkedin, Menu, Palette, X } from 'lucide-react';
+import { ArrowUpRight, Github, Linkedin, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-const THEMES = [
-  { value: 'business', label: 'Business' },
-  { value: 'dracula', label: 'Dracula' },
-  { value: 'synthwave', label: 'Synthwave' },
-  { value: 'cyberpunk', label: 'Cyberpunk' },
-] as const;
+import { useEffect, useState } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 type NavItem = {
   href: string;
@@ -63,55 +57,25 @@ const FOCUS =
 
 export default function HeaderWithTheme() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [themeOpen, setThemeOpen] = useState(false);
-  const [theme, setTheme] = useState<string>('business');
-  const themeRef = useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
   // `trailingSlash: true` in next.config.ts, so a live path is "/resume/".
   const here = pathname?.replace(/\/+$/, '') || '/';
-
-  // Restore the visitor's saved theme on mount (avoids a hydration mismatch)
-  useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) {
-      setTheme(saved);
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-  }, []);
 
   // A drawer that survives navigation would cover the page it just opened.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Escape closes whichever is open, and a click outside closes the theme menu.
-  // Without these the palette menu can only be dismissed by choosing something,
-  // which makes "just looking" a destructive action.
+  // Escape closes the drawer. The theme control is a plain button now, so
+  // there is no popup left to dismiss and no outside-click handler to get
+  // wrong -- which is what the old one did. See ThemeToggle.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      setThemeOpen(false);
-      setMenuOpen(false);
-    };
-    const onClick = (e: MouseEvent) => {
-      if (themeRef.current && !themeRef.current.contains(e.target as Node)) {
-        setThemeOpen(false);
-      }
+      if (e.key === 'Escape') setMenuOpen(false);
     };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onClick);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onClick);
-    };
-  }, []);
-
-  const handleThemeChange = useCallback((value: string) => {
-    setTheme(value);
-    document.documentElement.setAttribute('data-theme', value);
-    localStorage.setItem('theme', value);
-    setThemeOpen(false);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
   const renderNavLink = (item: NavItem, onDrawer = false) => {
@@ -175,47 +139,6 @@ export default function HeaderWithTheme() {
     </>
   );
 
-  const themeMenu = (
-    <div className="relative" ref={themeRef}>
-      <button
-        type="button"
-        onClick={() => setThemeOpen((open) => !open)}
-        aria-label={`Color theme: ${THEMES.find((t) => t.value === theme)?.label ?? theme}`}
-        aria-haspopup="menu"
-        aria-expanded={themeOpen}
-        className={`btn btn-ghost btn-sm btn-square text-base-content/80 hover:text-base-content ${FOCUS}`}
-      >
-        <Palette size={18} aria-hidden="true" />
-      </button>
-      {themeOpen && (
-        <ul
-          role="menu"
-          aria-label="Color theme"
-          className="absolute right-0 z-50 mt-2 min-w-40 rounded-box border border-base-300 bg-base-200 p-2 shadow-lg"
-        >
-          {THEMES.map((t) => (
-            <li key={t.value} role="none">
-              <button
-                type="button"
-                role="menuitemradio"
-                aria-checked={theme === t.value}
-                onClick={() => handleThemeChange(t.value)}
-                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-base-content hover:bg-base-300 ${FOCUS}`}
-              >
-                <Check
-                  size={14}
-                  aria-hidden="true"
-                  className={theme === t.value ? 'opacity-100' : 'opacity-0'}
-                />
-                {t.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-
   return (
     <header className="mb-10">
       <div className="flex items-center gap-4">
@@ -235,15 +158,14 @@ export default function HeaderWithTheme() {
             ))}
           </ul>
         </nav>
-        <div className="hidden items-center gap-1 lg:flex">
-          {iconLinks}
-          {themeMenu}
-        </div>
+        <div className="hidden items-center gap-1 lg:flex">{iconLinks}</div>
 
-        {/* Below lg: the palette stays out, so changing theme does not cost a
-            drawer open, and the hamburger carries the rest. */}
-        <div className="ml-auto flex items-center gap-1 lg:hidden">
-          {themeMenu}
+        {/* One toggle node, rendered once at every width rather than once per
+            breakpoint cluster. Two nodes sharing one ref is exactly what broke
+            the control this replaces. */}
+        <ThemeToggle className="ml-auto lg:ml-0" />
+
+        <div className="flex items-center gap-1 lg:hidden">
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}

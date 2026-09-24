@@ -6,15 +6,21 @@ import { calculateCarbs } from './utils/carbs';
 import { calculatePSI } from './utils/psi';
 
 export default function BikeRidePlanner() {
+    // No data-theme override here any more.
+    //
+    // This page used to pin 'nord' on mount and restore 'business' on unmount,
+    // both of which are themes that no longer exist. Worse than dead: the
+    // cleanup wrote 'business' onto <html> without touching localStorage, so
+    // navigating away from the bike planner silently desynced the attribute
+    // from the visitor's stored choice until the next reload.
+    //
+    // It inherits the site theme now, like every page except /cfb -- which
+    // scopes its own theme to a wrapper element rather than to the document.
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', 'nord');
         const script = document.createElement('script');
         script.src = 'https://weatherwidget.io/js/widget.min.js';
         script.async = true;
         document.body.appendChild(script);
-        return () => {
-            document.documentElement.setAttribute('data-theme', 'business');
-        };
     }, []);
 
   return (

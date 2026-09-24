@@ -12,6 +12,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Runs before first paint, which is the only place this can run.
+ *
+ * The theme used to be applied in a `useEffect`, so every load painted the
+ * default theme and then swapped -- a visible flash, and on a static export
+ * there is no server render to set the attribute either. An inline script in
+ * `<head>` is synchronous and blocks paint, so the first frame is already
+ * correct.
+ *
+ * Order is deliberate: a stored choice always wins over the OS preference,
+ * because someone who picked light on a dark machine meant it. The try/catch
+ * covers private mode, where reading localStorage throws rather than returning
+ * null, and falls back to the default rather than leaving the page unthemed.
+ *
+ * Kept as a string, minified by hand, because it ships in every HTML file.
+ */
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+
 const TITLE = `${site.name} - ${site.role}`;
 const DESCRIPTION =
   'Platform Engineer in Austin, TX. I build and operate AWS infrastructure and AI-powered apps: Terraform, serverless, Go, Python. AWS certified, active Secret clearance.';
@@ -76,7 +94,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>

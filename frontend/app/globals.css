@@ -1,32 +1,120 @@
 @import "tailwindcss";
 
+/* Two themes, not seven.
+   The site shipped Business, Nord, Dracula, Cupcake, Corporate, Synthwave and
+   Cyberpunk, of which four were reachable from the switcher. Seven palettes is
+   seven sets of contrast pairs to keep honest, and the Business set was already
+   failing: its --color-primary is a navy that measures 1.9:1 as text.
+   A dark default and a light alternate, both authored here, is two.
+
+   One accent, used for the filled button, the active nav item, link hover and
+   the photo ring, and for nothing else.
+
+   The accent is NOT the same value in both themes, and it cannot be. Coral at
+   oklch(68% 0.12 35) is 5.9:1 on the dark surface and 2.88:1 on the light one,
+   so the light theme carries a darker coral of the same hue. Same colour to the
+   eye, different lightness, both above 4.5:1 -- which is the whole reason these
+   are per-theme variables rather than one shared constant. */
 @plugin "daisyui" {
-  themes: business --default, nord, dracula, cupcake, corporate, synthwave, cyberpunk;
+  themes: false;
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* The default. prefersdark so a visitor with no stored choice and a dark OS
+   lands here; the inline script in app/layout.tsx is what actually decides,
+   before first paint. */
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(17% 0.008 250);
+  --color-base-200: oklch(21% 0.009 250);
+  --color-base-300: oklch(27% 0.010 250);
+  --color-base-content: oklch(92% 0.006 80);
+
+  --color-primary: oklch(68% 0.12 35);
+  --color-primary-content: oklch(17% 0.008 250);
+  --color-secondary: oklch(70% 0.02 250);
+  --color-secondary-content: oklch(17% 0.008 250);
+  --color-accent: oklch(68% 0.12 35);
+  --color-accent-content: oklch(17% 0.008 250);
+
+  /* The terminal surface. Deliberately dark in BOTH themes: the mockup-code
+     motif on /projects is a terminal, and a light terminal is not one. It also
+     means the semantic colours below only ever have to be legible against one
+     background instead of two. */
+  --color-neutral: oklch(24% 0.010 250);
+  --color-neutral-content: oklch(92% 0.006 80);
+
+  --color-info: oklch(78% 0.08 240);
+  --color-info-content: oklch(17% 0.008 250);
+  --color-success: oklch(80% 0.12 150);
+  --color-success-content: oklch(17% 0.008 250);
+  --color-warning: oklch(84% 0.11 80);
+  --color-warning-content: oklch(17% 0.008 250);
+  --color-error: oklch(72% 0.14 25);
+  --color-error-content: oklch(17% 0.008 250);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(98.5% 0.002 80);
+  --color-base-200: oklch(96% 0.004 80);
+  --color-base-300: oklch(90% 0.006 80);
+  --color-base-content: oklch(22% 0.010 250);
+
+  /* Darker than the dark theme's coral by 16 points of lightness, same hue.
+     This is the pair that makes the accent readable as text on white. */
+  --color-primary: oklch(52% 0.14 32);
+  --color-primary-content: oklch(98.5% 0.002 80);
+  --color-secondary: oklch(40% 0.02 250);
+  --color-secondary-content: oklch(98.5% 0.002 80);
+  --color-accent: oklch(52% 0.14 32);
+  --color-accent-content: oklch(98.5% 0.002 80);
+
+  /* Same dark terminal as above, so the semantic colours below are identical
+     to the dark theme's and are checked against one surface, not two. */
+  --color-neutral: oklch(24% 0.010 250);
+  --color-neutral-content: oklch(92% 0.006 80);
+
+  --color-info: oklch(78% 0.08 240);
+  --color-info-content: oklch(17% 0.008 250);
+  --color-success: oklch(80% 0.12 150);
+  --color-success-content: oklch(17% 0.008 250);
+  --color-warning: oklch(84% 0.11 80);
+  --color-warning-content: oklch(17% 0.008 250);
+  --color-error: oklch(72% 0.14 25);
+  --color-error-content: oklch(17% 0.008 250);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* No :root background/foreground pair and no prefers-color-scheme block here.
+   Those were a second, competing source of truth for the page colours that
+   predated daisyUI and fought the theme: body had `background: var(--background)`
+   hardcoded to #ffffff/#0a0a0a regardless of which theme was active, and
+   `font-family: Arial` overrode the Geist the layout loads. The themes own this
+   now. */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Make mockup-code prefix lines flex so wrapped text aligns with content, not the gutter */
@@ -99,16 +187,4 @@ body {
 .mockup-code pre.sub-bullet > code {
   padding-left: 1.5rem;
   text-indent: -1.5rem;
-}
-
-/* The terminal's prompt colour, nudged over the AA line.
-   Business puts --color-info at #0291d5, which on the mockup-code surface
-   (#23282e) measures 4.25:1 -- under WCAG AA's 4.5 for body text, and the only
-   contrast failure Lighthouse found on the site that was not self-inflicted.
-   mockup-code always paints on --color-neutral regardless of the active theme,
-   so mixing toward white raises contrast on every one of the four rather than
-   trading one theme's legibility for another's. Measured, not assumed:
-   Business 4.25 -> 6.35, Synthwave 4.76, Dracula 7.54, Cyberpunk 9.22. */
-.mockup-code .text-info {
-  color: color-mix(in oklab, var(--color-info) 72%, white);
 }
