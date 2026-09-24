@@ -251,6 +251,15 @@ export function visibleItems(project: Project): string[] {
   return project.items.filter((item) => !item.includes('TODO(travis)'));
 }
 
+/**
+ * Whether the project has a public, running deployment -- a `live` link.
+ * Being up is a checkable fact independent of the claims about how it is
+ * built, so it shows even on an `unverified` entry.
+ */
+export function isLive(project: Project): boolean {
+  return project.links.some((link) => link.label === 'live');
+}
+
 /** The one-line summary, or null where the entry is unverified in production. */
 export function visibleSummary(project: Project): string | null {
   return !SHOW_TODOS && project.unverified ? null : project.summary;

@@ -5,7 +5,7 @@ import Hero from '@/components/Hero';
 import SiteFooter from '@/components/SiteFooter';
 import TechBand from '@/components/TechBand';
 import VisitorCounter from '@/components/VisitorCounter';
-import { featuredProjects, visibleSummary, visibleTags } from '@/content/projects';
+import { featuredProjects, isLive, visibleSummary, visibleTags } from '@/content/projects';
 import { writing } from '@/content/site';
 import Link from 'next/link';
 
@@ -41,7 +41,15 @@ export default function Home() {
           <ul className="divide-y divide-base-300 border-t border-base-300">
             {featuredProjects.map((project) => (
               <li key={project.id} className="py-7">
-                <h3 className="text-lg font-semibold">{project.cardTitle}</h3>
+                <h3 className="flex items-center gap-3 text-lg font-semibold">
+                  {project.cardTitle}
+                  {isLive(project) && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Live
+                    </span>
+                  )}
+                </h3>
                 {visibleSummary(project) && (
                   <p className="mt-1.5 max-w-2xl text-base-content/75">
                     {visibleSummary(project)}
