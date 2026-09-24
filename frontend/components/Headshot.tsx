@@ -7,8 +7,8 @@
  * beside the text rather than a row under it, and it is capped well below the
  * old width.
  *
- * **To switch to a real photo: drop the file at `public/headshot.jpg` and change
- * `HEADSHOT` to `'photo'`.** That is the whole procedure. It is a constant and
+ * **To switch variants: change `HEADSHOT`.** That is the whole procedure. The
+ * photo is `public/headshot.jpeg`, 1024x1024. It is a constant and
  * not a filesystem check because `output: 'export'` means there is no server to
  * ask at request time, and a build-time `fs.existsSync` would be a silent
  * behaviour change on a file nobody remembers adding.
@@ -20,8 +20,8 @@
 
 type HeadshotKind = 'cartoon' | 'photo';
 
-/** Flip to 'photo' once public/headshot.jpg exists. */
-export const HEADSHOT: HeadshotKind = 'cartoon';
+/** Flip to 'cartoon' to go back to the drawn avatar. */
+export const HEADSHOT: HeadshotKind = 'photo';
 
 const VARIANTS = {
   cartoon: {
@@ -31,7 +31,7 @@ const VARIANTS = {
     className: 'rounded-box',
   },
   photo: {
-    src: '/headshot.jpg',
+    src: '/headshot.jpeg',
     alt: 'Travis Pollard',
     className: 'rounded-full object-cover aspect-square',
   },
