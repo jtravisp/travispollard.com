@@ -6,10 +6,18 @@
  * hero's value line and the project tags already say what the work is built
  * with, and a list of nouns above the badges was a third telling.
  *
- * The badges keep their light chip. They are vendor artwork drawn for a light
- * background, and the HashiCorp lockup in particular is near-black on
- * transparency: on the dark theme it disappears entirely. That is the one
- * place on the page a container earns itself.
+ * Each badge sits on a card built from the theme's own surfaces -- a subtle
+ * dark card on the dark theme, a pale one on light -- rather than the white
+ * chip they used to have, which on the dark theme read as three bright
+ * blocks.
+ *
+ * Dropping the chip exposes the one badge drawn for a light background: the
+ * HashiCorp lockup's "Terraform" wordmark is near-black on transparency and
+ * vanishes on a dark card. `invertOnDark` flips it on the dark theme only
+ * (see globals.css): invert turns the wordmark white, and the 180-degree hue
+ * rotation puts the purple mark back to purple. HashiCorp publishes white-
+ * wordmark lockups for dark backgrounds, so this is the brand's own reverse
+ * treatment rather than a recolour.
  */
 
 const CERTIFICATIONS = [
@@ -27,28 +35,30 @@ const CERTIFICATIONS = [
     src: '/images/terraform.webp',
     alt: 'HashiCorp Certified: Terraform Associate',
     label: 'HashiCorp Terraform Associate',
+    invertOnDark: true,
   },
 ];
 
 export default function Certifications() {
   return (
     // Left-aligned with the hero text above and the project list below.
-    <section className="mb-24 border-y border-base-300 py-10" aria-label="Certifications">
-      <ul className="flex flex-wrap items-center gap-x-10 gap-y-6">
+    <section className="mb-32" aria-label="Certifications">
+      <ul className="grid gap-4 sm:grid-cols-3">
         {CERTIFICATIONS.map((cert) => (
-          <li key={cert.src} className="flex items-center gap-3">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-box bg-white p-2">
-              <img
-                src={cert.src}
-                alt={cert.alt}
-                width={56}
-                height={56}
-                className="max-h-full w-auto object-contain"
-              />
-            </span>
-            <span className="max-w-[11rem] text-sm leading-snug text-base-content/70">
-              {cert.label}
-            </span>
+          <li
+            key={cert.src}
+            className="flex items-center gap-4 rounded-lg border border-base-300 bg-base-200/60 p-4"
+          >
+            <img
+              src={cert.src}
+              alt={cert.alt}
+              width={56}
+              height={56}
+              className={`h-14 w-14 shrink-0 object-contain ${
+                'invertOnDark' in cert && cert.invertOnDark ? 'invert-on-dark' : ''
+              }`}
+            />
+            <span className="text-sm leading-snug text-base-content/70">{cert.label}</span>
           </li>
         ))}
       </ul>
