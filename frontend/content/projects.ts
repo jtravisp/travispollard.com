@@ -63,17 +63,17 @@ export const cloudAiProjects: Project[] = [
     tags: ['Bedrock', 'AgentCore', 'Strands', 'Go', 'Cognito'],
     links: [{ label: 'live', url: 'https://ncoer.travispollard.com' }],
     featured: true,
-    // Supplied verbatim by Travis on 2026-09-24, replacing the drafted-from-
-    // notes version that was held behind `unverified`.
+    // Supplied verbatim by Travis on 2026-09-24, corrected the same day to
+    // what is deployed. Reword only with him.
     items: [
-      "Turns a rater's raw notes into NCOER bullets for Army Band NCOs, organized by the six competency blocks (Character, Presence, Intellect, Leads, Develops, Achieves), for the 2166-9-1 and 2166-9-2",
-      "Accepts a pasted brain dump, last year's bullets, counseling notes, or an uploaded 2166-9-1A support form PDF",
-      'Python agents built with Strands on Amazon Bedrock and AgentCore: an intake agent that asks one batch of follow-up questions when the notes are thin, a drafting agent grounded in DA Pam 623-3 and a band-specific MOS translation table, and a compliance critic that checks drafts against AR 623-3 prohibited comments and empty platitudes',
-      "The drafting agent is not allowed to invent an achievement or a number - if it isn't in the notes, it asks instead of guessing",
-      "Formatting rules the model can't be trusted with - two-line maximum, bullet count per block, lowercase start - are enforced by a deterministic Go validator, exposed alongside the other tools through a Go MCP server behind AgentCore Gateway",
-      'Sign-in is Google federated through Cognito, gated by a DynamoDB allowlist checked at sign-up and sign-in; removing someone from the allowlist triggers a DynamoDB Stream Lambda that disables the user and signs them out globally',
-      'Stateless by design: no Soldier data is stored after the session, and the public repo contains synthetic data only',
-      'Static Next.js frontend on S3 and CloudFront in a dedicated AWS account, deployed by GitHub Actions over OIDC, provisioned with Terraform',
+      'Turns raw performance notes into regulation-compliant NCOER bullet drafts for Army Band NCOs across DA Form 2166-9-1 and 2166-9-2 formats',
+      'Accepts pasted counseling notes, previous evaluation bullets, or raw performance dumps',
+      'Python agents built with Strands on Amazon Bedrock: an intake agent that identifies missing detail and prompts for context, and a drafting agent grounded in DA Pam 623-3 and an Army Band MOS translation table',
+      'Drafting pipeline is constrained from inventing statistics or accomplishments—prompts require verification for unstated metrics',
+      'Go-based structural validator enforces Army Evaluation Entry System (EES) rules, including bullet counts per block and character-level formatting, integrated via an MCP server behind AgentCore Gateway',
+      'Sign-in federated via Google through AWS Cognito, with access controlled via a DynamoDB allowlist checked during session creation',
+      'Stateless request architecture ensures no Soldier performance data is persisted after session termination',
+      'Static Next.js frontend hosted on S3 and CloudFront, deployed via GitHub Actions over OIDC and provisioned with Terraform',
     ],
   },
   {
