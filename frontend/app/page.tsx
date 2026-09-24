@@ -28,8 +28,13 @@ export default function Home() {
             lifts its border and background.
 
             Each link's arrow is its own span and slides right on card hover;
-            reduced-motion users get the static arrow. */}
-        <section className="mb-32">
+            reduced-motion users get the static arrow.
+
+            pt-16 on top of the certifications' mb-32: 192px from the badges to
+            this heading, the largest gap on the page, because it is where the
+            page turns from who to what. Padding, not mt-16 -- adjacent
+            vertical margins collapse, and mt-16 against mb-32 measured 128px. */}
+        <section className="mb-32 pt-16">
           <div className="mb-8 flex items-baseline justify-between gap-4">
             <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
             <Link
