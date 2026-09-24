@@ -1,7 +1,7 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
-import Headshot from '@/components/Headshot';
+import Hero from '@/components/Hero';
 import VisitorCounter from '@/components/VisitorCounter';
 import { featuredProjects } from '@/content/projects';
 import { site, writing } from '@/content/site';
@@ -17,54 +17,7 @@ export default function Home() {
         {/* Header */}
         <HeaderWithTheme />
 
-        {/* Hero.
-            Two columns at lg rather than a centred stack: the portrait used to
-            sit under the terminal card at 450px wide, which pushed the calls to
-            action off a 1440x900 screen entirely. Name, role, value statement,
-            and both buttons now land above the fold. */}
-        <section className="mb-16 flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-          <div className="w-full lg:flex-1">
-            <h1 className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl">
-              {site.name}
-            </h1>
-
-            <div className="mockup-code w-full max-w-xl text-left [&_pre]:whitespace-pre-wrap">
-              <pre data-prefix="$">
-                <code className="text-info">whoami</code>
-              </pre>
-              <pre data-prefix=">" className="text-warning">
-                <code>
-                  <a href={`mailto:${site.email}`} className="link">
-                    {site.email}
-                  </a>
-                </code>
-              </pre>
-              <pre data-prefix=">" className="text-warning">
-                <code>{site.role}</code>
-              </pre>
-              <pre data-prefix=">" className="text-warning">
-                <code>{site.valueStatement}</code>
-              </pre>
-            </div>
-
-            {/* "View My Resume" and "Download Resume (PDF)" sat side by side
-                asking the same question twice. One Resume button; the PDF is on
-                the page it belongs to. */}
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/resume" className="btn btn-primary">
-                Resume
-              </Link>
-              <Link href="/projects" className="btn btn-accent">
-                Projects
-              </Link>
-              <a href={`mailto:${site.email}`} className="btn btn-outline">
-                Contact
-              </a>
-            </div>
-          </div>
-
-          <Headshot className="shrink-0" />
-        </section>
+        <Hero />
 
         {/* Featured projects. Same objects the /projects page renders. */}
         <section className="mb-16">
