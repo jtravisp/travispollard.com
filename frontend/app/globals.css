@@ -205,3 +205,18 @@ body {
 [data-theme="dark"] .invert-on-dark {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* A faint dot grid behind the main-site pages: one 1px dot every 22px,
+   drawn from the theme's own text colour at 9% so it follows dark and
+   light. It sits on top of background-color (bg-base-100), which it does
+   not replace. Not used on /cfb or /bikeride, which have their own look,
+   and browsers do not print backgrounds by default, so the resume PDF is
+   untouched. */
+.bg-dot-grid {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-base-content) 9%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 22px 22px;
+}
+

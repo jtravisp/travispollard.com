@@ -11,7 +11,7 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-base-100 text-base-content">
+    <main className="min-h-screen bg-base-100 bg-dot-grid text-base-content">
       <div className="mx-auto max-w-4xl px-6 py-10">
         <HeaderWithTheme />
 
