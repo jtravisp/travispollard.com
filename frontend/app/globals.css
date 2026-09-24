@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* `dark:` follows the site's theme toggle, not the OS. Tailwind's default
+   dark variant reads prefers-color-scheme, which the site deliberately
+   ignores (dark is the default; the toggle writes data-theme on <html>).
+   Caution: /cfb's own light theme is a wrapper *inside* <html
+   data-theme="dark">, so dark: utilities still match there. Do not use
+   them on /cfb components. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Two themes, not seven.
    The site shipped Business, Nord, Dracula, Cupcake, Corporate, Synthwave and
    Cyberpunk, of which four were reachable from the switcher. Seven palettes is
@@ -189,3 +197,18 @@ body {
   padding-left: 1.5rem;
   text-indent: -1.5rem;
 }
+
+/* A faint dot grid behind the main-site pages: one 1px dot every 22px,
+   drawn from the theme's own text colour at 9% so it follows dark and
+   light. It sits on top of background-color (bg-base-100), which it does
+   not replace. Not used on /cfb or /bikeride, which have their own look,
+   and browsers do not print backgrounds by default, so the resume PDF is
+   untouched. */
+.bg-dot-grid {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-base-content) 9%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 22px 22px;
+}
+

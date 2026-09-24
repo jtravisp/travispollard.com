@@ -32,8 +32,17 @@ function Eyebrow() {
 
 function Title() {
   return (
-    <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-      Platform Engineer
+    // Gradient text: white to neutral-400 on the dark theme. The light theme
+    // cannot take the same stops -- neutral-400 on the light surface is under
+    // 3:1 even at this size -- so it fades from the text colour to 70% of it.
+    // The gradient is on an inline span with box-decoration-clone, so each
+    // line of the wrapped heading gets the full fade across its own words.
+    // On the block h1 it spanned the whole column and most of the fade fell
+    // in empty space. pb-1 keeps the "g" descender inside the clip.
+    <h1 className="mb-3 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+      <span className="box-decoration-clone bg-linear-to-r from-base-content to-base-content/70 bg-clip-text pb-1 text-transparent dark:from-white dark:to-neutral-400">
+        Platform Engineer
+      </span>
     </h1>
   );
 }
@@ -71,22 +80,26 @@ function Buttons({ className = '' }: { className?: string }) {
 }
 
 /**
- * The accent ring and its glow.
+ * The photograph, backlit.
  *
- * One ring, one colour, and the glow is a wide low-alpha shadow in the same
- * hue rather than a second border -- two rings reads as a target.
- * `color-mix` against `--color-primary` keeps it on the accent when the theme
- * swaps the accent for its darker light-mode value.
+ * No ring: a large, heavily blurred coral disc sits behind the image as
+ * ambient light instead of a hard edge around it. `isolate` gives it its own
+ * stacking context, so `-z-10` puts it behind the photo and not behind the
+ * page background, where it would vanish.
+ *
+ * The photo is full colour at full opacity, always. A grayscale-until-hover
+ * treatment was tried and dropped: a portrait should look like the person,
+ * and phones have no hover to bring the colour back. The backlight is wider
+ * and stronger than it was behind the grayscale photo (inset 14 rather than
+ * 10, 40% rather than 25%) so it still reads around a colour image.
  */
-function RingedPhoto() {
+function BacklitPhoto() {
   return (
-    <div
-      className="relative w-56 shrink-0 rounded-full p-[3px] sm:w-64 lg:w-80"
-      style={{
-        background: 'var(--color-primary)',
-        boxShadow: '0 0 60px -12px color-mix(in oklab, var(--color-primary) 65%, transparent)',
-      }}
-    >
+    <div className="relative isolate w-56 shrink-0 sm:w-64 lg:w-80">
+      <div
+        aria-hidden="true"
+        className="absolute -inset-14 -z-10 rounded-full bg-primary opacity-40 blur-3xl"
+      />
       <Headshot className="!w-full rounded-full" />
     </div>
   );
@@ -94,14 +107,14 @@ function RingedPhoto() {
 
 export default function Hero() {
   return (
-    <section className="mb-24 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
+    <section className="mb-32 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
       <div className="w-full lg:flex-1">
         <Eyebrow />
         <Title />
         <ValueLine className="max-w-xl" />
         <Buttons className="mt-8" />
       </div>
-      <RingedPhoto />
+      <BacklitPhoto />
     </section>
   );
 }
