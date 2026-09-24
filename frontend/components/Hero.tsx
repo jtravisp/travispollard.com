@@ -82,23 +82,25 @@ function Buttons({ className = '' }: { className?: string }) {
 /**
  * The photograph, backlit.
  *
- * No ring: a large, heavily blurred, low-opacity coral disc sits behind the
- * image as ambient light instead of a hard edge around it. `isolate` gives it
- * its own stacking context, so `-z-10` puts it behind the photo and not behind
- * the page background, where it would vanish.
+ * No ring: a large, heavily blurred coral disc sits behind the image as
+ * ambient light instead of a hard edge around it. `isolate` gives it its own
+ * stacking context, so `-z-10` puts it behind the photo and not behind the
+ * page background, where it would vanish.
  *
- * The photo is grayscale at 90% and comes up to full colour on hover. On a
- * touch screen there is no hover, so a phone always sees the grayscale
- * version; reduced-motion users get the change without the transition.
+ * The photo is full colour at full opacity, always. A grayscale-until-hover
+ * treatment was tried and dropped: a portrait should look like the person,
+ * and phones have no hover to bring the colour back. The backlight is wider
+ * and stronger than it was behind the grayscale photo (inset 14 rather than
+ * 10, 40% rather than 25%) so it still reads around a colour image.
  */
 function BacklitPhoto() {
   return (
     <div className="relative isolate w-56 shrink-0 sm:w-64 lg:w-80">
       <div
         aria-hidden="true"
-        className="absolute -inset-10 -z-10 rounded-full bg-primary opacity-25 blur-3xl"
+        className="absolute -inset-14 -z-10 rounded-full bg-primary opacity-40 blur-3xl"
       />
-      <Headshot className="!w-full rounded-full opacity-90 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 motion-reduce:transition-none" />
+      <Headshot className="!w-full rounded-full" />
     </div>
   );
 }
