@@ -44,6 +44,11 @@ module "cloudfront" {
   # Defined in cfb-wiring.tf, so everything football-shaped stays in one
   # removable file. Empty lists here would produce the distribution exactly as
   # it was before these variables existed.
-  extra_origins   = local.cfb_extra_origins
-  extra_behaviors = local.cfb_extra_behaviors
+  extra_origins = local.cfb_extra_origins
+
+  # Static-asset behavior first (cache-control.tf), then football's. The two
+  # patterns do not overlap, so the order only matters for reading.
+  extra_behaviors = concat(local.static_asset_behaviors, local.cfb_extra_behaviors)
+
+  default_response_headers_policy_id = aws_cloudfront_response_headers_policy.revalidate.id
 }

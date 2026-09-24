@@ -69,6 +69,19 @@ variable "extra_behaviors" {
     path_pattern     = string
     target_origin_id = string
     cache_policy_id  = string
+    # Optional, so existing callers are unchanged: null attaches no policy
+    # and the viewer gets whatever headers the origin sent.
+    response_headers_policy_id = optional(string)
   }))
   default = []
+}
+
+variable "default_response_headers_policy_id" {
+  description = <<-EOT
+    Response headers policy for the default behavior. Null, the default,
+    attaches none -- the distribution this module produced before the
+    variable existed.
+  EOT
+  type        = string
+  default     = null
 }
