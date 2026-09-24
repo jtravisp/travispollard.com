@@ -19,9 +19,10 @@
   themes: false;
 }
 
-/* The default. prefersdark so a visitor with no stored choice and a dark OS
-   lands here; the inline script in app/layout.tsx is what actually decides,
-   before first paint. */
+/* The default, for every visitor without a stored choice whatever their OS
+   prefers. The inline script in app/layout.tsx is what actually decides,
+   before first paint; default/prefersdark here only cover the no-script
+   case. */
 @plugin "daisyui/theme" {
   name: "dark";
   default: true;

@@ -21,14 +21,17 @@ const geistMono = Geist_Mono({
  * `<head>` is synchronous and blocks paint, so the first frame is already
  * correct.
  *
- * Order is deliberate: a stored choice always wins over the OS preference,
- * because someone who picked light on a dark machine meant it. The try/catch
- * covers private mode, where reading localStorage throws rather than returning
- * null, and falls back to the default rather than leaving the page unthemed.
+ * A stored choice wins; with none, the site is dark. It used to fall back to
+ * prefers-color-scheme, which put every first visit from a light-mode OS on
+ * the light theme -- dark is the site's look, so it is the default whatever
+ * the OS says, and the toggle (persisted) is how a visitor opts into light.
+ * The try/catch covers private mode, where reading localStorage throws rather
+ * than returning null, and falls back to dark rather than leaving the page
+ * unthemed.
  *
  * Kept as a string, minified by hand, because it ships in every HTML file.
  */
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 const TITLE = `${site.name} - ${site.role}`;
 const DESCRIPTION =
