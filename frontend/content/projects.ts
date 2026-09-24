@@ -63,22 +63,20 @@ export const cloudAiProjects: Project[] = [
     tags: ['Bedrock', 'AgentCore', 'Strands', 'Go', 'Cognito'],
     links: [{ label: 'live', url: 'https://ncoer.travispollard.com' }],
     featured: true,
-    // Supplied verbatim by Travis on 2026-09-24, corrected the same day to
-    // what is deployed. Reword only with him.
+    // Travis's text, verbatim (2026-09-24). Reword only with him.
     items: [
-      'Turns raw performance notes into regulation-compliant NCOER bullet drafts for Army Band NCOs across DA Form 2166-9-1 and 2166-9-2 formats',
-      'Accepts pasted counseling notes, previous evaluation bullets, or raw performance dumps',
-      'Python agents built with Strands on Amazon Bedrock: an intake agent that identifies missing detail and prompts for context, and a drafting agent grounded in DA Pam 623-3 and an Army Band MOS translation table',
-      'Drafting pipeline is constrained from inventing statistics or accomplishments—prompts require verification for unstated metrics',
-      'Go-based structural validator enforces Army Evaluation Entry System (EES) rules, including bullet counts per block and character-level formatting, integrated via an MCP server behind AgentCore Gateway',
-      'Sign-in federated via Google through AWS Cognito, with access controlled via a DynamoDB allowlist checked during session creation',
-      'Stateless request architecture ensures no Soldier performance data is persisted after session termination',
-      'Static Next.js frontend hosted on S3 and CloudFront, deployed via GitHub Actions over OIDC and provisioned with Terraform',
+      "Multi-agent pipeline that transforms raw performance notes into regulation-compliant NCOER bullets for Army Band NCOs (DA Forms 2166-9-1 and 2166-9-2)",
+      "Strands agents on Amazon Bedrock: an intake agent prompts for missing details, while a drafting agent applies DA Pam 623-3 and MOS translation logic",
+      "Strict prompt constraints prevent hallucinated metrics; unverified achievements trigger clarification requests rather than assumed stats",
+      "Deterministic Go validator enforces EES formatting rules (bullet counts, character limits, leading syntax) via a Go MCP server behind AgentCore Gateway",
+      "Auth handled via Google-federated Cognito with a DynamoDB access allowlist checked per session",
+      "Stateless request lifecycle ensures no Soldier performance data is persisted after evaluation generation",
+      "Static Next.js frontend hosted on S3/CloudFront, deployed via GitHub Actions OIDC and provisioned with Terraform",
     ],
   },
   {
     id: 'cfb-forecast',
-    title: 'CFB Forecast - An Elo Model That Scores Itself',
+    title: 'CFB Forecast - Automated Elo Prediction Engine',
     cardTitle: 'CFB Forecast',
     summary:
       'Predicts every FBS game each week, then grades itself against the betting market in public.',
@@ -88,14 +86,14 @@ export const cloudAiProjects: Project[] = [
       { label: 'repo', url: 'https://github.com/jtravisp/travispollard.com' },
     ],
     featured: true,
+    // Travis's text, verbatim (2026-09-24). Reword only with him.
     items: [
-      'Predicts every FBS game each week, writes the forecast to immutable storage before kickoff, and scores it against both the result and the closing betting line',
-      'Elo model seeded from Sagarin preseason ratings; the rating scale, K, and the margin-of-victory floor were fitted by grid search over a 2015-2025 backfill rather than picked by convention',
-      'Python pipeline ingests the CollegeFootballData API and parses the Sagarin ratings page into timestamped, immutable raw snapshots, with a manifest written beside every object',
-      'Validation failures raise rather than log-and-continue, an unmapped team name is an error rather than a fuzzy match, and every published mean carries its own denominator - a silently dropped row is the one failure the whole design exists to prevent',
-      'Published JSON lands in a dedicated S3 bucket and is served through a second CloudFront origin behind an Origin Access Control, to static Next.js pages on this site',
-      'Scheduled GitHub Actions assume a publisher role by OIDC with no stored keys, the vendor API key lives in SSM Parameter Store, and the pipeline keeps its Terraform state isolated from the site stack',
-      'A per-run API call budget is enforced inside the client, with mutation tests proving the assertions catch a guard that counts after sending rather than before',
+      "Weekly FBS prediction engine that publishes game forecasts to immutable storage before kickoff and tracks accuracy against Vegas closing lines",
+      "Custom Elo model seeded from Sagarin ratings, with K-factor and margin-of-victory parameters tuned via a 2015–2025 historical backfill",
+      "Python ingestion pipeline parses CollegeFootballData API and raw Sagarin snapshots with strict validation (unmapped teams or missing data throw immediate build errors)",
+      "JSON predictions publish to an isolated S3 bucket served via a second CloudFront origin behind OAC",
+      "GitHub Actions runner assumes AWS publisher roles via OIDC, pulling vendor API keys from SSM Parameter Store",
+      "Client-side execution limits enforce API call budgets, backed by mutation testing in CI",
     ],
   },
   {
@@ -222,8 +220,8 @@ export const featuredProjects: Project[] = cloudAiProjects.filter((p) => p.featu
  * the flat list read as a helpdesk log rather than as the operations work the
  * platform engineering sits on.
  *
- * `title` is the collapsible heading on the page (unchanged); `heading` and
- * `lead` open the terminal block beneath it.
+ * `title` is the collapsible heading on the page and `heading` opens the
+ * terminal block beneath it. They read the same, so the section has one name.
  */
 export type EarlierWorkItem = { label: string; text: string };
 
@@ -233,7 +231,7 @@ export const earlierWork: {
   lead: string;
   groups: { heading: string; items: EarlierWorkItem[] }[];
 } = {
-  title: 'Earlier IT & Identity Work',
+  title: 'Systems, Identity & Operations',
   heading: 'Systems, Identity & Operations',
   lead: 'Condensed high-impact work from enterprise IT and identity engineering roles prior to platform focus.',
   groups: [
