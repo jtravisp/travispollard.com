@@ -125,7 +125,7 @@ export default function Projects() {
 
         <PageIntro
           title="Projects"
-          lead="Things I have built and run, newest and most live first. The terminal is the point here: this is the page where a shell prompt is the subject rather than decoration."
+          lead="Things I have built and run, newest and most live first."
         />
 
         <div className={`${TERMINAL} mb-12`}>

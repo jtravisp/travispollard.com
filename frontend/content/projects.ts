@@ -63,14 +63,17 @@ export const cloudAiProjects: Project[] = [
     tags: ['Bedrock', 'AgentCore', 'Strands', 'Go', 'Cognito'],
     links: [{ label: 'live', url: 'https://ncoer.travispollard.com' }],
     featured: true,
-    unverified: true,
+    // Supplied verbatim by Travis on 2026-09-24, replacing the drafted-from-
+    // notes version that was held behind `unverified`.
     items: [
-      'Built a multi-agent pipeline that turns raw performance notes into regulation-compliant Army NCOER bullets',
-      'Python Strands agents on Amazon Bedrock and AgentCore: an intake agent that asks coaching questions when details are missing, a RAG drafting agent grounded in DA Pam 623-3, and a compliance critic checking against AR 623-3',
-      'Deterministic Go validator for EES formatting rules, exposed as a Go MCP server behind an AgentCore Gateway - the rules that are not a judgement call never go to a model',
-      'Cognito federating Google sign-in against a DynamoDB allowlist, with revocation driven by DynamoDB Streams and a global sign-out',
-      'An eval harness gates changes in CI - TODO(travis): real numbers',
-      'TODO(travis): confirm - this project lives in a separate repository, so the lines above are drafted from notes rather than verified, and the eval harness line needs real numbers',
+      "Turns a rater's raw notes into NCOER bullets for Army Band NCOs, organized by the six competency blocks (Character, Presence, Intellect, Leads, Develops, Achieves), for the 2166-9-1 and 2166-9-2",
+      "Accepts a pasted brain dump, last year's bullets, counseling notes, or an uploaded 2166-9-1A support form PDF",
+      'Python agents built with Strands on Amazon Bedrock and AgentCore: an intake agent that asks one batch of follow-up questions when the notes are thin, a drafting agent grounded in DA Pam 623-3 and a band-specific MOS translation table, and a compliance critic that checks drafts against AR 623-3 prohibited comments and empty platitudes',
+      "The drafting agent is not allowed to invent an achievement or a number - if it isn't in the notes, it asks instead of guessing",
+      "Formatting rules the model can't be trusted with - two-line maximum, bullet count per block, lowercase start - are enforced by a deterministic Go validator, exposed alongside the other tools through a Go MCP server behind AgentCore Gateway",
+      'Sign-in is Google federated through Cognito, gated by a DynamoDB allowlist checked at sign-up and sign-in; removing someone from the allowlist triggers a DynamoDB Stream Lambda that disables the user and signs them out globally',
+      'Stateless by design: no Soldier data is stored after the session, and the public repo contains synthetic data only',
+      'Static Next.js frontend on S3 and CloudFront in a dedicated AWS account, deployed by GitHub Actions over OIDC, provisioned with Terraform',
     ],
   },
   {
