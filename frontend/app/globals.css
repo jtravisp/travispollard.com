@@ -85,3 +85,18 @@ body {
   --radius-box: 0.75rem;
   --border: 1px;
 }
+
+/* Hanging indent for the sub-bullet lines on the resume.
+   Those rows carry their own "  - " inside the code text rather than a
+   data-prefix glyph, so a wrapped line returned to the code element's left
+   edge and sat under the bullet instead of under the sentence it belongs to.
+   Negative text-indent against matching padding puts the first line where it
+   was and tucks the wraps in behind it.
+
+   A class, not pre[data-prefix=" "]: cssnano's attribute parser throws
+   "Cannot read properties of undefined" on a selector whose attribute value is
+   a quoted space, and takes the whole production build down with it. */
+.mockup-code pre.sub-bullet > code {
+  padding-left: 1.5rem;
+  text-indent: -1.5rem;
+}

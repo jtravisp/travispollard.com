@@ -117,8 +117,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Writing. Adding a post is one object in content/site.ts. */}
-        <section className="w-full max-w-3xl mx-auto mb-16">
+        {/* Writing. Adding a post is one object in content/site.ts.
+            Full width, not max-w-3xl: it was the only section on the page that
+            was centred narrower than the rest, so its heading sat 110px right
+            of every other heading at 1440. */}
+        <section className="w-full mb-16">
           <h2 className="text-xl font-bold mb-4">Writing</h2>
           <div className="flex flex-col gap-3">
             {writing.map((post) => (
@@ -140,21 +143,36 @@ export default function Home() {
           <Techstack />
         </section>
 
-        {/* Skill Badges */}
-        <section className="flex flex-wrap justify-center gap-8 mb-20">
+        {/* Certification badges.
+            No mask-squircle. All three are transparent PNGs of different aspect
+            ratios, so the mask clipped the Terraform wordmark's right edge
+            while doing nothing for the two hexagonal AWS badges. Matching them
+            on height instead lines them up without cropping any of them.
+
+            The white chip is not decoration either: the Terraform lockup is
+            near-black artwork on transparency, so on Business and Dracula it
+            was black on near-black and the word was gone. These are vendor
+            brand assets drawn for a light background, and giving all three the
+            same light chip is both legible and what the brand guidelines
+            assume -- rather than tinting one badge and not the others. */}
+        <section className="flex flex-wrap items-center justify-center gap-6 mb-20">
           {[
             { src: '/images/AWS%20CSA.png', alt: 'AWS Certified Solutions Architect - Associate badge' },
             { src: '/images/AWS%20Dev.png', alt: 'AWS Certified Developer - Associate badge' },
             { src: '/images/terraform.webp', alt: 'HashiCorp Certified: Terraform Associate badge' },
           ].map((badge) => (
-            <img
+            <div
               key={badge.src}
-              src={badge.src}
-              alt={badge.alt}
-              width={150}
-              height={150}
-              className="mask mask-squircle w-[150px] h-auto shadow-md"
-            />
+              className="flex h-[150px] w-[170px] items-center justify-center rounded-box bg-white p-4 shadow-md"
+            >
+              <img
+                src={badge.src}
+                alt={badge.alt}
+                width={150}
+                height={150}
+                className="max-h-full w-auto object-contain"
+              />
+            </div>
           ))}
         </section>
 

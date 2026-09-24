@@ -170,20 +170,20 @@ export default function Resume() {
             <pre data-prefix=">">
               <code>Nuvitek, Washington, DC - Platform Engineer, US Department of Labor (2024-Present)</code>
             </pre>
-            <pre data-prefix=" "><code>  • Expanded scope to serve as de facto PM, BA, and QA lead for multiple federal Salesforce apps following team reduction</code></pre>
-            <pre data-prefix=" "><code>  • Architected and containerized an internal LMS (Moodle) using a custom Docker image deployed to AWS ECS with Terraform</code></pre>
-            <pre data-prefix=" "><code>  • Led technical planning and execution of Salesforce Experience Cloud migration from .com to .gov domains</code></pre>
-            <pre data-prefix=" "><code>  • Authored Jira epics, stories, and acceptance criteria across multiple concurrent projects</code></pre>
-            <pre data-prefix=" "><code>  • Produced technical documentation and user guides for federal reporting applications</code></pre>
-            <pre data-prefix=" "><code>  • Performed Salesforce administration: user access audits, custom reports, bug troubleshooting, dev QA</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Expanded scope to serve as de facto PM, BA, and QA lead for multiple federal Salesforce apps following team reduction</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Architected and containerized an internal LMS (Moodle) using a custom Docker image deployed to AWS ECS with Terraform</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Led technical planning and execution of Salesforce Experience Cloud migration from .com to .gov domains</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Authored Jira epics, stories, and acceptance criteria across multiple concurrent projects</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Produced technical documentation and user guides for federal reporting applications</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Performed Salesforce administration: user access audits, custom reports, bug troubleshooting, dev QA</code></pre>
             <pre data-prefix=">">
               <code>United States Gold Bureau, Austin, TX - IT Support and Systems Specialist (2023-2024)</code>
             </pre>
-            <pre data-prefix=" "><code>  • Supported 200+ end users, implemented Apple MDM (Kandji), trained new IT staff, administered M365/Entra, automated processes with PowerShell, Go, and Bash</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Supported 200+ end users, implemented Apple MDM (Kandji), trained new IT staff, administered M365/Entra, automated processes with PowerShell, Go, and Bash</code></pre>
             <pre data-prefix=">">
               <code>Texas Army National Guard, 36th Infantry Division Band, Austin, TX - Sergeant First Class, Music Performance Team Leader (2007-Present)</code>
             </pre>
-            <pre data-prefix=" "><code>  • Supervise a platoon of 12 soldiers and lead performance team of 18 soldiers</code></pre>
+            <pre data-prefix=" " className="sub-bullet"><code>  • Supervise a platoon of 12 soldiers and lead performance team of 18 soldiers</code></pre>
             <pre data-prefix=">">
               <code>Brentwood Christian School, Austin, TX - Band Director / Fine Arts Chair / Theater Manager (2006-2023)</code>
             </pre>
