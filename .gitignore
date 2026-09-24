@@ -60,3 +60,6 @@ terraform.rc
 key.txt
 *.key
 *.pem
+
+# Terraform-built deployment packages (status-checker.tf)
+.build/
