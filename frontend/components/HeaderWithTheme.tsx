@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { href: '/resume', label: 'Resume' },
   { href: '/projects', label: 'Projects' },
   { href: '/stack', label: 'Stack' },
+  { href: '/status', label: 'Status' },
   { href: '/cfb', label: 'CFB Forecast' },
   { href: 'https://ncoer.travispollard.com', label: 'NCOER Writer', external: true },
 ];
