@@ -1,9 +1,13 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
+import Headshot from '@/components/Headshot';
 import VisitorCounter from '@/components/VisitorCounter';
+import { featuredProjects } from '@/content/projects';
+import { site, writing } from '@/content/site';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import Techstack from "./techstack";
+import Techstack from './techstack';
 
 export default function Home() {
   return (
@@ -13,69 +17,122 @@ export default function Home() {
         {/* Header */}
         <HeaderWithTheme />
 
-        {/* Intro */}
-        <section className="flex flex-col gap-6 mb-16 items-center text-center">
-          <div className="mockup-code w-full max-w-xl text-left">
-            <pre data-prefix="$">
-              <code>whoami</code>
-            </pre>
-            <pre data-prefix=">" className="text-warning">
-              <code><a href="mailto:travis@travispollard.com" className="link">travis@travispollard.com</a></code>
-            </pre>
-            <pre data-prefix=">" className="text-warning">
-              <code>Cloud / DevOps Engineer</code>
-            </pre>
+        {/* Hero.
+            Two columns at lg rather than a centred stack: the portrait used to
+            sit under the terminal card at 450px wide, which pushed the calls to
+            action off a 1440x900 screen entirely. Name, role, value statement,
+            and both buttons now land above the fold. */}
+        <section className="mb-16 flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+          <div className="w-full lg:flex-1">
+            <h1 className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl">
+              {site.name}
+            </h1>
+
+            <div className="mockup-code w-full max-w-xl text-left [&_pre]:whitespace-pre-wrap">
+              <pre data-prefix="$">
+                <code className="text-info">whoami</code>
+              </pre>
+              <pre data-prefix=">" className="text-warning">
+                <code>
+                  <a href={`mailto:${site.email}`} className="link">
+                    {site.email}
+                  </a>
+                </code>
+              </pre>
+              <pre data-prefix=">" className="text-warning">
+                <code>{site.role}</code>
+              </pre>
+              <pre data-prefix=">" className="text-warning">
+                <code>{site.valueStatement}</code>
+              </pre>
+            </div>
+
+            {/* "View My Resume" and "Download Resume (PDF)" sat side by side
+                asking the same question twice. One Resume button; the PDF is on
+                the page it belongs to. */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/resume" className="btn btn-primary">
+                Resume
+              </Link>
+              <Link href="/projects" className="btn btn-accent">
+                Projects
+              </Link>
+              <a href={`mailto:${site.email}`} className="btn btn-outline">
+                Contact
+              </a>
+            </div>
           </div>
 
-          <img
-            src="/images/travis.webp"
-            alt="Travis Pollard"
-            width={900}
-            height={900}
-            className="rounded-box shadow-lg w-full max-w-[450px] h-auto"
-          />
+          <Headshot className="shrink-0" />
         </section>
 
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <Link href="/resume" className="btn btn-accent">
-            View My Resume
-          </Link>
-          <Link href="/projects" className="btn btn-primary">
-            See My Projects
-          </Link>
-          <a
-            href="/Travis%20Pollard%20Resume.pdf"
-            download
-            className="btn btn-secondary"
-          >
-            Download Resume (PDF)
-          </a>
-        </div>
+        {/* Featured projects. Same objects the /projects page renders. */}
+        <section className="mb-16">
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <h2 className="text-xl font-bold">Featured Projects</h2>
+            <Link href="/projects" className="link link-hover text-sm text-base-content/70">
+              All projects
+            </Link>
+          </div>
 
-        {/* Writing */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredProjects.map((project) => (
+              <article
+                key={project.id}
+                className="card flex flex-col gap-3 border border-base-300 bg-base-200 p-5"
+              >
+                <h3 className="text-lg font-semibold">{project.cardTitle}</h3>
+                <p className="text-sm text-base-content/80">{project.summary}</p>
+
+                <ul className="flex flex-wrap gap-1.5">
+                  {project.tags.map((tag) => (
+                    <li key={tag} className="badge badge-sm badge-outline font-mono text-xs">
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+
+                {project.links.length > 0 && (
+                  <ul className="mt-auto flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm">
+                    {project.links.map((link) => (
+                      <li key={link.url}>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link link-primary inline-flex items-center gap-1"
+                        >
+                          {link.label}
+                          <ArrowUpRight size={13} aria-hidden="true" className="opacity-70" />
+                          <span className="sr-only">
+                            {project.cardTitle} (opens in a new tab)
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* Writing. Adding a post is one object in content/site.ts. */}
         <section className="w-full max-w-3xl mx-auto mb-16">
           <h2 className="text-xl font-bold mb-4">Writing</h2>
           <div className="flex flex-col gap-3">
-            <a
-              href="https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
-            >
-              <span className="font-semibold">
-                From S3 to CI/CD: My Cloud Resume Challenge Journey
-              </span>
-              <span className="text-sm opacity-70">dev.to</span>
-            </a>
-            <a
-              href="https://medium.com/@travis_17385"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
-            >
-              <span className="font-semibold">More posts on cloud, automation, and career change</span>
-              <span className="text-sm opacity-70">Medium</span>
-            </a>
+            {writing.map((post) => (
+              <a
+                key={post.url}
+                href={post.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
+              >
+                <span className="font-semibold">{post.title}</span>
+                <span className="text-sm opacity-70">{post.outlet}</span>
+              </a>
+            ))}
           </div>
         </section>
 
@@ -94,6 +151,8 @@ export default function Home() {
               key={badge.src}
               src={badge.src}
               alt={badge.alt}
+              width={150}
+              height={150}
               className="mask mask-squircle w-[150px] h-auto shadow-md"
             />
           ))}
@@ -101,7 +160,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="footer footer-center p-6 bg-neutral text-neutral-content rounded-lg">
-          <p>&copy; 2026 Travis Pollard - Austin, TX - travis@travispollard.com</p>
+          <p>&copy; 2026 {site.name} - {site.location} - {site.email}</p>
         </footer>
 
         <VisitorCounter />
