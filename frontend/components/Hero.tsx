@@ -41,7 +41,18 @@ function Title() {
 function ValueLine({ className = '' }: { className?: string }) {
   return (
     <p className={`text-lg leading-relaxed text-base-content/75 ${className}`}>
-      {site.valueStatement}
+      {/* A hyphenated word stays on one line: at 1440 the browser broke
+          "AI-driven" after its hyphen and started the second line on
+          "driven". Wrapping between words is untouched. */}
+      {site.valueStatement.split(/(\S+-\S+)/).map((part, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="whitespace-nowrap">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
     </p>
   );
 }
