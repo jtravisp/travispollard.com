@@ -2,144 +2,112 @@
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import Hero from '@/components/Hero';
+import SiteFooter from '@/components/SiteFooter';
+import TechBand from '@/components/TechBand';
 import VisitorCounter from '@/components/VisitorCounter';
 import { featuredProjects } from '@/content/projects';
-import { site, writing } from '@/content/site';
-import { ArrowUpRight } from 'lucide-react';
+import { writing } from '@/content/site';
 import Link from 'next/link';
-import Techstack from './techstack';
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-base-100 text-base-content">
-      <div className="max-w-5xl mx-auto px-4 py-10">
-
-        {/* Header */}
+      <div className="mx-auto max-w-4xl px-6 py-10">
         <HeaderWithTheme />
 
         <Hero />
 
-        {/* Featured projects. Same objects the /projects page renders. */}
-        <section className="mb-16">
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 className="text-xl font-bold">Featured Projects</h2>
-            <Link href="/projects" className="link link-hover text-sm text-base-content/70">
-              All projects
+        <TechBand />
+
+        {/* Featured projects.
+            A stacked list rather than three cards: it gives each project room
+            for a sentence that says something, it does not go ragged when a
+            fourth is added, and three equal-width bordered boxes is the single
+            most template-looking shape on the internet.
+
+            Tags are middot-separated text. The only link styling is one arrow
+            per destination. */}
+        <section className="mb-24">
+          <div className="mb-8 flex items-baseline justify-between gap-4">
+            <h2 className="text-2xl font-bold tracking-tight">Featured Projects</h2>
+            <Link
+              href="/projects"
+              className="text-sm text-base-content/60 hover:text-primary"
+            >
+              All projects &rarr;
             </Link>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="divide-y divide-base-300 border-t border-base-300">
             {featuredProjects.map((project) => (
-              <article
-                key={project.id}
-                className="card flex flex-col gap-3 border border-base-300 bg-base-200 p-5"
-              >
+              <li key={project.id} className="py-7">
                 <h3 className="text-lg font-semibold">{project.cardTitle}</h3>
-                <p className="text-sm text-base-content/80">{project.summary}</p>
-
-                <ul className="flex flex-wrap gap-1.5">
-                  {project.tags.map((tag) => (
-                    <li key={tag} className="badge badge-sm badge-outline font-mono text-xs">
-                      {tag}
-                    </li>
-                  ))}
-                </ul>
-
+                <p className="mt-1.5 max-w-2xl text-base-content/75">{project.summary}</p>
+                <p className="mt-3 font-mono text-xs text-base-content/45">
+                  {project.tags.join(' · ')}
+                </p>
                 {project.links.length > 0 && (
-                  <ul className="mt-auto flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm">
+                  <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
                     {project.links.map((link) => (
-                      <li key={link.url}>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="link text-base-content/90 hover:text-base-content inline-flex items-center gap-1"
-                        >
-                          {link.label}
-                          <ArrowUpRight size={13} aria-hidden="true" className="opacity-70" />
-                          <span className="sr-only">
-                            {project.cardTitle} (opens in a new tab)
-                          </span>
-                        </a>
-                      </li>
+                      <a
+                        key={link.url}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base-content/70 hover:text-primary"
+                      >
+                        {link.label === 'live' ? 'View project' : link.label} &rarr;
+                        <span className="sr-only"> ({project.cardTitle}, opens in a new tab)</span>
+                      </a>
                     ))}
-                  </ul>
+                  </p>
                 )}
-              </article>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
-        {/* Writing. Adding a post is one object in content/site.ts.
-            Full width, not max-w-3xl: it was the only section on the page that
-            was centred narrower than the rest, so its heading sat 110px right
-            of every other heading at 1440. */}
-        <section className="w-full mb-16">
-          <h2 className="text-xl font-bold mb-4">Writing</h2>
-          <div className="flex flex-col gap-3">
+        {/* Writing. A list, not cards. Adding a post is one object in
+            content/site.ts. */}
+        <section className="mb-24">
+          <h2 className="mb-8 text-2xl font-bold tracking-tight">Writing</h2>
+          <ul className="divide-y divide-base-300 border-t border-base-300">
             {writing.map((post) => (
-              <a
-                key={post.url}
-                href={post.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="card bg-base-200 hover:bg-base-300 transition-colors p-4 border-l-4 border-primary"
-              >
-                <span className="font-semibold">{post.title}</span>
-                <span className="text-sm opacity-70">{post.outlet}</span>
-              </a>
+              <li key={post.url} className="py-5">
+                <a
+                  href={post.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"
+                >
+                  <span className="font-medium group-hover:text-primary">{post.title}</span>
+                  <span className="text-sm text-base-content/50">
+                    {post.outlet}
+                    {post.year ? ` · ${post.year}` : ''}
+                  </span>
+                </a>
+              </li>
             ))}
-          </div>
-        </section>
-
-        <section className="flex flex-col items-center gap-6 mb-16 text-center">
-          <Techstack />
-        </section>
-
-        {/* Certification badges.
-            No mask-squircle. All three are transparent PNGs of different aspect
-            ratios, so the mask clipped the Terraform wordmark's right edge
-            while doing nothing for the two hexagonal AWS badges. Matching them
-            on height instead lines them up without cropping any of them.
-
-            The white chip is not decoration either: the Terraform lockup is
-            near-black artwork on transparency, so on Business and Dracula it
-            was black on near-black and the word was gone. These are vendor
-            brand assets drawn for a light background, and giving all three the
-            same light chip is both legible and what the brand guidelines
-            assume -- rather than tinting one badge and not the others. */}
-        <section className="flex flex-wrap items-center justify-center gap-6 mb-20">
-          {[
-            { src: '/images/AWS%20CSA.png', alt: 'AWS Certified Solutions Architect - Associate badge' },
-            { src: '/images/AWS%20Dev.png', alt: 'AWS Certified Developer - Associate badge' },
-            { src: '/images/terraform.webp', alt: 'HashiCorp Certified: Terraform Associate badge' },
-          ].map((badge) => (
-            <div
-              key={badge.src}
-              className="flex h-[150px] w-[170px] items-center justify-center rounded-box bg-white p-4 shadow-md"
+          </ul>
+          <p className="mt-6 text-sm">
+            <a
+              href="https://medium.com/@travis_17385"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base-content/70 hover:text-primary"
             >
-              <img
-                src={badge.src}
-                alt={badge.alt}
-                width={150}
-                height={150}
-                className="max-h-full w-auto object-contain"
-              />
-            </div>
-          ))}
+              More on Medium &rarr;
+            </a>
+          </p>
         </section>
 
-        {/* Footer */}
-        <footer className="footer footer-center p-6 bg-neutral text-neutral-content rounded-lg">
-          <p>&copy; 2026 {site.name} - {site.location} - {site.email}</p>
-        </footer>
-
+        <SiteFooter />
         <VisitorCounter />
-
       </div>
 
-      <Link href="/campout" className="hidden">Campout</Link>
-
+      <Link href="/campout" className="hidden" aria-hidden="true">
+        Campout
+      </Link>
     </main>
   );
 }

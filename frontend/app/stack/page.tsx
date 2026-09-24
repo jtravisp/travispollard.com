@@ -1,7 +1,7 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
-import { site } from '@/content/site';
+import PageIntro from '@/components/PageIntro';
 import { motion } from 'framer-motion';
 import { Typewriter } from 'react-simple-typewriter';
 
@@ -69,20 +69,16 @@ const inventory = [
 
 export default function Stack() {
   return (
-    <main className="min-h-screen bg-base-100 text-base-content text-lg">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+    <main className="min-h-screen bg-base-100 text-base-content">
+      <div className="mx-auto max-w-4xl px-6 py-10">
         <HeaderWithTheme />
 
-        <div className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap">
-          <pre data-prefix="$" className="text-info">
-            <code>whoami</code>
-          </pre>
-          <pre data-prefix=">" className="text-warning">
-            <code>{site.email}</code>
-          </pre>
-          <pre data-prefix=">" className="text-warning">
-            <code>{site.role}</code>
-          </pre>
+        <PageIntro
+          title="Stack"
+          lead="How this site is built, tested and deployed, and what the Terraform actually declares."
+        />
+
+        <div className="mockup-code mb-12 w-full text-left text-base font-mono [&_pre]:whitespace-pre-wrap">
           <pre data-prefix="$" className="text-success">
             <code>
               <Typewriter
@@ -103,7 +99,7 @@ export default function Stack() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h2 className="text-2xl font-bold mb-2">Architecture</h2>
+          <h2 className="mb-3 text-xl font-bold tracking-tight">Architecture</h2>
           <a
             href="/images/travispollard.comv6.drawio.png"
             target="_blank"
@@ -121,7 +117,7 @@ export default function Stack() {
         </motion.section>
 
         <motion.div
-          className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap"
+          className="mockup-code mb-12 w-full text-left text-base font-mono [&_pre]:whitespace-pre-wrap"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
@@ -137,7 +133,7 @@ export default function Stack() {
         </motion.div>
 
         <motion.div
-          className="mockup-code w-full max-w-5xl mx-auto text-left mb-14 text-lg font-mono [&_pre]:whitespace-pre-wrap"
+          className="mockup-code mb-12 w-full text-left text-base font-mono [&_pre]:whitespace-pre-wrap"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
@@ -158,7 +154,7 @@ export default function Stack() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <h2 className="text-2xl font-bold mb-4">Infrastructure</h2>
+          <h2 className="mb-4 text-xl font-bold tracking-tight">Infrastructure</h2>
           <div className="overflow-x-auto">
             <table className="table table-zebra bg-base-200 rounded-box">
               <thead>
@@ -185,7 +181,7 @@ export default function Stack() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.35 }}
         >
-          <h2 className="text-2xl font-bold mb-4">Writeup</h2>
+          <h2 className="mb-4 text-xl font-bold tracking-tight">Writeup</h2>
           <p>
             I wrote about building this stack end to end, from an empty S3 bucket to a working
             CI/CD pipeline:{' '}
@@ -206,7 +202,7 @@ export default function Stack() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <h2 className="text-2xl font-bold mb-4">Source</h2>
+          <h2 className="mb-4 text-xl font-bold tracking-tight">Source</h2>
           <p>
             The Terraform configuration and the Next.js frontend for this site live in one repository:{' '}
             <a

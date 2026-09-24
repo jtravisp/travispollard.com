@@ -28,7 +28,6 @@ import {
   UpcomingFixture,
   statusOf,
 } from '@/components/cfb/contract';
-import { SeedDisclosure } from '@/components/cfb/contract';
 import {
   describeFavorite,
   edgeOver,

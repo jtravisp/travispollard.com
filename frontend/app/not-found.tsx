@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function NotFoundPage() {
     return (
       <main className="min-h-screen bg-base-100 text-base-content flex flex-col items-center justify-center px-4">
@@ -16,7 +18,7 @@ export default function NotFoundPage() {
           </pre>
           <pre data-prefix=">" className="text-info">
             <code>
-              Try <a href="/" className="link">going home</a> or checking the URL.
+              Try <Link href="/" className="link">going home</Link> or checking the URL.
             </code>
           </pre>
         </div>

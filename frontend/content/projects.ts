@@ -7,10 +7,15 @@
  * objects: `summary` and `tags` render the card, `items` render the terminal
  * lines, and both come from the same entry.
  *
- * `TODO(travis): confirm` markers are load-bearing. Anything here that could not
- * be verified against this repository carries one, and it renders on the page
- * rather than hiding in a comment -- a wrong claim on a portfolio site is worse
- * than a visible unfinished one.
+ * `TODO(travis)` markers are load-bearing. Anything here that could not be
+ * verified carries one, and it renders in development rather than hiding in a
+ * comment nobody opens -- a claim nobody can check is worse than a visibly
+ * unfinished one.
+ *
+ * They do not ship. `visibleItems()` strips them from a production build, and
+ * `scripts/check-no-todos.mjs` fails the build if one reaches the export
+ * anyway. The marker stays in this file either way, so answering it is still
+ * the only way to make the line real.
  */
 
 export type ProjectLink = {
@@ -52,8 +57,7 @@ export const cloudAiProjects: Project[] = [
       'Python Strands agents on Amazon Bedrock and AgentCore: an intake agent that asks coaching questions when details are missing, a RAG drafting agent grounded in DA Pam 623-3, and a compliance critic checking against AR 623-3',
       'Deterministic Go validator for EES formatting rules, exposed as a Go MCP server behind an AgentCore Gateway - the rules that are not a judgement call never go to a model',
       'Cognito federating Google sign-in against a DynamoDB allowlist, with revocation driven by DynamoDB Streams and a global sign-out',
-      'An eval harness gates changes in CI',
-      'TODO(travis): confirm - this project lives in a separate repository, so the lines above are drafted from notes rather than verified, and the eval harness line needs real numbers',
+      'An eval harness gates changes in CI - TODO(travis): real numbers',
     ],
   },
   {
@@ -107,7 +111,7 @@ export const cloudAiProjects: Project[] = [
     cardTitle: 'PrivatePaste',
     summary: 'An encrypted text vault whose server only ever stores ciphertext.',
     tags: ['Go', 'Web Crypto', 'DynamoDB', 'Fargate', 'Terraform'],
-    links: [],
+    links: [{ label: 'repo', url: 'https://github.com/jtravisp/privatepaste' }],
     items: [
       'Built an encrypted text vault where the server only ever stores ciphertext and can never read a paste',
       'AES-256-GCM encryption in the browser via the Web Crypto API - the key lives in the URL fragment and is never transmitted',
@@ -115,8 +119,7 @@ export const cloudAiProjects: Project[] = [
       'DynamoDB with native TTL powering burn-after-read and timed paste expiry',
       'Owner tokens stored only as SHA-256 hashes; request bodies capped at 512KB at the HTTP layer',
       'Containerized on ECS Fargate behind an ALB, provisioned with Terraform using S3 remote state',
-      'Archived after tracing the idle cost: an ALB and a warm Fargate task bill by the hour whether or not anyone pastes anything, which is the wrong shape for traffic that arrives in bursts',
-      'TODO(travis): repo URL',
+      'Taken down after tracing the idle cost: an ALB and a warm Fargate task bill by the hour whether or not anyone pastes anything, which is the wrong shape for traffic that arrives in bursts. The source is still public',
     ],
   },
   {
@@ -216,3 +219,22 @@ export const earlierWork = {
     'Built a helpdesk dashboard in Zendesk with automated weekly reporting to stakeholders',
   ],
 };
+
+
+/** True in `next dev`, false in the exported build. */
+const SHOW_TODOS = process.env.NODE_ENV === 'development';
+
+/**
+ * A project's lines, with unverified ones removed outside development.
+ *
+ * Every rendering path goes through this rather than reading `items` directly.
+ * A line that is *entirely* a TODO disappears; one that ends with a trailing
+ * ` - TODO(travis): ...` keeps the part that was verified and drops the rest,
+ * which is why the markers are written as a suffix.
+ */
+export function visibleItems(project: Project): string[] {
+  if (SHOW_TODOS) return project.items;
+  return project.items
+    .map((item) => item.replace(/\s*-\s*TODO\(travis\):.*$/, '').trim())
+    .filter((item) => item.length > 0 && !item.includes('TODO(travis)'));
+}

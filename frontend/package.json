@@ -6,8 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postbuild": "next-sitemap"
+    "lint": "eslint .",
+    "postbuild": "next-sitemap && node scripts/check-no-todos.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.4",
@@ -20,6 +20,7 @@
     "react-simple-typewriter": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^20",
@@ -27,7 +28,10 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "daisyui": "^5.0.27",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.3.1",
     "postcss": "^8.5.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.70.1"
   }
 }

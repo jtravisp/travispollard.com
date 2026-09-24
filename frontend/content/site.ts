@@ -22,8 +22,10 @@ export const site = {
 
 export type WritingPost = {
   title: string;
-  /** Where it was published, shown under the title. */
+  /** Where it was published, shown beside the title. */
   outlet: string;
+  /** Publication year. Omitted rather than guessed when it is not known. */
+  year?: number;
   url: string;
 };
 
@@ -36,11 +38,8 @@ export const writing: WritingPost[] = [
   {
     title: 'From S3 to CI/CD: My Cloud Resume Challenge Journey',
     outlet: 'dev.to',
+    // From the dev.to API rather than guessed: published_at 2025-04-24.
+    year: 2025,
     url: 'https://dev.to/jtravisp/from-s3-to-cicd-my-cloud-resume-challenge-journey-415o',
-  },
-  {
-    title: 'More posts on cloud, automation, and career change',
-    outlet: 'Medium',
-    url: 'https://medium.com/@travis_17385',
   },
 ];

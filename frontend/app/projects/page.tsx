@@ -1,14 +1,14 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
-import { cloudAiProjects, earlierWork, type Project } from '@/content/projects';
-import { site } from '@/content/site';
+import PageIntro from '@/components/PageIntro';
+import { cloudAiProjects, earlierWork, visibleItems, type Project } from '@/content/projects';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Typewriter } from 'react-simple-typewriter';
+import { useEffect, useState } from 'react';
 
-const TERMINAL =
-  'mockup-code w-full max-w-5xl mx-auto text-left text-lg font-mono [&_pre]:whitespace-pre-wrap';
+const TERMINAL = 'mockup-code w-full text-left text-base font-mono [&_pre]:whitespace-pre-wrap';
 
 /**
  * A line that is a TODO renders as one.
@@ -38,7 +38,7 @@ function ProjectBlock({ project, index }: { project: Project; index: number }) {
       <pre data-prefix="$" className="text-success">
         <code>{`# ${project.title}`}</code>
       </pre>
-      {project.items.map((item, i) => (
+      {visibleItems(project).map((item, i) => (
         <Line key={i} text={item} />
       ))}
       {project.links.length > 0 && (
@@ -64,22 +64,71 @@ function ProjectBlock({ project, index }: { project: Project; index: number }) {
   );
 }
 
+/**
+ * Section B, collapsed on a phone and open on a desktop.
+ *
+ * Six terminal blocks used to cover identity, monitoring, imaging, device
+ * management, internal tools and metrics, above the cloud work for part of this
+ * page's life. It is one block now, and below -- but on a phone even one block
+ * is eight paragraphs of pre-cloud history standing between the projects
+ * someone came for and the bottom of the page.
+ *
+ * The open state is set from `matchMedia` after mount rather than by CSS. The
+ * obvious CSS trick -- forcing `details` content visible in a desktop media
+ * query -- does not behave consistently across engines now that Chromium hides
+ * it through `::details-content` and `content-visibility` rather than
+ * `display`, and a disclosure that silently stops disclosing is worse than one
+ * that costs a render.
+ *
+ * It renders closed, so the phone case is correct with no layout shift and the
+ * desktop expand happens once on mount. With scripting off it stays closed and
+ * still opens on click, which is the honest floor for a disclosure widget.
+ */
+function EarlierWork() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    setOpen(mq.matches);
+  }, []);
+
+  return (
+    <details
+      className="group mb-4"
+      open={open}
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="mb-6 flex cursor-pointer list-none items-center gap-2 text-xl font-bold tracking-tight">
+        {earlierWork.title}
+        <span className="text-sm font-normal text-base-content/50">
+          <span className="group-open:hidden">show</span>
+          <span className="hidden group-open:inline">hide</span>
+        </span>
+      </summary>
+      <div className={TERMINAL}>
+        <pre data-prefix="$" className="text-success">
+          <code># Before the cloud work: helpdesk to identity automation</code>
+        </pre>
+        {earlierWork.items.map((item, i) => (
+          <Line key={i} text={item} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export default function Projects() {
   return (
-    <main className="min-h-screen bg-base-100 text-base-content text-lg">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+    <main className="min-h-screen bg-base-100 text-base-content">
+      <div className="mx-auto max-w-4xl px-6 py-10">
         <HeaderWithTheme />
 
-        <div className={`${TERMINAL} mb-14`}>
-          <pre data-prefix="$" className="text-info">
-            <code>whoami</code>
-          </pre>
-          <pre data-prefix=">" className="text-warning">
-            <code>{site.email}</code>
-          </pre>
-          <pre data-prefix=">" className="text-warning">
-            <code>{site.role}</code>
-          </pre>
+        <PageIntro
+          title="Projects"
+          lead="Things I have built and run, newest and most live first. The terminal is the point here: this is the page where a shell prompt is the subject rather than decoration."
+        />
+
+        <div className={`${TERMINAL} mb-12`}>
           <pre data-prefix="$" className="text-success">
             <code>
               <Typewriter
@@ -98,31 +147,14 @@ export default function Projects() {
             Order is deliberate and it is not chronological: the two things
             someone can click and use come first, then the things with a
             repository, then the work project. */}
-        <h2 className="mb-6 text-2xl font-bold">Cloud &amp; AI Projects</h2>
+        <h2 className="mb-6 text-xl font-bold tracking-tight">Cloud &amp; AI Projects</h2>
         <div className="mb-16 grid gap-10">
           {cloudAiProjects.map((project, index) => (
             <ProjectBlock key={project.id} project={project} index={index} />
           ))}
         </div>
 
-        {/* Section B.
-            Six terminal blocks used to cover identity, monitoring, imaging,
-            device management, internal tools and metrics, above the cloud work
-            for part of the page's life. One block now, and below. */}
-        <h2 className="mb-6 text-2xl font-bold">{earlierWork.title}</h2>
-        <motion.div
-          className={TERMINAL}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <pre data-prefix="$" className="text-success">
-            <code># Before the cloud work: helpdesk to identity automation</code>
-          </pre>
-          {earlierWork.items.map((item, i) => (
-            <Line key={i} text={item} />
-          ))}
-        </motion.div>
+        <EarlierWork />
 
         <div className={`${TERMINAL} mt-10`}>
           <pre data-prefix="$" className="text-success">
@@ -136,7 +168,7 @@ export default function Projects() {
           </pre>
         </div>
 
-        <details className="mockup-code w-full max-w-5xl mx-auto text-left font-mono [&_pre]:whitespace-pre-wrap mt-10 cursor-pointer">
+        <details className="mockup-code mt-10 w-full cursor-pointer text-left font-mono [&_pre]:whitespace-pre-wrap">
           <summary className="px-4 py-2 text-sm text-info font-bold">nmap</summary>
           <pre data-prefix="$"><code>nmap travispollard.com</code></pre>
           <pre><code>Starting Nmap 7.95 ( https://nmap.org ) at 2026-09-24 23:59 CST</code></pre>
