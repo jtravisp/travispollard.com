@@ -1,9 +1,9 @@
 'use client';
 
+import Certifications from '@/components/Certifications';
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import Hero from '@/components/Hero';
 import SiteFooter from '@/components/SiteFooter';
-import TechBand from '@/components/TechBand';
 import VisitorCounter from '@/components/VisitorCounter';
 import { featuredProjects, isLive, visibleSummary, visibleTags } from '@/content/projects';
 import { writing } from '@/content/site';
@@ -17,7 +17,7 @@ export default function Home() {
 
         <Hero />
 
-        <TechBand />
+        <Certifications />
 
         {/* Featured projects.
             A stacked list rather than three cards: it gives each project room
