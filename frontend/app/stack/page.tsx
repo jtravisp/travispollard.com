@@ -1,32 +1,41 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
+import { site } from '@/content/site';
 import { motion } from 'framer-motion';
 import { Typewriter } from 'react-simple-typewriter';
 
 const requestPath = [
   'Route 53 resolves travispollard.com and www.travispollard.com to the CloudFront distribution via alias records',
   'CloudFront terminates TLS with an ACM certificate (SNI, TLS 1.2 minimum) and redirects any HTTP request to HTTPS',
-  'Cache misses fall through to the S3 static website origin holding the exported Next.js build',
+  'Cache misses on the default behavior fall through to the S3 static website origin holding the exported Next.js build',
+  'Requests under /cfb/data/* go to a second origin instead: the football pipeline bucket, reached through an Origin Access Control rather than a public website endpoint',
   'The visitor counter calls API Gateway, which invokes a Python Lambda that increments a DynamoDB item and returns the count',
 ];
 
+// Two systems, and the page used to describe only the second one.
+//
+// CodePipeline is the deploy and it runs after the merge decision. The Actions
+// job runs before it, which is the only place a check can stop a bad merge
+// rather than a bad deploy -- so leaving it out made the interesting half of
+// the story invisible.
 const pipeline = [
-  'A push to the repository triggers the CodePipeline source stage',
-  'CodeBuild installs dependencies with npm ci and installs Playwright browsers',
-  'next build produces a fully static export of the site into frontend/out',
-  'Playwright smoke tests run against the build before anything ships',
-  'The build artifact is published to the S3 bucket that backs the CloudFront distribution',
+  'A pull request runs the GitHub Actions gate: typecheck, a full static export, and the Playwright suite on Chromium and Firefox',
+  'That job pins TZ=UTC and the same Node version CodeBuild uses, because a gate running a different environment from the deploy has a gap in exactly the shape of the bug it is meant to catch',
+  'A merge to main fires a webhook that starts CodePipeline within seconds',
+  'CodeBuild installs with npm ci, builds the static export into frontend/out, and runs the same Playwright suite again',
+  'The build artifact is deployed to the S3 bucket that backs the CloudFront distribution',
+  'A final stage invalidates the distribution, so the change is visible without waiting out a TTL',
 ];
 
 const inventory = [
   {
     resource: 'S3',
-    detail: 'Static website hosting for the exported Next.js build',
+    detail: 'Static website hosting for the exported Next.js build, read by CloudFront as a custom origin',
   },
   {
     resource: 'CloudFront',
-    detail: 'Global CDN, TLS 1.2_2021 minimum, HTTP to HTTPS redirect, compression, PriceClass_100',
+    detail: 'Global CDN, TLS 1.2_2021 minimum, HTTP to HTTPS redirect, compression, PriceClass_100, plus a second origin for /cfb/data/*',
   },
   {
     resource: 'Route 53',
@@ -34,15 +43,23 @@ const inventory = [
   },
   {
     resource: 'ACM',
-    detail: 'TLS certificate for the apex and www names, DNS validated through Route 53',
+    detail: 'TLS certificate for the apex and www names, DNS validated through Route 53, in us-east-1 because CloudFront requires it',
   },
   {
     resource: 'API Gateway + Lambda + DynamoDB',
     detail: 'Visitor counter written in Python with boto3',
   },
   {
+    resource: 'GitHub Actions',
+    detail: 'Pre-merge gate: typecheck, static export, and Playwright on two browsers, pinned to UTC',
+  },
+  {
     resource: 'CodePipeline + CodeBuild',
-    detail: 'Build, test, and deploy on every push, defined in buildspec.yml',
+    detail: 'Post-merge deploy: build and test per buildspec.yml, S3 deploy, then a CloudFront invalidation',
+  },
+  {
+    resource: 'SSM Parameter Store',
+    detail: 'The seam between this stack and the football pipeline: distribution id and ARN, so neither reads the other Terraform state',
   },
   {
     resource: 'Terraform',
@@ -61,10 +78,10 @@ export default function Stack() {
             <code>whoami</code>
           </pre>
           <pre data-prefix=">" className="text-warning">
-            <code>travis@travispollard.com</code>
+            <code>{site.email}</code>
           </pre>
           <pre data-prefix=">" className="text-warning">
-            <code>Cloud / DevOps Engineer</code>
+            <code>{site.role}</code>
           </pre>
           <pre data-prefix="$" className="text-success">
             <code>

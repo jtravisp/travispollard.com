@@ -1,6 +1,7 @@
 'use client';
 
 import HeaderWithTheme from '@/components/HeaderWithTheme';
+import { site } from '@/content/site';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Typewriter } from 'react-simple-typewriter';
@@ -22,10 +23,13 @@ export default function Resume() {
               <code><a href="mailto:travis@travispollard.com" className="link">travis@travispollard.com</a></code>
             </pre>
             <pre data-prefix=">" className="text-warning">
-              <code>Cloud / DevOps Engineer</code>
+              <code>{site.role}</code>
             </pre>
             <pre data-prefix=">" className="text-warning">
-              <code>Austin, TX - Active Secret clearance</code>
+              <code>{site.valueStatement}</code>
+            </pre>
+            <pre data-prefix=">" className="text-warning">
+              <code>{site.location} - Active Secret clearance</code>
             </pre>
             <pre data-prefix=">" className="text-warning">
               <code>
@@ -49,7 +53,7 @@ export default function Resume() {
           {/* Resume download */}
           <div className="flex justify-center mb-14">
             <a
-              href="/Travis%20Pollard%20Resume.pdf"
+              href={site.resumePdf}
               download
               className="btn btn-accent"
             >
@@ -113,6 +117,21 @@ export default function Resume() {
             <pre data-prefix="$" className="text-info">
               <code># Selected Projects</code>
             </pre>
+            {/* Order matches /projects: the two live apps first. A reader who
+                came from the resume and lands on the projects page should not
+                have to work out whether they are the same four things. */}
+            <pre data-prefix=">">
+              <code>
+                <a href="https://ncoer.travispollard.com" target="_blank" rel="noopener noreferrer" className="link">NCOER Writer</a>
+                {' '}- multi-agent Army evaluation drafting: Python Strands agents on Bedrock and AgentCore, RAG over the governing regulations, a deterministic Go validator behind an MCP server, Cognito and DynamoDB for access
+              </code>
+            </pre>
+            <pre data-prefix=">">
+              <code>
+                <Link href="/cfb" className="link">CFB Forecast</Link>
+                {' '}- an Elo model that predicts every FBS game and scores itself against the betting market: Python, immutable raw snapshots in S3, OIDC-assumed GitHub Actions, isolated Terraform state
+              </code>
+            </pre>
             <pre data-prefix=">">
               <code>
                 <a href="https://nearmintradar.com" target="_blank" rel="noopener noreferrer" className="link">Near Mint Radar</a>
@@ -132,8 +151,8 @@ export default function Resume() {
             </pre>
             <pre data-prefix=">">
               <code>
-                <a href="/projects" className="link">travispollard.com</a>
-                {' '}- this site: Next.js on S3 + CloudFront, Terraform-provisioned, CodePipeline/CodeBuild CI/CD, Lambda + DynamoDB visitor counter
+                <Link href="/projects" className="link">travispollard.com</Link>
+                {' '}- this site: Next.js static export on S3 + CloudFront, Terraform-provisioned, GitHub Actions gating every PR before CodePipeline deploys and invalidates, Lambda + DynamoDB visitor counter
               </code>
             </pre>
           </motion.div>
