@@ -5,7 +5,7 @@ import Hero from '@/components/Hero';
 import SiteFooter from '@/components/SiteFooter';
 import TechBand from '@/components/TechBand';
 import VisitorCounter from '@/components/VisitorCounter';
-import { featuredProjects } from '@/content/projects';
+import { featuredProjects, visibleSummary, visibleTags } from '@/content/projects';
 import { writing } from '@/content/site';
 import Link from 'next/link';
 
@@ -42,10 +42,16 @@ export default function Home() {
             {featuredProjects.map((project) => (
               <li key={project.id} className="py-7">
                 <h3 className="text-lg font-semibold">{project.cardTitle}</h3>
-                <p className="mt-1.5 max-w-2xl text-base-content/75">{project.summary}</p>
-                <p className="mt-3 font-mono text-xs text-base-content/45">
-                  {project.tags.join(' · ')}
-                </p>
+                {visibleSummary(project) && (
+                  <p className="mt-1.5 max-w-2xl text-base-content/75">
+                    {visibleSummary(project)}
+                  </p>
+                )}
+                {visibleTags(project).length > 0 && (
+                  <p className="mt-3 font-mono text-xs text-base-content/45">
+                    {visibleTags(project).join(' · ')}
+                  </p>
+                )}
                 {project.links.length > 0 && (
                   <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
                     {project.links.map((link) => (

@@ -12,10 +12,15 @@
  * comment nobody opens -- a claim nobody can check is worse than a visibly
  * unfinished one.
  *
- * They do not ship. `visibleItems()` strips them from a production build, and
- * `scripts/check-no-todos.mjs` fails the build if one reaches the export
- * anyway. The marker stays in this file either way, so answering it is still
- * the only way to make the line real.
+ * They do not ship. A line carrying one is dropped from a production build --
+ * the whole line, not just the marker, because "X - TODO(travis): confirm"
+ * means X is the thing unconfirmed. `scripts/check-no-todos.mjs` fails the
+ * build if a marker reaches the export anyway. Answering it here is still the
+ * only way to make the line real.
+ *
+ * An entry marked `unverified` goes further: in production it renders its
+ * title and links and nothing else, because its summary and tags are claims
+ * too.
  */
 
 export type ProjectLink = {
@@ -40,6 +45,12 @@ export type Project = {
   items: string[];
   /** Surfaced as a card on the home page, in this file's order. */
   featured?: boolean;
+  /**
+   * The whole entry is unconfirmed. Production renders the title and links
+   * only; development renders everything so the claims stay in front of
+   * whoever can check them.
+   */
+  unverified?: boolean;
 };
 
 export const cloudAiProjects: Project[] = [
@@ -52,12 +63,14 @@ export const cloudAiProjects: Project[] = [
     tags: ['Bedrock', 'AgentCore', 'Strands', 'Go', 'Cognito'],
     links: [{ label: 'live', url: 'https://ncoer.travispollard.com' }],
     featured: true,
+    unverified: true,
     items: [
       'Built a multi-agent pipeline that turns raw performance notes into regulation-compliant Army NCOER bullets',
       'Python Strands agents on Amazon Bedrock and AgentCore: an intake agent that asks coaching questions when details are missing, a RAG drafting agent grounded in DA Pam 623-3, and a compliance critic checking against AR 623-3',
       'Deterministic Go validator for EES formatting rules, exposed as a Go MCP server behind an AgentCore Gateway - the rules that are not a judgement call never go to a model',
       'Cognito federating Google sign-in against a DynamoDB allowlist, with revocation driven by DynamoDB Streams and a global sign-out',
       'An eval harness gates changes in CI - TODO(travis): real numbers',
+      'TODO(travis): confirm - this project lives in a separate repository, so the lines above are drafted from notes rather than verified, and the eval harness line needs real numbers',
     ],
   },
   {
@@ -227,14 +240,23 @@ const SHOW_TODOS = process.env.NODE_ENV === 'development';
 /**
  * A project's lines, with unverified ones removed outside development.
  *
- * Every rendering path goes through this rather than reading `items` directly.
- * A line that is *entirely* a TODO disappears; one that ends with a trailing
- * ` - TODO(travis): ...` keeps the part that was verified and drops the rest,
- * which is why the markers are written as a suffix.
+ * Every rendering path goes through these rather than reading the fields
+ * directly. Any line containing a marker is dropped whole: an earlier version
+ * kept the text before a trailing ` - TODO(travis): confirm`, which shipped
+ * exactly the part that was waiting to be confirmed.
  */
 export function visibleItems(project: Project): string[] {
   if (SHOW_TODOS) return project.items;
-  return project.items
-    .map((item) => item.replace(/\s*-\s*TODO\(travis\):.*$/, '').trim())
-    .filter((item) => item.length > 0 && !item.includes('TODO(travis)'));
+  if (project.unverified) return [];
+  return project.items.filter((item) => !item.includes('TODO(travis)'));
+}
+
+/** The one-line summary, or null where the entry is unverified in production. */
+export function visibleSummary(project: Project): string | null {
+  return !SHOW_TODOS && project.unverified ? null : project.summary;
+}
+
+/** The tag list, empty where the entry is unverified in production. */
+export function visibleTags(project: Project): string[] {
+  return !SHOW_TODOS && project.unverified ? [] : project.tags;
 }

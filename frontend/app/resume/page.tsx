@@ -3,7 +3,7 @@
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import PageIntro from '@/components/PageIntro';
 import ResumePrint from '@/components/ResumePrint';
-import { cloudAiProjects } from '@/content/projects';
+import { cloudAiProjects, visibleSummary, visibleTags } from '@/content/projects';
 import { certifications, education, experience, skills } from '@/content/resume';
 import { site } from '@/content/site';
 import { motion } from 'framer-motion';
@@ -129,10 +129,8 @@ export default function Resume() {
                 ) : (
                   project.cardTitle
                 )}
-                {' - '}
-                {project.summary}
-                {'  '}
-                {project.tags.join(' · ')}
+                {visibleSummary(project) && ` - ${visibleSummary(project)}`}
+                {visibleTags(project).length > 0 && `  ${visibleTags(project).join(' · ')}`}
               </code>
             </pre>
           ))}
