@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * Text left, photograph right, with one muted `$ whoami` line above the
- * eyebrow. Chosen on 2026-09-24 over a centred layout: at 1440 it puts the
- * Featured Projects heading inside the fold where the centred one pushed it
- * below, and the terminal nod stays a single quiet line rather than chrome.
+ * Text left, photograph right: eyebrow, role, one value line, two buttons.
+ * Chosen on 2026-09-24 over a centred layout: at 1440 it puts the Featured
+ * Projects heading inside the fold where the centred one pushed it below.
+ * The `$ whoami` line that sat above the eyebrow is gone too -- the hero is
+ * identity and value only, and the terminal motif lives on /projects.
  *
  * What it drops, deliberately:
  *
@@ -24,21 +25,6 @@
 import Link from 'next/link';
 import Headshot from './Headshot';
 import { site } from '@/content/site';
-
-function Whoami() {
-  return (
-    // 70% is the floor for text on either theme: measured on rendered
-    // pixels, 45% was 2.84:1 on light and 60% was 4.44:1. The prompt
-    // character is decoration, so it alone goes lighter and is hidden from
-    // assistive tech.
-    <p className="mb-3 font-mono text-sm text-base-content/70">
-      <span aria-hidden="true" className="text-base-content/35">
-        $
-      </span>{' '}
-      whoami
-    </p>
-  );
-}
 
 function Eyebrow() {
   return <p className="mb-2 text-base text-base-content/70">Hi, I&apos;m Travis</p>;
@@ -99,7 +85,6 @@ export default function Hero() {
   return (
     <section className="mb-24 flex flex-col-reverse items-center gap-12 pt-4 lg:flex-row lg:justify-between lg:gap-16 lg:pt-10">
       <div className="w-full lg:flex-1">
-        <Whoami />
         <Eyebrow />
         <Title />
         <ValueLine className="max-w-xl" />

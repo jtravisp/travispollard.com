@@ -9,9 +9,8 @@
 export const site = {
   name: 'Travis Pollard',
   role: 'Platform Engineer',
-  /** One line under the role in every whoami block. */
-  valueStatement:
-    'I build and operate AWS infrastructure and AI-powered apps: Terraform, serverless, Go, Python.',
+  /** The line under the role in the hero, and on the OG card. */
+  valueStatement: 'I build and operate scalable AWS infrastructure and AI-driven platforms.',
   email: 'travis@travispollard.com',
   location: 'Austin, TX',
   url: 'https://www.travispollard.com',
