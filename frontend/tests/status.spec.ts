@@ -110,3 +110,78 @@ test('with no status.json, production says so instead of showing sample data', a
   await expect(page.getByText('Sample data')).toHaveCount(0);
   await expect(page.getByText('All Systems Operational')).toHaveCount(0);
 });
+
+// --- 30-day history -----------------------------------------------------------
+
+function history(statuses: string[]) {
+  // Oldest first, ending on 2026-09-24.
+  const end = Date.UTC(2026, 8, 24);
+  return statuses.map((status, i) => ({
+    date: new Date(end - (statuses.length - 1 - i) * 86_400_000).toISOString().slice(0, 10),
+    status,
+    avg_latency_ms: status === 'no_data' ? null : 140 + i,
+  }));
+}
+
+test('each service shows 30 daily bars, its uptime, and a readable summary', async ({ page }) => {
+  const days = [
+    ...Array(8).fill('no_data'),
+    ...Array(19).fill('operational'),
+    'degraded',
+    'down',
+    'operational',
+  ];
+  await serve(
+    page,
+    doc({
+      history_days: 30,
+      services: [{ ...SERVICE, uptime_percentage_30d: 99.86, daily_history: history(days) }],
+    }),
+  );
+  await page.goto('/status/');
+
+  const bars = page.locator('[data-status]');
+  await expect(bars).toHaveCount(30);
+  await expect(page.locator('[data-status="no_data"]')).toHaveCount(8);
+  await expect(page.locator('[data-status="degraded"]')).toHaveCount(1);
+  await expect(page.locator('[data-status="down"]')).toHaveCount(1);
+
+  await expect(page.getByText('99.86%')).toBeVisible();
+  await expect(
+    page.getByRole('img', {
+      name: '30-day history: 20 operational, 1 degraded, 1 down, 8 with no data.',
+    }),
+  ).toBeVisible();
+});
+
+test('hovering a bar shows its date, status and average latency', async ({ page }) => {
+  const days = [...Array(28).fill('operational'), 'down', 'operational'];
+  await serve(
+    page,
+    doc({ services: [{ ...SERVICE, uptime_percentage_30d: 99.31, daily_history: history(days) }] }),
+  );
+  await page.goto('/status/');
+
+  const down = page.locator('[data-status="down"]');
+  await down.hover();
+  await expect(down.getByText('Sep 23, 2026')).toBeVisible();
+  await expect(down.getByText(/Down · avg 168 ms/)).toBeVisible();
+});
+
+test('a day with no data never reads as operational', async ({ page }) => {
+  await serve(
+    page,
+    doc({
+      services: [
+        { ...SERVICE, uptime_percentage_30d: null, daily_history: history(Array(30).fill('no_data')) },
+      ],
+    }),
+  );
+  await page.goto('/status/');
+
+  await expect(page.locator('[data-status="operational"]')).toHaveCount(0);
+  await expect(page.getByText('No data yet')).toBeVisible();
+  const bar = page.locator('[data-status="no_data"]').first();
+  await bar.hover();
+  await expect(bar.getByText('No data', { exact: true })).toBeVisible();
+});
