@@ -62,9 +62,9 @@ resource "aws_iam_role" "status_checker" {
   assume_role_policy = data.aws_iam_policy_document.status_checker_assume.json
 }
 
-# Least privilege: two named objects in one bucket, and its own log group. No
-# wildcard key -- a bug in the checker can overwrite status.json and its
-# history and nothing else on the site.
+# Least privilege: two named objects in one bucket, its own log group, and its
+# own alert topic. No wildcard key -- a bug in the checker can overwrite
+# status.json and its history and nothing else on the site.
 data "aws_iam_policy_document" "status_checker" {
   statement {
     sid       = "WriteStatusDocument"
@@ -97,6 +97,12 @@ data "aws_iam_policy_document" "status_checker" {
     sid       = "OwnLogs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["${aws_cloudwatch_log_group.status_checker.arn}:*"]
+  }
+
+  statement {
+    sid       = "PublishAlerts"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.status_alerts.arn]
   }
 }
 
@@ -137,11 +143,12 @@ resource "aws_lambda_function" "status_checker" {
 
   environment {
     variables = {
-      TARGETS     = jsonencode(local.status_targets)
-      BUCKET      = module.s3.bucket_name
-      KEY         = local.status_object_key
-      HISTORY_KEY = local.status_history_key
-      TIMEOUT_S   = "10"
+      TARGETS         = jsonencode(local.status_targets)
+      BUCKET          = module.s3.bucket_name
+      KEY             = local.status_object_key
+      HISTORY_KEY     = local.status_history_key
+      TIMEOUT_S       = "10"
+      ALERT_TOPIC_ARN = aws_sns_topic.status_alerts.arn
     }
   }
 
@@ -170,4 +177,24 @@ resource "aws_lambda_permission" "status_checker_events" {
   function_name = aws_lambda_function.status_checker.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.status_checker.arn
+}
+
+# --- alerts -------------------------------------------------------------------
+#
+# The checker publishes here when a service changes state: once when it goes
+# down, once when it recovers -- not every ten minutes while it stays down.
+# The previous states live in status-history.json, written with S3 conditional
+# writes, so two overlapping runs cannot both send the same alert.
+#
+# An email subscription is created pending: SNS mails a confirmation link and
+# delivers nothing until it is clicked. Terraform cannot click it.
+
+resource "aws_sns_topic" "status_alerts" {
+  name = "travispollard-status-alerts"
+}
+
+resource "aws_sns_topic_subscription" "status_alerts_email" {
+  topic_arn = aws_sns_topic.status_alerts.arn
+  protocol  = "email"
+  endpoint  = "travis@travispollard.com"
 }

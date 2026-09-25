@@ -209,10 +209,28 @@ class _ClientError(Exception):
 
 
 class _FakeS3:
-    def __init__(self, stored=None, get_error=None):
-        self.objects = dict(stored or {})
+    """An S3 that honours IfMatch / IfNoneMatch the way the real one does.
+
+    Every write gets a fresh ETag; a conditional put whose condition fails
+    raises PreconditionFailed. `before_put` runs just before each put, which is
+    where a test plays the part of a second, overlapping run.
+    """
+
+    def __init__(self, stored=None, get_error=None, put_error=None, before_put=None):
+        self.objects = {}
+        self.etags = {}
+        self._n = 0
+        for k, v in (stored or {}).items():
+            self._store(k, v)
         self.get_error = get_error
+        self.put_error = put_error
+        self.before_put = before_put
         self.puts = []
+
+    def _store(self, key, body):
+        self._n += 1
+        self.objects[key] = body
+        self.etags[key] = f'"etag-{self._n}"'
 
     def get_object(self, Bucket, Key):
         if self.get_error:
@@ -227,11 +245,31 @@ class _FakeS3:
             def read(self):
                 return self.data
 
-        return {"Body": _Body(self.objects[Key])}
+        return {"Body": _Body(self.objects[Key]), "ETag": self.etags[Key]}
 
     def put_object(self, **kwargs):
+        if self.before_put:
+            self.before_put(self, kwargs)
+        key = kwargs["Key"]
+        if self.put_error and key == "status-history.json":
+            raise _ClientError(self.put_error)
+        if "IfMatch" in kwargs and self.etags.get(key) != kwargs["IfMatch"]:
+            raise _ClientError("PreconditionFailed")
+        if kwargs.get("IfNoneMatch") == "*" and key in self.objects:
+            raise _ClientError("PreconditionFailed")
         self.puts.append(kwargs)
-        self.objects[kwargs["Key"]] = kwargs["Body"]
+        self._store(key, kwargs["Body"])
+
+
+class _FakeSNS:
+    def __init__(self, fail=False):
+        self.published = []
+        self.fail = fail
+
+    def publish(self, **kwargs):
+        if self.fail:
+            raise _ClientError("AuthorizationError")
+        self.published.append(kwargs)
 
 
 @pytest.fixture
@@ -242,13 +280,21 @@ def env(base_url, monkeypatch):
     )
     monkeypatch.setenv("BUCKET", "example-bucket")
     monkeypatch.setenv("TIMEOUT_S", "5")
+    monkeypatch.setenv("ALERT_TOPIC_ARN", "arn:aws:sns:us-east-1:111122223333:alerts")
+    monkeypatch.setattr(checker.time, "sleep", lambda s: None)  # no real back-off in tests
+
+
+def run(s3, sns=None):
+    return checker.handler({}, None, s3_client=s3, sns_client=sns or _FakeSNS(), today=date(2026, 9, 24))
+
+
+def history_of(s3):
+    return json.loads(s3.objects["status-history.json"])
 
 
 def test_first_run_creates_history_and_writes_status(env):
     s3 = _FakeS3()
-    assert checker.handler({}, None, s3_client=s3, today=date(2026, 9, 24)) == {
-        "overall_status": "outage"
-    }
+    assert run(s3)["overall_status"] == "outage"
     assert [p["Key"] for p in s3.puts] == ["status-history.json", "status.json"]
     status = next(p for p in s3.puts if p["Key"] == "status.json")
     assert status["CacheControl"] == "public, max-age=60"
@@ -264,14 +310,13 @@ def test_first_run_creates_history_and_writes_status(env):
 def test_history_accumulates_across_runs(env):
     s3 = _FakeS3()
     for _ in range(3):
-        checker.handler({}, None, s3_client=s3, today=date(2026, 9, 24))
-    history = json.loads(s3.objects["status-history.json"])
-    assert history["days"]["2026-09-24"]["a"]["checks"] == 3
+        run(s3)
+    assert history_of(s3)["days"]["2026-09-24"]["a"]["checks"] == 3
 
 
 def test_unreadable_history_is_never_overwritten(env):
     s3 = _FakeS3(stored={"status-history.json": b'{"days": {"2026-09-01": {}}}'}, get_error="AccessDenied")
-    checker.handler({}, None, s3_client=s3, today=date(2026, 9, 24))
+    run(s3)
     assert [p["Key"] for p in s3.puts] == ["status.json"]
     document = json.loads(s3.puts[0]["Body"])
     assert "daily_history" not in document["services"][0]
@@ -280,6 +325,103 @@ def test_unreadable_history_is_never_overwritten(env):
 
 def test_corrupt_history_starts_over(env):
     s3 = _FakeS3(stored={"status-history.json": b"not json"})
-    checker.handler({}, None, s3_client=s3, today=date(2026, 9, 24))
-    history = json.loads(s3.objects["status-history.json"])
-    assert history["days"]["2026-09-24"]["a"]["checks"] == 1
+    run(s3)
+    assert history_of(s3)["days"]["2026-09-24"]["a"]["checks"] == 1
+
+
+# --- optimistic locking -------------------------------------------------------
+
+def test_first_write_is_create_only_and_later_writes_match_the_etag(env):
+    s3 = _FakeS3()
+    run(s3)
+    run(s3)
+    first, second = [p for p in s3.puts if p["Key"] == "status-history.json"]
+    assert first["IfNoneMatch"] == "*" and "IfMatch" not in first
+    assert second["IfMatch"] == '"etag-1"' and "IfNoneMatch" not in second
+
+
+def test_a_concurrent_write_is_retried_not_overwritten(env):
+    """Another run writes the history between our read and our write."""
+    s3 = _FakeS3()
+    run(s3)  # one real run first: history has 1 check per service
+    interfered = []
+
+    def other_run(fake, kwargs):
+        if kwargs["Key"] == "status-history.json" and not interfered:
+            interfered.append(True)
+            h = json.loads(fake.objects["status-history.json"])
+            h["days"]["2026-09-24"]["a"]["checks"] += 1  # the other run's check
+            fake._store("status-history.json", json.dumps(h).encode())
+
+    s3.before_put = other_run
+    run(s3)
+    # 1 (first run) + 1 (the interfering run) + 1 (this run, after its retry):
+    # nothing lost, nothing counted twice.
+    assert history_of(s3)["days"]["2026-09-24"]["a"]["checks"] == 3
+
+
+def test_it_gives_up_after_repeated_conflicts_but_still_writes_status(env):
+    s3 = _FakeS3(put_error="PreconditionFailed")
+    run(s3)
+    assert [p["Key"] for p in s3.puts] == ["status.json"]
+    assert "daily_history" not in json.loads(s3.puts[0]["Body"])["services"][0]
+
+
+def test_a_non_conflict_write_error_is_not_retried(env):
+    s3 = _FakeS3(put_error="AccessDenied")
+    calls = []
+    real_get = s3.get_object
+    s3.get_object = lambda **kw: calls.append(1) or real_get(**kw)
+    run(s3)
+    assert len(calls) == 1  # read once, failed once, no retry loop
+
+
+# --- alerts -------------------------------------------------------------------
+
+def test_transitions_alert_once_per_outage_and_on_recovery():
+    down = {"id": "a", "status": "down"}
+    up = {"id": "a", "status": "operational"}
+    slow = {"id": "a", "status": "degraded"}
+    assert checker.transitions({"a": "operational"}, [down]) == [("DOWN", down)]
+    assert checker.transitions({"a": "down"}, [down]) == []  # still down: no repeat
+    assert checker.transitions({"a": "down"}, [up]) == [("RECOVERED", up)]
+    assert checker.transitions({"a": "down"}, [slow]) == [("RECOVERED", slow)]
+    assert checker.transitions({}, [down]) == [("DOWN", down)]  # new service, already down
+    assert checker.transitions({"a": "operational"}, [slow]) == []  # degraded is not an alert
+    assert checker.transitions(None, [down, up]) == [("DOWN", down)]  # unknown past: alert
+
+
+def test_alert_message_reads_like_the_spec():
+    s = {"name": "NCOER Writer", "url": "https://ncoer.travispollard.com", "status": "down",
+         "http_code": 502, "error": "HTTP 502"}
+    subject, body = checker.alert_message([("DOWN", s)], "2026-09-25T12:00:00Z")
+    assert subject == "ALERT: NCOER Writer is DOWN. HTTP 502."
+    assert "https://ncoer.travispollard.com" in body
+    assert "https://www.travispollard.com/status/" in body
+
+    timeout = {**s, "http_code": None, "error": "request failed: timed out"}
+    assert checker.alert_message([("DOWN", timeout)], "t")[0] == "ALERT: NCOER Writer is DOWN. timed out."
+
+
+def test_a_run_that_takes_a_service_down_publishes_one_alert(env):
+    s3, sns = _FakeS3(), _FakeSNS()
+    result = run(s3, sns)
+    assert result["alerts"] == 1
+    (message,) = sns.published
+    assert message["TopicArn"] == "arn:aws:sns:us-east-1:111122223333:alerts"
+    assert message["Subject"] == "ALERT: Service is DOWN. HTTP 503."
+    run(s3, sns)  # still down on the next run: no second email
+    assert len(sns.published) == 1
+
+
+def test_an_unsendable_alert_does_not_stop_the_run(env):
+    s3 = _FakeS3()
+    run(s3, _FakeSNS(fail=True))
+    assert "status.json" in s3.objects
+
+
+def test_no_topic_means_no_alerts(env, monkeypatch):
+    monkeypatch.delenv("ALERT_TOPIC_ARN")
+    sns = _FakeSNS()
+    run(_FakeS3(), sns)
+    assert sns.published == []
