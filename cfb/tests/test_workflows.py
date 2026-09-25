@@ -257,8 +257,9 @@ class TestEveryPathIsGated:
     """The gap this file exists to close.
 
     A directory whose changes trigger no workflow is one where a break is found
-    in production. That has now happened twice -- `frontend/` in #75, and
-    `.github/workflows/` in #82, which merged with no checks at all.
+    in production. That has now happened three times -- `frontend/` in #75,
+    `.github/workflows/` in #82, and `status-checker/` in #92, which each
+    merged with no checks at all.
     """
 
     def paths_of(self, filename: str) -> list[str]:
@@ -270,13 +271,15 @@ class TestEveryPathIsGated:
             ("cfb-ci.yml", "cfb/**"),
             ("frontend-ci.yml", "frontend/**"),
             ("workflows-ci.yml", ".github/workflows/**"),
+            ("status-checker-ci.yml", "status-checker/**"),
         ],
     )
     def test_the_tree_that_matters_is_gated(self, filename, guarded):
         assert guarded in self.paths_of(filename)
 
     @pytest.mark.parametrize(
-        "filename", ["cfb-ci.yml", "frontend-ci.yml", "workflows-ci.yml"]
+        "filename",
+        ["cfb-ci.yml", "frontend-ci.yml", "workflows-ci.yml", "status-checker-ci.yml"],
     )
     def test_a_gate_gates_itself(self, filename):
         """A change to a gate is a change to what the repository checks, and is
