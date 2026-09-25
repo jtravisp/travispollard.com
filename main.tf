@@ -23,6 +23,10 @@ module "s3" {
   bucket_name                = var.zone_name
   region                     = var.region
   cloudfront_distribution_id = module.cloudfront.cloudfront_distribution_id
+
+  # Both rewritten every ten minutes by the status checker (status-checker.tf);
+  # without this every old copy is kept, since the bucket is versioned.
+  expire_noncurrent_versions_of = [local.status_object_key, local.status_history_key]
 }
 
 module "acm" {

@@ -3,6 +3,7 @@
 import HeaderWithTheme from '@/components/HeaderWithTheme';
 import PageIntro from '@/components/PageIntro';
 import SiteFooter from '@/components/SiteFooter';
+import UptimeBars from '@/components/status/UptimeBars';
 import {
   CERT_WARNING_DAYS,
   SAMPLE_STATUS,
@@ -103,9 +104,18 @@ function certText(days: number | null): { text: string; warn: boolean } {
 }
 
 /** Small uniform pill for the per-service facts. */
-function Pill({ children, warn = false }: { children: React.ReactNode; warn?: boolean }) {
+function Pill({
+  children,
+  warn = false,
+  title,
+}: {
+  children: React.ReactNode;
+  warn?: boolean;
+  title?: string;
+}) {
   return (
     <span
+      title={title}
       className={`inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-xs ${
         warn
           ? 'border-warning/60 text-base-content'
@@ -143,7 +153,14 @@ function ServiceCard({ service }: { service: ServiceCheck }) {
         {service.url.replace(/^https?:\/\//, '')}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Pill warn={service.status === 'degraded'}>
+        <Pill
+          warn={service.status === 'degraded'}
+          title={
+            typeof service.connect_ms === 'number'
+              ? `Response ${service.response_time_ms ?? '—'} ms after the request; connection setup (DNS, TCP, TLS) ${service.connect_ms} ms, not counted`
+              : undefined
+          }
+        >
           {service.response_time_ms === null ? 'no response' : `${service.response_time_ms} ms`}
         </Pill>
         <Pill warn={service.http_code === null || service.http_code >= 400}>
@@ -152,6 +169,9 @@ function ServiceCard({ service }: { service: ServiceCheck }) {
         <Pill warn={cert.warn}>{cert.text}</Pill>
       </div>
       {service.error && <p className="mt-3 text-sm text-base-content/80">{service.error}</p>}
+      {service.daily_history && service.daily_history.length > 0 && (
+        <UptimeBars days={service.daily_history} uptime={service.uptime_percentage_30d} />
+      )}
     </li>
   );
 }
@@ -275,13 +295,23 @@ export default function Status() {
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-base-content/80">
             <li>An EventBridge schedule fires every ten minutes.</li>
             <li>
-              It invokes a Python Lambda that requests each service concurrently, timing the
-              response to its headers and following redirects to the final status code. A second
-              connection reads the TLS certificate and its expiry date.
+              It invokes a Python Lambda that requests each service, and this site, concurrently,
+              following redirects to the final status code and reading the TLS certificate from the
+              same connection.
+            </li>
+            <li>
+              Latency is the time from sending the request to receiving the response headers.
+              Connection setup (DNS, TCP and the TLS handshake) is timed separately and not counted:
+              it measures the checker as much as the site.
             </li>
             <li>
               A service is <em>down</em> on an error or a non-2xx/3xx status, <em>degraded</em> above
               one second, and <em>operational</em> otherwise.
+            </li>
+            <li>
+              Each run is added to 30 days of daily counters. A day is red if any check failed,
+              yellow if more than a tenth of its checks were slow, and grey if nothing was checked
+              that day. Uptime is the share of all checks in the window that were not down.
             </li>
             <li>
               The Lambda writes the results to <code className="font-mono">status.json</code> in this

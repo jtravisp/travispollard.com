@@ -36,3 +36,27 @@ resource "aws_s3_bucket_website_configuration" "this" {
     key = "error.html"
   }
 }
+
+# Only created when a caller asks for it. This resource owns the bucket's whole
+# lifecycle configuration: any rule added outside Terraform would be removed on
+# the next apply, so add rules here rather than in the console.
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  count  = length(var.expire_noncurrent_versions_of) > 0 ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+
+  dynamic "rule" {
+    for_each = var.expire_noncurrent_versions_of
+    content {
+      id     = "expire-old-versions-${replace(rule.value, "/[^A-Za-z0-9-]/", "-")}"
+      status = "Enabled"
+
+      filter {
+        prefix = rule.value
+      }
+
+      noncurrent_version_expiration {
+        noncurrent_days = 1
+      }
+    }
+  }
+}
