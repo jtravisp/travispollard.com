@@ -26,6 +26,12 @@ Configuration, from the environment (set by Terraform):
     KEY          status document key, default "status.json"
     HISTORY_KEY  history key, default "status-history.json"
     TIMEOUT_S    per-connection timeout in seconds, default 10
+    ALERT_TOPIC_ARN  SNS topic for down/recovered alerts; none sent if unset
+
+The history is read-modify-written with S3 conditional writes (IfMatch on the
+ETag read, IfNoneMatch on first creation), so overlapping runs retry instead of
+overwriting each other. Alerts go out when a service changes state -- down, or
+back up -- not on every run while it stays down.
 
 The thresholds below must match frontend/content/status.ts, which renders what
 this decides; the names are the same so a grep finds both.
@@ -266,30 +272,152 @@ def _error_code(exc: Exception) -> str | None:
     return getattr(exc, "response", {}).get("Error", {}).get("Code")
 
 
-def load_history(s3, bucket: str, key: str) -> dict | None:
-    """The stored history, an empty one if none exists yet, or None if unreadable.
+# Another writer changed the object between our read and our write (412), or
+# was mid-way through a conditional write of its own (409). Either way: re-read,
+# re-apply this run, try again.
+RETRYABLE_WRITE_CODES = {"PreconditionFailed", "ConditionalRequestConflict", "412", "409"}
+HISTORY_WRITE_ATTEMPTS = 4
 
-    None -- a read that failed for any reason other than "no such key" -- means
-    the caller must not write history back: an empty history written over a
-    real one because of a transient error would erase 30 days of record.
+
+def load_history(s3, bucket: str, key: str) -> tuple[dict | None, str | None]:
+    """(history, etag). An empty history and etag None if none exists yet.
+
+    history None -- a read that failed for any reason other than "no such key"
+    -- means the caller must not write history back: an empty history written
+    over a real one because of a transient error would erase 30 days of record.
+    The etag is what the next write must match (optimistic locking).
     """
     try:
-        body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+        response = s3.get_object(Bucket=bucket, Key=key)
+        body = response["Body"].read()
+        etag = response.get("ETag")
     except Exception as exc:  # botocore's ClientError, without importing botocore
         if _error_code(exc) in ("NoSuchKey", "404"):
-            return empty_history()
+            return empty_history(), None
         logger.error("could not read %s, history not updated this run: %s", key, exc)
-        return None
+        return None, None
     try:
         history = json.loads(body)
         if not isinstance(history.get("days"), dict):
             raise ValueError("no days object")
-        return history
+        return history, etag
     except (ValueError, AttributeError) as exc:
         # Unreadable content will never become readable; start again rather
-        # than fail every run from now on.
+        # than fail every run from now on. Keep the etag: replacing the corrupt
+        # object is still a conditional write.
         logger.error("%s is corrupt, starting a new history: %s", key, exc)
-        return empty_history()
+        return empty_history(), etag
+
+
+def save_history(s3, bucket: str, key: str, history: dict, etag: str | None) -> None:
+    """Write only if nobody else has written since we read.
+
+    IfMatch when replacing a version we read; IfNoneMatch="*" when creating the
+    first one, so two first runs cannot both "create" it.
+    """
+    condition = {"IfMatch": etag} if etag else {"IfNoneMatch": "*"}
+    s3.put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=json.dumps(history, separators=(",", ":")).encode("utf-8"),
+        ContentType="application/json",
+        CacheControl="no-store",
+        **condition,
+    )
+
+
+def update_history(s3, bucket: str, key: str, services: list[dict], today: date):
+    """Fold this run into the history with optimistic locking.
+
+    Returns (history, previous_statuses, attempts). history is None when it
+    could not be read or every attempt lost the race; previous_statuses is then
+    None too, meaning "unknown".
+    """
+    for attempt in range(1, HISTORY_WRITE_ATTEMPTS + 1):
+        history, etag = load_history(s3, bucket, key)
+        if history is None:
+            return None, None, attempt
+        previous = dict(history.get("last_status", {}))
+        record(history, services, today)
+        history["last_status"] = {s["id"]: s["status"] for s in services}
+        try:
+            save_history(s3, bucket, key, history, etag)
+            return history, previous, attempt
+        except Exception as exc:
+            if _error_code(exc) not in RETRYABLE_WRITE_CODES:
+                logger.error("could not write %s: %s", key, exc)
+                return None, None, attempt
+            logger.warning("history changed under us (attempt %d), retrying: %s", attempt, exc)
+            time.sleep(0.2 * attempt)
+    logger.error("gave up writing %s after %d attempts", key, HISTORY_WRITE_ATTEMPTS)
+    return None, None, HISTORY_WRITE_ATTEMPTS
+
+
+# --- alerts -------------------------------------------------------------------
+
+def transitions(previous: dict | None, services: list[dict]) -> list[tuple[str, dict]]:
+    """("DOWN" | "RECOVERED", service) for each service whose state changed.
+
+    One alert when a service goes down and one when it comes back -- not one
+    per run for as long as it stays down. With no previous state (history
+    unreadable), every down service alerts: better a duplicate than a miss.
+    """
+    events = []
+    for s in services:
+        now = s["status"]
+        if previous is None:
+            if now == "down":
+                events.append(("DOWN", s))
+            continue
+        was = previous.get(s["id"])
+        if now == "down" and was != "down":
+            events.append(("DOWN", s))
+        elif was == "down" and now != "down":
+            events.append(("RECOVERED", s))
+    return events
+
+
+def _describe(kind: str, s: dict) -> str:
+    if kind == "RECOVERED":
+        detail = f"HTTP {s['http_code']}" if s["http_code"] else s["status"]
+        return f"RECOVERED: {s['name']} is back up. {detail}."
+    detail = s.get("error") or (f"HTTP {s['http_code']}" if s["http_code"] else "no response")
+    if detail.startswith("request failed: "):
+        detail = detail[len("request failed: "):]
+    return f"ALERT: {s['name']} is DOWN. {detail}."
+
+
+def alert_message(events: list[tuple[str, dict]], checked_at: str) -> tuple[str, str]:
+    """(subject, body). The subject is the single line when there is one event."""
+    lines = [_describe(kind, s) for kind, s in events]
+    down = sum(1 for kind, _ in events if kind == "DOWN")
+    if len(lines) == 1:
+        subject = lines[0]
+    elif down:
+        subject = f"ALERT: {down} service{'s' if down > 1 else ''} DOWN"
+    else:
+        subject = f"RECOVERED: {len(lines)} services back up"
+    body = "\n".join(
+        lines
+        + [""]
+        + [f"  {s['url']}" for _, s in events]
+        + ["", f"Checked {checked_at} from AWS us-east-1.", "https://www.travispollard.com/status/"]
+    )
+    return subject[:100], body  # SNS subjects are capped at 100 characters
+
+
+def publish_alerts(sns, topic_arn: str, events, checked_at: str) -> bool:
+    """Send one message for the run. A failure is logged, never raised: an
+    alert that cannot be sent must not also stop status.json being written."""
+    if not events or not topic_arn:
+        return False
+    subject, body = alert_message(events, checked_at)
+    try:
+        sns.publish(TopicArn=topic_arn, Subject=subject, Message=body)
+        return True
+    except Exception as exc:
+        logger.error("could not publish alert: %s", exc)
+        return False
 
 
 # --- the run ------------------------------------------------------------------
@@ -308,32 +436,28 @@ def build_document(services: list[dict], history: dict | None, today: date) -> d
     return document
 
 
-def handler(event, context, s3_client=None, today: date | None = None):
-    """Lambda entry point. `s3_client` and `today` are injectable for tests."""
+def handler(event, context, s3_client=None, sns_client=None, today: date | None = None):
+    """Lambda entry point. The clients and `today` are injectable for tests."""
     targets = json.loads(os.environ["TARGETS"])
     timeout = float(os.environ.get("TIMEOUT_S", "10"))
     bucket = os.environ["BUCKET"]
     key = os.environ.get("KEY", "status.json")
     history_key = os.environ.get("HISTORY_KEY", "status-history.json")
+    topic_arn = os.environ.get("ALERT_TOPIC_ARN", "")
     today = today or datetime.now(timezone.utc).date()
 
-    if s3_client is None:
+    sdk = None
+    if s3_client is None or (sns_client is None and topic_arn):
         import boto3  # in the Lambda runtime; imported late so tests do not need it
+        import botocore
 
-        s3_client = boto3.client("s3")
+        sdk = botocore.__version__
+        s3_client = s3_client or boto3.client("s3")
+        sns_client = sns_client or boto3.client("sns")
 
     services = run_checks(targets, timeout)
 
-    history = load_history(s3_client, bucket, history_key)
-    if history is not None:
-        record(history, services, today)
-        s3_client.put_object(
-            Bucket=bucket,
-            Key=history_key,
-            Body=json.dumps(history, separators=(",", ":")).encode("utf-8"),
-            ContentType="application/json",
-            CacheControl="no-store",
-        )
+    history, previous, attempts = update_history(s3_client, bucket, history_key, services, today)
 
     document = build_document(services, history, today)
     s3_client.put_object(
@@ -344,6 +468,11 @@ def handler(event, context, s3_client=None, today: date | None = None):
         CacheControl=CACHE_CONTROL,
     )
 
+    # After the history write: only the run that won the write alerts on a
+    # change, so two overlapping runs cannot both send the same alert.
+    events = transitions(previous, services)
+    alerted = publish_alerts(sns_client, topic_arn, events, document["last_updated"])
+
     # One structured line per run: enough to graph or alarm on from Logs.
     logger.info(
         json.dumps(
@@ -353,7 +482,11 @@ def handler(event, context, s3_client=None, today: date | None = None):
                     s["id"]: [s["status"], s["response_time_ms"], s["connect_ms"]] for s in services
                 },
                 "history_updated": history is not None,
+                "history_attempts": attempts,
+                "alerts": [f"{kind}:{s['id']}" for kind, s in events],
+                "alert_sent": alerted,
+                "botocore": sdk,
             }
         )
     )
-    return {"overall_status": document["overall_status"]}
+    return {"overall_status": document["overall_status"], "alerts": len(events)}
