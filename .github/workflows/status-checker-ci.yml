@@ -1,0 +1,59 @@
+# The status checker's tests, on every change to it.
+#
+# status-checker/ is the Lambda behind /status. Its 34 tests ran only on a
+# laptop: frontend-ci triggers on frontend/**, and PR #92 -- optimistic locking
+# and SNS alerts, the riskiest change the checker has had -- merged with no
+# checks at all. This closes that gap, and cfb/tests/test_workflows.py now
+# requires it to keep covering status-checker/** and itself.
+#
+# Python 3.12, the Lambda's runtime (status-checker.tf). The checker is the
+# standard library plus boto3, and boto3 is only imported when the handler
+# runs for real: the tests inject fake S3 and SNS clients, so the only
+# dependency to install is the test runner. No AWS access -- the suite talks to
+# an HTTP server on 127.0.0.1 and nothing else.
+#
+# Pushes to main run it too, so a change that lands without a PR is still
+# checked after the fact.
+
+name: status-checker-ci
+
+on:
+  pull_request:
+    paths:
+      - "status-checker/**"
+      - ".github/workflows/status-checker-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "status-checker/**"
+      - ".github/workflows/status-checker-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: status-checker-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: status-checker
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pinned so a new pytest release cannot change the result of an
+      # unchanged checker.
+      - name: Install pytest
+        run: python -m pip install "pytest==8.3.5"
+
+      - name: Test
+        run: python -m pytest -q
