@@ -5,9 +5,11 @@ import type { DailyEntry, DayStatus } from '@/content/status';
  * Vercel's status pages use. Colour is the day's status; hovering a bar shows
  * its date, status and average latency.
  *
- * A day with no checks is grey and says "No data". It is never drawn green:
- * the history starts when the checker started, and a bar for a day nobody
- * measured must not claim that day was fine.
+ * A day with no checks is drawn in a darker green than a checked
+ * operational day, by the owner's choice, so the row reads as a full month.
+ * Its tooltip and the row's accessible summary still say "No data", and it
+ * never counts toward the uptime figure, which is computed from real checks
+ * only.
  *
  * For assistive tech the row is one image with a summary label ("27 days
  * operational, 1 degraded, ..."). Thirty focusable bars per service would be a
@@ -26,7 +28,7 @@ const BAR: Record<DayStatus, string> = {
   operational: 'bg-success',
   degraded: 'bg-warning',
   down: 'bg-error',
-  no_data: 'bg-base-300 dark:bg-white/10',
+  no_data: 'bg-[color-mix(in_oklab,var(--color-success)_45%,black)]',
 };
 
 const WORD: Record<DayStatus, string> = {

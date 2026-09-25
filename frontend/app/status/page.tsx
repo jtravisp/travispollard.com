@@ -310,8 +310,8 @@ export default function Status() {
             </li>
             <li>
               Each run is added to 30 days of daily counters. A day is red if any check failed,
-              yellow if more than a tenth of its checks were slow, and grey if nothing was checked
-              that day. Uptime is the share of all checks in the window that were not down.
+              yellow if more than a tenth of its checks were slow, and a darker green if nothing was
+              checked that day. Uptime is the share of all checks in the window that were not down.
             </li>
             <li>
               The Lambda writes the results to <code className="font-mono">status.json</code> in this
