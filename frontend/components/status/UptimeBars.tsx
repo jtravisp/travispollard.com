@@ -12,8 +12,14 @@ import type { DailyEntry, DayStatus } from '@/content/status';
  * For assistive tech the row is one image with a summary label ("27 days
  * operational, 1 degraded, ..."). Thirty focusable bars per service would be a
  * hundred and fifty tab stops on this page, so the per-day tooltips are
- * pointer-only and hidden from the accessibility tree. On a touch screen
- * there is no hover; the summary and the uptime figure carry the meaning.
+ * pointer-only and hidden from the accessibility tree.
+ *
+ * The tooltip is driven by a plain `:hover` selector (the arbitrary variant
+ * `[.uptime-bar:hover_&]`), not `group-hover`. Tailwind v4 wraps every hover
+ * variant in `@media (hover: hover)`, which a touch screen -- and headless
+ * Firefox on the Linux CI runner -- does not match, so the tooltip never
+ * appeared there at all. Plain :hover shows it on a mouse as before and on a
+ * tap on a phone, where the tapped bar keeps :hover until the next tap.
  */
 
 const BAR: Record<DayStatus, string> = {
@@ -82,13 +88,13 @@ export default function UptimeBars({
           const align =
             i < 5 ? 'left-0' : i > days.length - 6 ? 'right-0' : 'left-1/2 -translate-x-1/2';
           return (
-            <div key={day.date} data-status={day.status} className="group/bar relative flex-1">
+            <div key={day.date} data-status={day.status} className="uptime-bar relative flex-1">
               <div
-                className={`h-full rounded-[2px] transition-opacity group-hover/bar:opacity-70 ${BAR[day.status]}`}
+                className={`h-full rounded-[2px] transition-opacity [.uptime-bar:hover_&]:opacity-70 ${BAR[day.status]}`}
               />
               <div
                 aria-hidden="true"
-                className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden whitespace-nowrap rounded-md border border-base-300 bg-base-100 px-2.5 py-1.5 text-xs shadow-lg group-hover/bar:block dark:border-white/10 ${align}`}
+                className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden whitespace-nowrap rounded-md border border-base-300 bg-base-100 px-2.5 py-1.5 text-xs shadow-lg dark:border-white/10 [.uptime-bar:hover_&]:block ${align}`}
               >
                 <span className="block font-semibold">{formatDate(day.date)}</span>
                 <span className="block text-base-content/80">
