@@ -52,7 +52,7 @@ module "cloudfront" {
 
   # Static-asset behavior first (cache-control.tf), then football's. The two
   # patterns do not overlap, so the order only matters for reading.
-  extra_behaviors = concat(local.static_asset_behaviors, local.cfb_extra_behaviors)
+  extra_behaviors = concat(local.static_asset_behaviors, local.webp_behaviors, local.cfb_extra_behaviors)
 
   default_response_headers_policy_id = aws_cloudfront_response_headers_policy.revalidate.id
 }

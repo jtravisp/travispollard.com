@@ -72,3 +72,49 @@ locals {
     response_headers_policy_id = aws_cloudfront_response_headers_policy.immutable.id
   }]
 }
+
+# --- WebP content type --------------------------------------------------------
+#
+# The deploy is a console-built CodePipeline S3 action, and it uploads .webp
+# with Content-Type application/octet-stream -- it has no mapping for the
+# extension. Browsers render an <img> anyway by sniffing the bytes, which is
+# the only reason /images/terraform.webp works; /music serves every image as
+# WebP, and an image that depends on sniffing breaks the moment anything adds
+# X-Content-Type-Options: nosniff.
+#
+# A CloudFront Function sets Content-Type on viewer-response, for *.webp only,
+# so every WebP response carries image/webp whatever the origin sent. The same
+# behavior keeps the site's revalidate Cache-Control and CachingOptimized at
+# the edge, like the default behavior it takes these paths from. It sits after
+# /_next/static/* (content-hashed, immutable) and before /cfb/data/*.
+#
+# Cost: CloudFront Functions are free for the first 2 million invocations a
+# month; one runs per WebP response.
+
+resource "aws_cloudfront_function" "webp_content_type" {
+  name    = "travispollard-webp-content-type"
+  comment = "Sets Content-Type: image/webp on .webp responses"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var response = event.response;
+      response.headers['content-type'] = { value: 'image/webp' };
+      return response;
+    }
+  EOT
+}
+
+locals {
+  webp_behaviors = [{
+    path_pattern               = "*.webp"
+    target_origin_id           = "${module.s3.bucket_name}.s3-website-us-east-1.amazonaws.com"
+    cache_policy_id            = data.aws_cloudfront_cache_policy.static_assets.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.revalidate.id
+    function_associations = [{
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.webp_content_type.arn
+    }]
+  }]
+}
+
