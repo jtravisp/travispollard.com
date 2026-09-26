@@ -28,6 +28,11 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.xml': 'application/xml',
   '.txt': 'text/plain; charset=utf-8',
   '.woff2': 'font/woff2',
 };
@@ -45,8 +50,16 @@ createServer((request, response) => {
 
   const contained = file === ROOT || file.startsWith(ROOT + sep);
 
-  // `trailingSlash: true`, so a directory means its index.html.
+  // `trailingSlash: true`, so a directory means its index.html -- except
+  // when the path names a file by its extension. /music/feed.xml must be the
+  // file out/music/feed.xml; if the export ever wrote it as a directory, this
+  // 404s instead of quietly serving feed.xml/index.html and hiding the bug.
   if (contained && existsSync(file) && statSync(file).isDirectory()) {
+    if (extname(relative)) {
+      response.writeHead(404, { 'content-type': 'text/plain' });
+      response.end(`not found: ${relative} is a directory, not a file`);
+      return;
+    }
     file = join(file, 'index.html');
   }
 
