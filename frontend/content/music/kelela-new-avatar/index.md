@@ -68,8 +68,7 @@ A few tracks that I found notable:
 - **“linknb”:** A highlight for me. With its floating lyrics gliding over
   electronic drums and an arpeggiated synth, it sounds like a track straight off
   a Radiohead album.
-- **“the bridge”:** A gorgeous collaboration featuring PinkPantheress, built
-  over a synth pad and driving electronic drums.
+- **“the bridge”:** A collaboration featuring PinkPantheress, 80s vibe showcasing a synth pad and driving electronic drums.
 
 :::notes
 If you want an introduction to Kelela before diving into the heavy production of
@@ -89,7 +88,7 @@ game to check out her earlier work.
 
 If you love this album, I also recommend: The Postal Service’s masterpiece,
 [“Give Up”](https://music.youtube.com/playlist?list=OLAK5uy_lBqmhyIzBFgDas7CrjU3eq7VnTjwZH4Mg). That album’s combination of indie rock and electronica scratches the
-exact same itch for me that “new avatar” does, showcasing beautiful,
+exact same itch for me that “new avatar” does, beautiful,
 introspective vocals over deep, rhythmic arrangements.
 
 ![Cover of Give Up by The Postal Service](./give-up.jpg "small")
