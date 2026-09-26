@@ -45,6 +45,14 @@ resource "aws_cloudfront_distribution" "this" {
       cache_policy_id        = ordered_cache_behavior.value.cache_policy_id
 
       response_headers_policy_id = ordered_cache_behavior.value.response_headers_policy_id
+
+      dynamic "function_association" {
+        for_each = ordered_cache_behavior.value.function_associations
+        content {
+          event_type   = function_association.value.event_type
+          function_arn = function_association.value.function_arn
+        }
+      }
     }
   }
 

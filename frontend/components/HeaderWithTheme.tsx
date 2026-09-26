@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { href: '/resume', label: 'Resume' },
   { href: '/projects', label: 'Projects' },
   { href: '/stack', label: 'Stack' },
+  { href: '/music', label: 'Music' },
   { href: '/status', label: 'Status' },
   { href: '/cfb', label: 'CFB Forecast' },
   { href: 'https://ncoer.travispollard.com', label: 'NCOER Writer', external: true },
@@ -80,7 +81,9 @@ export default function HeaderWithTheme() {
   }, []);
 
   const renderNavLink = (item: NavItem, onDrawer = false) => {
-    const current = !item.external && here === item.href;
+    // Exact match, or a page beneath it: /music/<slug>/ still marks "Music".
+    const current =
+      !item.external && (here === item.href || here.startsWith(`${item.href}/`));
     const className = [
       'link link-hover inline-flex items-center gap-1 whitespace-nowrap',
       FOCUS,

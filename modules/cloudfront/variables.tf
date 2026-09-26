@@ -72,6 +72,12 @@ variable "extra_behaviors" {
     # Optional, so existing callers are unchanged: null attaches no policy
     # and the viewer gets whatever headers the origin sent.
     response_headers_policy_id = optional(string)
+    # CloudFront Functions to run on this behavior, e.g. a viewer-response
+    # function that corrects a header. Empty for every existing caller.
+    function_associations = optional(list(object({
+      event_type   = string
+      function_arn = string
+    })), [])
   }))
   default = []
 }
