@@ -1,0 +1,4 @@
+# The status checker is zipped by Terraform (archive_file) and deployed by
+# source hash. With core.autocrlf, a Windows checkout rewrites it to CRLF and
+# Terraform sees "new code" that is not; LF everywhere keeps the hash stable.
+status-checker/*.py text eol=lf
