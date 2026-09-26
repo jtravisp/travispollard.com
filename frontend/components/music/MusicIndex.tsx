@@ -5,6 +5,7 @@ import Cover from '@/components/music/Cover';
 import { formatDate } from '@/lib/music/format';
 import { image, readManifest } from '@/lib/music/markdown';
 import { getPosts } from '@/lib/music/posts';
+import { site } from '@/content/site';
 import Link from 'next/link';
 
 /**
@@ -26,7 +27,7 @@ export default function MusicIndex() {
 
         <PageIntro
           title="Music"
-          lead="Albums my dorky friends told me are supposed to be good."
+          lead={site.musicTagline}
           action={
             <a href="/music/feed.xml" className="text-sm text-base-content/70 hover:text-primary">
               RSS feed

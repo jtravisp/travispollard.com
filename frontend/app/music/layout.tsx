@@ -1,9 +1,18 @@
-export const metadata = {
+import { sectionMetadata } from '@/lib/seo';
+import { site } from '@/content/site';
+
+const music = sectionMetadata({
   title: 'Music',
-  description:
-    'Album reviews by Travis Pollard -- saxophonist, former band director, and listener to whatever friends recommend.',
+  description: `Album reviews by Travis Pollard. ${site.musicTagline}`,
+  path: '/music/',
+  image: { url: '/images/og-music.png', width: 1200, height: 630 },
+  imageAlt: 'Music - album reviews by Travis Pollard',
+});
+
+export const metadata = {
+  ...music,
   alternates: {
-    canonical: '/music/',
+    ...music.alternates,
     types: { 'application/rss+xml': [{ url: '/music/feed.xml', title: 'Travis Pollard - Music' }] },
   },
 };

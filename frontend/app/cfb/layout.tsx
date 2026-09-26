@@ -1,8 +1,10 @@
-export const metadata = {
-  title: 'Texas Football Forecast - Travis Pollard',
+import { sectionMetadata } from '@/lib/seo';
+
+export const metadata = sectionMetadata({
+  title: 'Texas Football Forecast',
   description:
     'An Elo model for college football, with every prediction written before kickoff and scored against the result. Predictions, the full slate, and the accuracy record.',
-};
+});
 
 /**
  * The section pins its own daisyUI theme (`longhorns`, defined in globals.css).

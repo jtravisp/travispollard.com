@@ -11,12 +11,22 @@
  * dependency and the card is a web page: real font shaping, real layout, and
  * the headshot loaded from the same file the site serves.
  *
+ * It also draws public/images/og-music.png, the link card for /music: the same
+ * frame, "Music" and the section's tagline, and a record in place of the
+ * headshot -- drawn, not an album cover, so it never goes stale as reviews are
+ * added and carries no one else's artwork.
+ *
  * Deliberately NOT wired into `npm run build`. It needs a browser binary that
  * the CodeBuild image installs separately, and the card changes about once a
  * year -- a build step that can fail for a reason unrelated to the diff, in
  * service of an asset that rarely moves, is a bad trade. Run it by hand:
  *
- *     node scripts/build-og-card.mjs
+ *     node scripts/build-og-card.mjs          # both cards
+ *     node scripts/build-og-card.mjs music    # just og-music.png
+ *     node scripts/build-og-card.mjs home     # just og-card.png
+ *
+ * Rebuild only the card whose text changed: a re-render of an unchanged card
+ * differs in a few anti-aliased pixels and shows up as a pointless diff.
  */
 
 import { chromium } from '@playwright/test';
@@ -26,6 +36,11 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(ROOT, 'public/images/og-card.png');
+const OUT_MUSIC = resolve(ROOT, 'public/images/og-music.png');
+const which = process.argv[2] ?? 'all';
+if (!['all', 'home', 'music'].includes(which)) {
+  throw new Error(`build-og-card: unknown card "${which}" (all, home or music)`);
+}
 
 // Read the facts from the same file the site renders, rather than retyping
 // them into a design and letting the two drift.
@@ -47,6 +62,7 @@ const field = (name) => {
 const NAME = field('name');
 const ROLE = field('role');
 const VALUE = field('valueStatement');
+const MUSIC_TAGLINE = field('musicTagline');
 
 // The dark theme's own values, from app/globals.css.
 const BG = '#14161a';
@@ -97,15 +113,57 @@ const html = `<!doctype html>
   <div class="photo-wrap"><img class="photo" src="data:image/jpeg;base64,${photo}"></div>
 </body></html>`;
 
+// The /music card: the same frame and type, with a record where the photo is.
+// Grooves are a repeating radial gradient, the label is the accent, and a
+// faint conic sheen keeps it from reading as a flat black disc.
+const musicHtml = html
+  .replace(
+    /<body>[\s\S]*<\/body>/,
+    `<body>
+  <div class="text">
+    <div class="eyebrow">travispollard.com/music</div>
+    <h1>Music</h1>
+    <div class="role">Album reviews</div>
+    <div class="value">${MUSIC_TAGLINE}</div>
+    <div class="domain">by ${NAME}</div>
+  </div>
+  <div class="record"><div class="label"><div class="hole"></div></div></div>
+</body>`,
+  )
+  .replace(
+    '</style>',
+    `  .record {
+    width:360px; height:360px; border-radius:50%; flex-shrink:0; position:relative;
+    background:
+      conic-gradient(from 30deg, transparent 0 40deg, rgba(255,255,255,0.07) 60deg, transparent 80deg 220deg, rgba(255,255,255,0.05) 240deg, transparent 260deg),
+      repeating-radial-gradient(circle at center, #1d2025 0 2px, #0c0d10 2px 4px);
+    box-shadow:0 0 90px -16px ${ACCENT};
+  }
+  .label {
+    position:absolute; inset:34%; border-radius:50%; background:${ACCENT};
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hole { width:14px; height:14px; border-radius:50%; background:${BG}; }
+</style>`,
+  );
+
+const cards = [
+  ...(which !== 'music' ? [{ path: OUT, markup: html }] : []),
+  ...(which !== 'home' ? [{ path: OUT_MUSIC, markup: musicHtml }] : []),
+];
+
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
-await page.setContent(html, { waitUntil: 'networkidle' });
-await page.evaluate(() => document.fonts.ready);
-await page.waitForTimeout(400);
-await page.screenshot({ path: OUT });
+for (const card of cards) {
+  await page.setContent(card.markup, { waitUntil: 'networkidle' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: card.path });
+  console.log(`build-og-card: wrote ${card.path} (1200x630)`);
+}
 await browser.close();
 
-console.log(`build-og-card: wrote ${OUT} (1200x630)`);
 console.log(`  name:  ${NAME}`);
 console.log(`  role:  ${ROLE}`);
 console.log(`  value: ${VALUE}`);
+console.log(`  music: ${MUSIC_TAGLINE}`);
