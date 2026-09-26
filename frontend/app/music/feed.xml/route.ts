@@ -65,7 +65,7 @@ export function GET(): Response {
     `    <title>${escapeXml(`${site.name} - Music`)}</title>`,
     `    <link>${site.url}/music/</link>`,
     `    <atom:link href="${feedUrl}" rel="self" type="application/rss+xml"/>`,
-    '    <description>Album reviews: records friends recommended, heard by a saxophonist and former band director.</description>',
+    `    <description>${escapeXml(`Album reviews by ${site.name}. ${site.musicTagline}`)}</description>`,
     '    <language>en-us</language>',
     posts.length ? `    <lastBuildDate>${rfc822(posts[0].date)}</lastBuildDate>` : '',
     ...items,

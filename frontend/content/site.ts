@@ -17,6 +17,8 @@ export const site = {
   github: 'https://github.com/jtravisp',
   linkedin: 'https://www.linkedin.com/in/travis-pollard',
   resumePdf: '/Travis%20Pollard%20Resume.pdf',
+  /** The /music intro line: the page, its link preview, the RSS feed and og-music.png. */
+  musicTagline: 'Albums my dorky friends told me are supposed to be good.',
 } as const;
 
 export type WritingPost = {
