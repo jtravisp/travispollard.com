@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/build-music-images.mjs --include-drafts",
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/build-music-images.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "postbuild": "next-sitemap && node scripts/check-no-todos.mjs"
+    "postbuild": "next-sitemap && node scripts/check-no-todos.mjs",
+    "preview:music": "node scripts/preview-music.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.4",
@@ -23,6 +26,7 @@
     "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4.1.4",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -30,8 +34,17 @@
     "daisyui": "^5.0.27",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.3.1",
+    "gray-matter": "^4.0.3",
     "postcss": "^8.5.3",
+    "rehype-stringify": "^10.0.1",
+    "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "sharp": "^0.34.5",
     "typescript": "^5",
-    "typescript-eslint": "^8.70.1"
+    "typescript-eslint": "^8.70.1",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
   }
 }

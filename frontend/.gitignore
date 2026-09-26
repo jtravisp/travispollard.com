@@ -46,3 +46,8 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# /music: generated from content/music by scripts/build-music-images.mjs.
+# Only the original images in content/music are committed.
+/public/music/
+/.music/
