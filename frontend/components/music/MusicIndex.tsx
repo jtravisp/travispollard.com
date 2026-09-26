@@ -26,7 +26,7 @@ export default function MusicIndex() {
 
         <PageIntro
           title="Music"
-          lead="Albums friends have told me I need to hear, reviewed by a saxophonist and former band director."
+          lead="Albums my dorky friends told me are supposed to be good."
           action={
             <a href="/music/feed.xml" className="text-sm text-base-content/70 hover:text-primary">
               RSS feed
