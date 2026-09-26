@@ -16,6 +16,8 @@ tags:
   - alternative
   - electronic
 links:
+  spotify: https://open.spotify.com/album/0t1I0Ic8IzTND3sesj9tDE
+  apple_music: https://music.apple.com/us/album/new-avatar/1888561538
   youtube_music: https://music.youtube.com/playlist?list=OLAK5uy_lZ9Sxy6wVHwYecPz9dH-wAEdOZx3gYhY4
 draft: false
 ---
@@ -27,7 +29,7 @@ what is typically expected. I’ve been listening to her third studio album,
 “new avatar”, and it’s really scratched an itch for me.
 
 Kelela is an Ethiopian-American artist and self-proclaimed “DC girl.” She
-released her first project at the age of 30 and self-identifies as a “late
+released her first project at the age of 30 and identifies as a “late
 bloomer.” The influence of jazz, metal, and “guitar” music is pervasive on
 “new avatar.”
 
@@ -86,7 +88,7 @@ I think “new avatar” might be peak Kelela for me, but it has definitely made
 game to check out her earlier work.
 
 If you love this album, I also recommend: The Postal Service’s masterpiece,
-“Give Up.” That album’s combination of indie rock and electronica scratches the
+[“Give Up”](https://music.youtube.com/playlist?list=OLAK5uy_lBqmhyIzBFgDas7CrjU3eq7VnTjwZH4Mg). That album’s combination of indie rock and electronica scratches the
 exact same itch for me that “new avatar” does, showcasing beautiful,
 introspective vocals over deep, rhythmic arrangements.
 
