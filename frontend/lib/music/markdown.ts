@@ -7,9 +7,18 @@
  *     A line worth lifting.
  *     :::
  *
+ *     :::pullquote{cite="Kelela, to Zane Lowe"}
+ *     Someone else's words, credited in a <figcaption> -- set large on its
+ *     own, an unattributed quote reads as the reviewer's.
+ *     :::
+ *
  *     :::notes              -> removed from the body and returned separately,
  *     Musician's notes...      so the template can place it after the
  *     :::                      favourite-tracks list.
+ *
+ * An image titled "small" -- `![alt](./cover.jpg "small")` -- is capped at
+ * 18rem instead of filling the column: right for album art shown alongside
+ * text, where full width would make a 660px square of it.
  *
  * Raw HTML in a post is not enabled: remark-rehype drops it. Images must be
  * files in the post's folder, written relatively (`![alt](./photo.jpg)`); each
@@ -74,8 +83,20 @@ function remarkMusicBlocks(this: unknown, slug: string, notes: RootContent[]) {
           return index; // revisit the node that slid into this position
         }
         if (node.name === 'pullquote') {
+          const cite = node.attributes?.cite?.trim();
           node.data = { hName: 'figure', hProperties: { className: ['pullquote'] } };
-          node.children = [{ type: 'blockquote', children: node.children } as never];
+          node.children = [
+            { type: 'blockquote', children: node.children } as never,
+            ...(cite
+              ? [
+                  {
+                    type: 'paragraph',
+                    data: { hName: 'figcaption' },
+                    children: [{ type: 'text', value: cite }],
+                  } as never,
+                ]
+              : []),
+          ];
           return;
         }
         throw new Error(`content/music/${slug}: unknown block ":::${node.name}" (use pullquote or notes)`);
@@ -110,11 +131,14 @@ function rehypeMusicImages(slug: string, manifest: Manifest) {
       const entry = image(manifest, slug, src.replace(/^\.\//, ''));
       const largest = entry.variants[entry.variants.length - 1];
       const middle = entry.variants[Math.min(1, entry.variants.length - 1)];
+      const small = node.properties?.title === 'small';
+      const { title: _title, ...rest } = node.properties ?? {};
       node.properties = {
-        ...node.properties,
-        src: middle.src,
+        ...(small ? rest : node.properties),
+        ...(small ? { className: ['music-img-small'] } : {}),
+        src: small ? entry.variants[0].src : middle.src,
         srcSet: entry.variants.map((v) => `${v.src} ${v.width}w`).join(', '),
-        sizes: '(min-width: 768px) 42rem, 100vw',
+        sizes: small ? '18rem' : '(min-width: 768px) 42rem, 100vw',
         width: largest.width,
         height: largest.height,
         loading: 'lazy',

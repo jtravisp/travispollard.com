@@ -254,6 +254,11 @@ body {
   height: auto;
 }
 
+/* ![alt](./file.jpg "small"): album art beside the text, not a hero. */
+.music-prose img.music-img-small {
+  max-width: 18rem;
+}
+
 /* :::pullquote -- one line lifted out and given room: larger, the accent
    rule on its left, and none of the typography plugin's quotation marks. */
 .music-prose .pullquote {
@@ -271,6 +276,15 @@ body {
 .music-prose .pullquote blockquote p::before,
 .music-prose .pullquote blockquote p::after {
   content: none;
+}
+.music-prose .pullquote figcaption {
+  margin-top: 0.75rem;
+  padding-left: calc(1.25rem + 3px);
+  font-size: 0.875rem;
+  color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+}
+.music-prose .pullquote figcaption::before {
+  content: "\2014\00a0";
 }
 
 /* Inside the Musician's notes card the first paragraph needs no top margin. */

@@ -23,6 +23,7 @@ export type StreamingLinks = {
   spotify?: string;
   apple_music?: string;
   bandcamp?: string;
+  youtube_music?: string;
 };
 
 export type PostMeta = {
@@ -92,12 +93,20 @@ function list(data: Record<string, unknown>, field: string, file: string): strin
 function links(value: unknown, file: string): StreamingLinks {
   if (value === undefined || value === null) return {};
   if (typeof value !== 'object' || Array.isArray(value)) {
-    throw new FrontMatterError(file, 'links', 'must be a map of spotify / apple_music / bandcamp URLs');
+    throw new FrontMatterError(
+      file,
+      'links',
+      'must be a map of spotify / apple_music / bandcamp / youtube_music URLs',
+    );
   }
   const out: StreamingLinks = {};
   for (const [key, url] of Object.entries(value as Record<string, unknown>)) {
-    if (!['spotify', 'apple_music', 'bandcamp'].includes(key)) {
-      throw new FrontMatterError(file, `links.${key}`, 'is not one of spotify, apple_music, bandcamp');
+    if (!['spotify', 'apple_music', 'bandcamp', 'youtube_music'].includes(key)) {
+      throw new FrontMatterError(
+        file,
+        `links.${key}`,
+        'is not one of spotify, apple_music, bandcamp, youtube_music',
+      );
     }
     if (typeof url !== 'string' || !/^https:\/\//.test(url)) {
       throw new FrontMatterError(file, `links.${key}`, 'must be an https:// URL');

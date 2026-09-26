@@ -19,6 +19,7 @@ export const LINK_LABELS: Record<keyof StreamingLinks, string> = {
   spotify: 'Spotify',
   apple_music: 'Apple Music',
   bandcamp: 'Bandcamp',
+  youtube_music: 'YouTube Music',
 };
 
 /** In a fixed order, whatever order the front matter used. */
