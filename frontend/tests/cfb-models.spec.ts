@@ -159,3 +159,40 @@ test('a document from a newer generator refuses rather than rendering', async ({
 
   await expect(page.getByText(/402/)).toHaveCount(0);
 });
+
+/**
+ * 2026 weeks 2 and 3 were forecast before their lines were captured, so every
+ * market figure is short those games. The note says so once a gap week is
+ * scored, and only for the season that had the gap.
+ */
+test('the 2026 market-line gap is explained once a gap week is scored', async ({ page }) => {
+  await page.goto('/cfb/models/');
+  await expect(page.getByTestId('market-line-gap')).toContainText(
+    'Weeks 2 and 3 were forecast before those weeks’ betting lines had been captured, so only 7 of week 2’s 120 games and none of week 3’s 119 games carry a line.',
+  );
+});
+
+test('the gap note names only the gap weeks already scored', async ({ page }) => {
+  await page.unroute('**/cfb/data/models.json*');
+  await page.route('**/cfb/data/models.json*', (route) =>
+    route.fulfill({ json: { ...MODELS, week: '03', through_week: '02' } }),
+  );
+  await page.goto('/cfb/models/');
+  await expect(page.getByTestId('market-line-gap')).toContainText(
+    'Week 2 was forecast before that week’s betting lines had been captured, so only 7 of week 2’s 120 games carry a line.',
+  );
+});
+
+test('no gap note for a season without one, or before a gap week is scored', async ({ page }) => {
+  await page.unroute('**/cfb/data/models.json*');
+  let doc: object = { ...MODELS, season: 2027 };
+  await page.route('**/cfb/data/models.json*', (route) => route.fulfill({ json: doc }));
+  await page.goto('/cfb/models/');
+  await expect(page.getByText(/games every system priced/)).toBeVisible();
+  await expect(page.getByTestId('market-line-gap')).toHaveCount(0);
+
+  doc = { ...MODELS, week: '02', through_week: '01' };
+  await page.reload();
+  await expect(page.getByText(/games every system priced/)).toBeVisible();
+  await expect(page.getByTestId('market-line-gap')).toHaveCount(0);
+});

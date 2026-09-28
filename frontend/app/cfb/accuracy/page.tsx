@@ -17,6 +17,7 @@
 
 import CfbNav from '@/components/cfb/CfbNav';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
+import MarketLineGapNote from '@/components/cfb/MarketLineGapNote';
 import { AccuracyDocument, Backtest, Record, SeedDisclosure } from '@/components/cfb/contract';
 import {
   formatCorrelation,
@@ -86,6 +87,7 @@ function Accuracy({ document }: { document: AccuracyDocument }) {
           <RecordCard title="Texas" record={document.texas} />
           <RecordCard title="Full slate" record={document.full_slate} />
         </div>
+        <MarketLineGapNote season={document.season} throughWeek={document.through_week} />
       </section>
 
       <Disclosure disclosure={document.seed_disclosure} />
