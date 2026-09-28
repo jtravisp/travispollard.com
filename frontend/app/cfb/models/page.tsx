@@ -23,6 +23,7 @@
 
 import CfbNav from '@/components/cfb/CfbNav';
 import { DocumentPlaceholder } from '@/components/cfb/DocumentState';
+import MarketLineGapNote from '@/components/cfb/MarketLineGapNote';
 import {
   MODELS_SCHEMA_VERSIONS,
   ModelsDocument,
@@ -75,11 +76,14 @@ function Models({ document }: { document: ModelsDocument }) {
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-base-content/70">
-        Through week {formatWeek(document.through_week)}, on{' '}
-        <strong>{document.shared_denominator.games}</strong>{' '}
-        {document.shared_denominator.description}.
-      </p>
+      <div>
+        <p className="text-sm text-base-content/70">
+          Through {formatWeek(document.through_week).toLowerCase()}, on{' '}
+          <strong>{document.shared_denominator.games}</strong>{' '}
+          {document.shared_denominator.description}.
+        </p>
+        <MarketLineGapNote season={document.season} throughWeek={document.through_week} />
+      </div>
 
       <Leaderboard systems={document.systems} />
       <ByWeek document={document} />
