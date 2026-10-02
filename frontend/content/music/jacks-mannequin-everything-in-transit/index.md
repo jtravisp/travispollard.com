@@ -45,7 +45,7 @@ with the diagnosis came during a mastering session. He spent the next six months
 in treatment, was back on stage that December, and went on to make a full
 recovery.
 
-:::pullquote{cite="Andrew McMahon"}
+:::pullquote{cite="Andrew McMahon, to Alternative Press"}
 It is trying to do this thing that I think the best of pop music does… if the
 lyric is really heavy, then the drums are faster… even though some of the songs
 themselves were really kind of heartbroken, there was still this element of hope
@@ -96,7 +96,7 @@ and talk about what’s “in their bag.” Check out
 with Adam Duritz.
 
 For even more background, you can also check out this
-[complete history of “Everything in Transit”](https://www.youtube.com/watch?v=fDuu172htxM&t=272s) on YouTube.
+[complete history of “Everything in Transit”](https://www.youtube.com/watch?v=fDuu172htxM) on YouTube.
 :::
 
 If you love this album, I also recommend: The Get Up Kids’ landmark album,
