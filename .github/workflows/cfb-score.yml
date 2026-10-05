@@ -54,7 +54,11 @@ defaults:
 
 jobs:
   score:
-    runs-on: ubuntu-latest
+    # Pinned rather than `ubuntu-latest`, which moves to Ubuntu 26 from
+    # 2026-10-19 -- mid-season. An image change should be a diff someone chose,
+    # not something that happens to a Monday run. Every workflow here pins the
+    # same label; move them together.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
