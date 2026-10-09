@@ -120,6 +120,28 @@ export const cloudAiProjects: Project[] = [
     ],
   },
   {
+    id: 'austin-food-scores',
+    title: 'Austin Food Scores - Restaurant Inspection Trends',
+    cardTitle: 'Austin Food Scores',
+    summary:
+      'Maps every Travis County food inspection and keeps the history the city drops after three years.',
+    tags: ['Python', 'Lambda', 'RDS Postgres', 'CloudFront', 'Terraform'],
+    links: [
+      { label: 'live', url: 'https://austinfood.travispollard.com' },
+      { label: 'repo', url: 'https://github.com/jtravisp/austinfoodscores' },
+    ],
+    // Drafted by Claude (2026-10-09) from the austinfoodscores repo; every line
+    // is checkable there. Travis to reword in his own voice.
+    items: [
+      "Archives the City of Austin's food inspection data weekly - the source keeps only a rolling three years, so score trends and decliners outlive it",
+      'EventBridge Scheduler runs a fetch Lambda that snapshots the Socrata API to S3; the upload event triggers an in-VPC load Lambda that upserts idempotently into RDS Postgres',
+      'No NAT gateway: private subnets reach S3 through a gateway endpoint, and each Lambda signs in to Postgres with IAM database auth over verify-full TLS as its own least-privilege role',
+      'Trend and decliner metrics computed in a SQL view with window functions and regr_slope, served by an API Gateway HTTP API',
+      'Leaflet map and API share one CloudFront distribution - S3 through Origin Access Control, /api/* cached at the edge - so the browser never makes a CORS request',
+      'Separate dev and prod AWS accounts built from Terraform modules; GitHub Actions with OIDC plans every pull request, and prod applies the exact plan approved in a protected environment',
+    ],
+  },
+  {
     id: 'privatepaste',
     title: 'PrivatePaste - Zero-Knowledge Encrypted Vault (archived)',
     cardTitle: 'PrivatePaste',
