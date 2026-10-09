@@ -31,6 +31,7 @@ locals {
     { id = "travispollard-com", name = "travispollard.com", url = "https://www.travispollard.com" },
     { id = "near-mint-radar", name = "Near Mint Radar", url = "https://nearmintradar.com" },
     { id = "ncoer-writer", name = "NCOER Writer", url = "https://ncoer.travispollard.com" },
+    { id = "austin-food-scores", name = "Austin Food Scores", url = "https://austinfood.travispollard.com" },
     { id = "cfb-forecast", name = "CFB Forecast", url = "https://travispollard.com/cfb" },
     { id = "lone-star-ampa", name = "Lone Star AMPA", url = "https://lonestarampa.com" },
   ]
