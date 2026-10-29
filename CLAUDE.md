@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A monorepo for travispollard.com holding three independent things:
+A monorepo for travispollard.com holding four independent things:
 
 - **Root Terraform** (`main.tf`, `modules/`) — the AWS site stack: S3 + CloudFront + Route53 + ACM.
 - **`frontend/`** — the Next.js 15 site, statically exported and served from that stack.
 - **`cfb/`** — a separate Python data pipeline with its own Terraform state and its own `CLAUDE.md`. Read `cfb/CLAUDE.md` before touching anything in there; its rules are stricter than the rest of the repo.
+- **`observability/`** — Grafana Cloud, Alloy/blackbox probing, SLOs and OTel, with its own Terraform state. In planning. `observability/docs/PRD.md` holds the phases and the decision log; start sessions with `/obs-work <phase>`.
 
 `www/` is the pre-Next.js static site. It is still tracked but dead — nothing builds or deploys it.
 
