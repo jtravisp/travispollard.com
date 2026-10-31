@@ -49,12 +49,18 @@ function formatDate(iso: string): string {
   });
 }
 
-function summary(days: DailyEntry[]): string {
+/**
+ * For a service whose downtime is expected, a down day is drawn grey and
+ * called "Offline": it is the service's normal state, not an incident.
+ */
+const OFFLINE_BAR = 'bg-base-content/25';
+
+function summary(days: DailyEntry[], expectedDowntime: boolean): string {
   const count = (s: DayStatus) => days.filter((d) => d.status === s).length;
   const parts = [
     `${count('operational')} operational`,
     `${count('degraded')} degraded`,
-    `${count('down')} down`,
+    `${count('down')} ${expectedDowntime ? 'offline' : 'down'}`,
     `${count('no_data')} with no data`,
   ];
   return `${days.length}-day history: ${parts.join(', ')}.`;
@@ -67,10 +73,13 @@ export function formatUptime(uptime: number): string {
 export default function UptimeBars({
   days,
   uptime,
+  expectedDowntime = false,
 }: {
   days: DailyEntry[];
   uptime: number | null | undefined;
+  expectedDowntime?: boolean;
 }) {
+  const offline = (s: DayStatus) => expectedDowntime && s === 'down';
   return (
     <div className="mt-5">
       <div className="mb-2 flex items-baseline justify-between gap-4">
@@ -84,7 +93,7 @@ export default function UptimeBars({
         )}
       </div>
 
-      <div role="img" aria-label={summary(days)} className="flex h-8 gap-[3px]">
+      <div role="img" aria-label={summary(days, expectedDowntime)} className="flex h-8 gap-[3px]">
         {days.map((day, i) => {
           // Keep the tooltip inside the card at both ends of the row.
           const align =
@@ -92,7 +101,7 @@ export default function UptimeBars({
           return (
             <div key={day.date} data-status={day.status} className="uptime-bar relative flex-1">
               <div
-                className={`h-full rounded-[2px] transition-opacity [.uptime-bar:hover_&]:opacity-70 ${BAR[day.status]}`}
+                className={`h-full rounded-[2px] transition-opacity [.uptime-bar:hover_&]:opacity-70 ${offline(day.status) ? OFFLINE_BAR : BAR[day.status]}`}
               />
               <div
                 aria-hidden="true"
@@ -100,7 +109,7 @@ export default function UptimeBars({
               >
                 <span className="block font-semibold">{formatDate(day.date)}</span>
                 <span className="block text-base-content/80">
-                  {WORD[day.status]}
+                  {offline(day.status) ? 'Offline' : WORD[day.status]}
                   {day.avg_latency_ms !== null && <> &middot; avg {day.avg_latency_ms} ms</>}
                 </span>
               </div>

@@ -34,6 +34,15 @@ locals {
     { id = "austin-food-scores", name = "Austin Food Scores", url = "https://austinfood.travispollard.com" },
     { id = "cfb-forecast", name = "CFB Forecast", url = "https://travispollard.com/cfb" },
     { id = "lone-star-ampa", name = "Lone Star AMPA", url = "https://lonestarampa.com" },
+    # Usually off, by design: checked and recorded, but never alerts and never
+    # makes the page an outage (checker.py, expected_downtime).
+    {
+      id                = "privatepaste"
+      name              = "PrivatePaste"
+      url               = "https://privatepasteapp.com"
+      expected_downtime = true
+      note              = "Usually offline, and that is expected, not a failure. It is expensive to keep running, so it only comes up when in use, and it is being rewritten to run on a short-lived EKS cluster each time it is up."
+    },
   ]
 
   status_object_key  = "status.json"
