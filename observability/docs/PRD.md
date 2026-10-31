@@ -53,7 +53,7 @@ existing status checker already covers it.
 | Constraint | Value | Consequence |
 |---|---|---|
 | Budget | **≤ $3/month** total new spend | No t4g.nano with public IPv4 (~$7–8/mo). Spot + IPv6-only, or local. |
-| Grafana Cloud free tier | 10k active series, 14-day metric retention (verify at signup) | 7-day SLO window, not 30 (D-004). Watch series count. |
+| Grafana Cloud free tier | 10k active series, 14-day retention for metrics, logs and traces; 50 GB/mo each for logs and traces; Application Observability 2,232 host-hours/mo (verified from pricing page 2026-10-29) | 7-day SLO window, not 30 (D-004). Watch series count. Check how Phase 3's Lambdas count against App Observability host-hours. |
 | Scrape interval | 60 s | 1 data point/min/series. Shorter intervals multiply usage for no learning gain. |
 | AWS | Account `679878703800`, profile `tp-site`, `us-east-1` | Same conventions as the root stack. |
 | Terraform state | Separate from root (D-002) | Any seam to the root stack is SSM, as with `cfb/`. |
