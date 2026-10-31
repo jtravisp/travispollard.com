@@ -9,6 +9,52 @@ no live run is `[~]`, not `[x]`.** Nothing in this phase has run against the rea
 every item below is at best `[~]` on that axis — the marks record whether the code and its tests
 exist, and the "verified by" column says what was actually run.
 
+## Where this stands (2026-10-16) — in season, week 07, nothing broken
+
+A health review, not a build session. No code changed. Since 2026-09-21 the live record has
+moved to `PHASE-3.md` and `git log`; this block exists so the top of this file stops describing
+a pipeline that has not run yet.
+
+| | |
+|---|---|
+| Tests | **1283 passing, 24 skipped** (`uv run pytest`), `ruff check .` clean, `cfb/terraform` plan: no changes |
+| Live | `/cfb`, `/cfb/slate`, `/cfb/accuracy`, `/cfb/models` all 200. CDN copies match the bucket, generated 2026-10-15T17:15Z, week 07, Texas–Florida featured |
+| Bucket | `scored/` and `elo/` for weeks 01–06, one generation each. Week 07 predictions written Mon 10-12 and Thu 10-15. Sagarin and roster for week 07 present |
+| Workflows | Every scheduled cfb run since 2026-09-21 green except one: the 2026-10-05 `cfb-score` (run 37367217311) was never picked up by a runner — a GitHub-side failure, zero steps ran. Re-run by hand at 22:05Z with `cfb-refresh`; all workflows pinned to `ubuntu-24.04` the same day (`d802fcd`) |
+| CFBD budget | 41 raw captures in September, 35 so far in October. A capture can be more than one call, but this is nowhere near 1,000/month |
+| Blocked | nothing |
+| Blocked on a human | the first weekly note |
+
+### Found this review
+
+- [ ] **Actions cron drifts by hours, not minutes, and the job order rests on the drift
+      being uniform.** Measured start times against their crons: `cfb-predict` Thu 12:00 →
+      15:59–18:12; `cfb-publish` Thu 12:30 → 17:14–18:57; `cfb-score` Mon 12:00 → 19:03–20:41;
+      `cfb-refresh` Mon 14:00 → 20:23–21:58. The 30-minute and 2-hour offsets between dependent
+      jobs have held every week — predict before publish, score before refresh — but nothing
+      enforces them. 2026-10-05 is the case where it did not hold: score never ran and refresh
+      published without it, until both were re-dispatched. Candidate fix: chain the dependents
+      with `workflow_run` (or one job with `needs:`) instead of clock offsets. Not started.
+  - The `cfb-publish.yml` header still says cron "drifts 5-15 minutes under load". Wrong by
+    roughly two orders of magnitude; correct it with the chaining change.
+  - The Thursday deadline still has margin at the observed drift: the 10-15 publish landed
+    17:14Z against a 23:30Z first kickoff. Nine hours of drift, seen on a Monday, would leave
+    about one.
+- [x] **The MACtion gap is closed in practice by the Monday refresh, not by the Thursday
+      publish.** Verified for week 07: `cfb-score` wrote week 07 predictions at
+      2026-10-12T20:42Z, and the `cfb-refresh` run after it logged
+      `event=published requested_week=07 slate_week=07 … result=ok` and invalidated
+      `/cfb/data/*` at ~22:00Z — a day ahead of the first midweek kickoff,
+      Delaware at Middle Tennessee, 2026-10-13T23:00Z. Four week 07 games were played Tue/Wed
+      and all four were forecast before kickoff. Caveat: this rides on the unenforced ordering
+      above. See the item under §8's "Two things this turned up".
+- [ ] **`test/` in the data bucket holds integration-test objects from 2026-08-28.** Harmless,
+      outside every production prefix. Not deleted here.
+- [ ] **Commit `6b5bf63` says "not pushed" and is on `origin/main`.** Frontend work, outside
+      this project, but its message lists two open content decisions — `content/resume.ts`
+      disagrees with the resume PDF, and the NCOER Writer entry shipped without its
+      "not verified" line. Recorded so it is not lost; not cfb's to fix.
+
 ## Where this stands (2026-08-29) — Phase 1 closed, follow-ups landing
 
 Every section of SPEC-phase1 is implemented, live and scheduled. What has landed
@@ -1128,7 +1174,11 @@ games (Thu 27 Aug 22:00Z). It is the only week in the calendar shaped that way.
 
 ### Two things this turned up
 
-- [ ] **The deadline is still missed in the MACtion weeks, and §8.1 says so
+- [x] **Superseded 2026-10-16:** the Monday `cfb-refresh` (after `cfb-score`, which
+      forecasts the coming week since `61229a3`) now publishes that week before any Tuesday
+      kickoff. Verified on week 07 — see "Found this review" at the top. The original note
+      stands below as the reasoning that led there.
+      **The deadline is still missed in the MACtion weeks, and §8.1 says so
       rather than redefining it.** November Tuesday and Wednesday games are inside
       the same CFBD week and ~36 hours *before* the Thursday publish. Meeting
       "first kickoff of the week" literally there needs a Monday or Tuesday
