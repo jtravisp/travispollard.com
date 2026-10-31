@@ -80,6 +80,47 @@ test('a down service makes a partial outage and shows why', async ({ page }) => 
   await expect(card.getByText('HTTP 503', { exact: true }).first()).toBeVisible();
 });
 
+test('a service expected to be off reads as offline, with its note, and is no outage', async ({
+  page,
+}) => {
+  await serve(
+    page,
+    doc({
+      overall_status: 'operational',
+      services: [
+        SERVICE,
+        {
+          ...SERVICE,
+          id: 'privatepaste',
+          name: 'PrivatePaste',
+          url: 'https://privatepasteapp.com',
+          status: 'down',
+          http_code: 530,
+          cert_days_remaining: null,
+          error: 'HTTP 530',
+          expected_downtime: true,
+          note: 'Usually offline, and that is expected.',
+          uptime_percentage_30d: 12.5,
+          daily_history: history([...Array(29).fill('down'), 'operational']),
+        },
+      ],
+    }),
+  );
+  await page.goto('/status/');
+
+  await expect(page.getByText('All Systems Operational')).toBeVisible();
+  const card = page.locator('li', { has: page.getByRole('link', { name: /PrivatePaste/ }) });
+  await expect(card.getByText('Offline (expected)')).toBeVisible();
+  await expect(card.getByText('Down', { exact: true })).toHaveCount(0);
+  await expect(card.getByText('Usually offline, and that is expected.')).toBeVisible();
+  await expect(card.getByText('SSL unknown')).toHaveCount(0);
+  await expect(
+    card.getByRole('img', {
+      name: '30-day history: 1 operational, 0 degraded, 29 offline, 0 with no data.',
+    }),
+  ).toBeVisible();
+});
+
 test('a slow service is degraded, and an expiring certificate is flagged', async ({ page }) => {
   await serve(
     page,

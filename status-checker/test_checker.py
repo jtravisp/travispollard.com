@@ -182,6 +182,23 @@ def test_a_healthy_or_slow_check_is_not_retried(base_url):
     assert _Handler.requests_seen == ["/ok", "/very-slow"]
 
 
+def test_expected_downtime_is_passed_through_and_not_retried(base_url):
+    _Handler.requests_seen.clear()
+    t = {**target(f"{base_url}/broken"), "expected_downtime": True, "note": "Usually off."}
+    result = checker.check(t, timeout=5)
+    assert result["status"] == "down"  # recorded as seen, not hidden
+    assert result["expected_downtime"] is True
+    assert result["note"] == "Usually off."
+    assert "retried" not in result
+    assert _Handler.requests_seen == ["/broken"]
+
+
+def test_ordinary_targets_carry_no_expected_downtime_fields(base_url):
+    result = checker.check(target(f"{base_url}/ok"), timeout=5)
+    assert "expected_downtime" not in result
+    assert "note" not in result
+
+
 def test_checks_run_concurrently(base_url):
     started = time.perf_counter()
     checker.run_checks([target(f"{base_url}/slow", str(i)) for i in range(4)], timeout=5)
@@ -426,6 +443,24 @@ def test_transitions_alert_once_per_outage_and_on_recovery():
     assert checker.transitions({}, [down]) == [("DOWN", down)]  # new service, already down
     assert checker.transitions({"a": "operational"}, [slow]) == []  # degraded is not an alert
     assert checker.transitions(None, [down, up]) == [("DOWN", down)]  # unknown past: alert
+
+
+def test_expected_downtime_never_alerts():
+    off = {"id": "a", "status": "down", "expected_downtime": True}
+    on = {"id": "a", "status": "operational", "expected_downtime": True}
+    assert checker.transitions({"a": "operational"}, [off]) == []
+    assert checker.transitions({"a": "down"}, [on]) == []
+    assert checker.transitions(None, [off]) == []
+
+
+def test_expected_downtime_does_not_make_an_outage():
+    services = [
+        {"id": "a", "status": "operational", "response_time_ms": 10},
+        {"id": "b", "status": "down", "response_time_ms": None, "expected_downtime": True},
+    ]
+    doc = checker.build_document(services, None, date(2026, 10, 31))
+    assert doc["overall_status"] == "operational"
+    assert doc["services"][1]["status"] == "down"
 
 
 def test_alert_message_reads_like_the_spec():

@@ -61,37 +61,50 @@ function relative(iso: string, now: number): string {
   return `${Math.floor(hours / 24)} d ago`;
 }
 
-const DOT: Record<ServiceStatus, string> = {
+/** What a card shows. `offline` is a down service whose downtime is expected. */
+type Shown = ServiceStatus | 'offline';
+
+const DOT: Record<Shown, string> = {
   operational: 'bg-success',
   degraded: 'bg-warning',
   down: 'bg-error',
+  offline: 'bg-base-content/40',
 };
 
-const LABEL: Record<ServiceStatus, string> = {
+const LABEL: Record<Shown, string> = {
   operational: 'Operational',
   degraded: 'Degraded',
   down: 'Down',
+  offline: 'Offline (expected)',
 };
 
-/** A status dot. Pulses unless the visitor prefers reduced motion. */
-function Dot({ status, size = 'sm' }: { status: ServiceStatus; size?: 'sm' | 'lg' }) {
+function shown(service: ServiceCheck): Shown {
+  return service.expected_downtime && service.status === 'down' ? 'offline' : service.status;
+}
+
+/** A status dot. Pulses unless the visitor prefers reduced motion, or it is offline. */
+function Dot({ status, size = 'sm' }: { status: Shown; size?: 'sm' | 'lg' }) {
   const dim = size === 'lg' ? 'h-3 w-3' : 'h-2 w-2';
   return (
     <span aria-hidden="true" className={`relative inline-flex ${dim} shrink-0`}>
-      <span
-        className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${DOT[status]}`}
-      />
+      {status !== 'offline' && (
+        <span
+          className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${DOT[status]}`}
+        />
+      )}
       <span className={`relative inline-flex ${dim} rounded-full ${DOT[status]}`} />
     </span>
   );
 }
 
 function headline(doc: StatusDocument): { text: string; status: ServiceStatus } {
-  const down = doc.services.filter((s) => s.status === 'down').length;
+  // Services expected to be off are not part of the outage arithmetic.
+  const counted = doc.services.filter((s) => !s.expected_downtime);
+  const down = counted.filter((s) => s.status === 'down').length;
   if (doc.overall_status === 'operational') return { text: 'All Systems Operational', status: 'operational' };
   if (doc.overall_status === 'degraded') return { text: 'Degraded Performance', status: 'degraded' };
   return {
-    text: down === doc.services.length ? 'Major Outage' : 'Partial Outage',
+    text: down === counted.length ? 'Major Outage' : 'Partial Outage',
     status: 'down',
   };
 }
@@ -129,6 +142,8 @@ function Pill({
 
 function ServiceCard({ service }: { service: ServiceCheck }) {
   const cert = certText(service.cert_days_remaining);
+  const status = shown(service);
+  const offline = status === 'offline';
   return (
     <li className="rounded-xl border border-base-300/70 bg-base-200/30 p-5 dark:border-white/5 dark:bg-white/[0.02]">
       <div className="flex items-start justify-between gap-4">
@@ -145,8 +160,8 @@ function ServiceCard({ service }: { service: ServiceCheck }) {
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
         <span className="inline-flex items-center gap-2 text-sm">
-          <Dot status={service.status} />
-          {LABEL[service.status]}
+          <Dot status={status} />
+          {LABEL[status]}
         </span>
       </div>
       <p className="mt-1 truncate font-mono text-xs text-base-content/70">
@@ -163,14 +178,26 @@ function ServiceCard({ service }: { service: ServiceCheck }) {
         >
           {service.response_time_ms === null ? 'no response' : `${service.response_time_ms} ms`}
         </Pill>
-        <Pill warn={service.http_code === null || service.http_code >= 400}>
+        <Pill warn={!offline && (service.http_code === null || service.http_code >= 400)}>
           {service.http_code === null ? 'HTTP —' : `HTTP ${service.http_code}`}
         </Pill>
-        <Pill warn={cert.warn}>{cert.text}</Pill>
+        {/* An offline service's certificate cannot be read; that is not a warning. */}
+        {!(offline && service.cert_days_remaining === null) && (
+          <Pill warn={cert.warn}>{cert.text}</Pill>
+        )}
       </div>
+      {service.note && (
+        <p className="mt-3 rounded-md border border-base-300 px-3 py-2 text-sm text-base-content/80 dark:border-white/10">
+          {service.note}
+        </p>
+      )}
       {service.error && <p className="mt-3 text-sm text-base-content/80">{service.error}</p>}
       {service.daily_history && service.daily_history.length > 0 && (
-        <UptimeBars days={service.daily_history} uptime={service.uptime_percentage_30d} />
+        <UptimeBars
+          days={service.daily_history}
+          uptime={service.uptime_percentage_30d}
+          expectedDowntime={service.expected_downtime}
+        />
       )}
     </li>
   );
@@ -307,6 +334,10 @@ export default function Status() {
             <li>
               A service is <em>down</em> on an error or a non-2xx/3xx status, <em>degraded</em> above
               one second, and <em>operational</em> otherwise.
+            </li>
+            <li>
+              A service marked as usually off is still checked, but when it is down it reads{' '}
+              <em>offline</em> in grey, sends no alert, and does not count toward the overall status.
             </li>
             <li>
               Each run is added to 30 days of daily counters. A day is red if any check failed,

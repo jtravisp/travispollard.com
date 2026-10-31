@@ -21,7 +21,8 @@ Standard library plus boto3, which the Lambda Python runtime already ships, so
 the deployment package is this one file.
 
 Configuration, from the environment (set by Terraform):
-    TARGETS      JSON list of {"id", "name", "url"}
+    TARGETS      JSON list of {"id", "name", "url"}, optionally with
+                 "expected_downtime": true and a "note" (see below)
     BUCKET       the site bucket
     KEY          status document key, default "status.json"
     HISTORY_KEY  history key, default "status-history.json"
@@ -33,6 +34,12 @@ ETag read, IfNoneMatch on first creation), so overlapping runs retry instead of
 overwriting each other. Alerts go out when a service changes state -- down, or
 back up -- not on every run while it stays down. A service only counts as down
 if a second attempt, RETRY_DELAY_S later, fails too.
+
+A target with "expected_downtime" is one that is switched off more often than
+on (PrivatePaste: brought up on a short-lived cluster only when in use). It is
+still checked and its history still records what was seen, but being down
+never alerts and never makes the overall status an outage. Its "note" is passed
+through to the page, which explains the downtime instead of showing red.
 
 The thresholds below must match frontend/content/status.ts, which renders what
 this decides; the names are the same so a grep finds both.
@@ -188,8 +195,14 @@ def check(target: dict, timeout: float) -> dict:
     CDN edge is not an outage, and without this it emailed DOWN and RECOVERED
     ten minutes apart; a site that is really down fails both attempts.
     """
+    expected_downtime = bool(target.get("expected_downtime"))
     m = measure(target["url"], timeout)
-    retried = classify(m["http_code"], m["response_time_ms"], m["error"]) == "down"
+    # Not retried when downtime is expected: the retry exists to keep a blip
+    # from alerting, and these never alert.
+    retried = (
+        not expected_downtime
+        and classify(m["http_code"], m["response_time_ms"], m["error"]) == "down"
+    )
     first_error = m["error"] or f"HTTP {m['http_code']}"
     if retried:
         time.sleep(RETRY_DELAY_S)
@@ -210,6 +223,10 @@ def check(target: dict, timeout: float) -> dict:
         result["retried"] = True
         # Why the first attempt failed: the only trace of a blip the retry hid.
         result["first_error"] = first_error
+    if expected_downtime:
+        result["expected_downtime"] = True
+    if target.get("note"):
+        result["note"] = target["note"]
     return result
 
 
@@ -383,6 +400,8 @@ def transitions(previous: dict | None, services: list[dict]) -> list[tuple[str, 
     """
     events = []
     for s in services:
+        if s.get("expected_downtime"):
+            continue  # off is its normal state: nothing to page about
         now = s["status"]
         if previous is None:
             if now == "down":
@@ -444,7 +463,10 @@ def publish_alerts(sns, topic_arn: str, events, checked_at: str) -> bool:
 def build_document(services: list[dict], history: dict | None, today: date) -> dict:
     document = {
         "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "overall_status": overall_status([s["status"] for s in services]),
+        # Services that are expected to be off do not make an outage.
+        "overall_status": overall_status(
+            [s["status"] for s in services if not s.get("expected_downtime")]
+        ),
         "services": services,
     }
     if history is not None:

@@ -45,6 +45,14 @@ export type ServiceCheck = {
   /** With retried: why the first attempt failed. */
   first_error?: string;
   /**
+   * The service is switched off more often than on, by design. Its checks are
+   * still recorded as seen, but being down is shown as offline, not as a
+   * failure, and does not count toward the overall status.
+   */
+  expected_downtime?: boolean;
+  /** A short explanation shown on the card. */
+  note?: string;
+  /**
    * Share of checks in the last 30 days that were not down; null before the
    * first check. Absent (with daily_history) on a run that could not read its
    * history, or from a checker older than the history feature.
@@ -174,6 +182,21 @@ export const SAMPLE_STATUS: StatusDocument = {
       cert_days_remaining: 87,
       uptime_percentage_30d: 100,
       daily_history: sampleHistory(8, {}, 120),
+    },
+    {
+      id: 'privatepaste',
+      name: 'PrivatePaste',
+      url: 'https://privatepasteapp.com',
+      status: 'down',
+      http_code: 530,
+      response_time_ms: 41,
+      connect_ms: 120,
+      cert_days_remaining: 80,
+      error: 'HTTP 530',
+      expected_downtime: true,
+      note: 'Usually offline, and that is expected, not a failure.',
+      uptime_percentage_30d: 9.5,
+      daily_history: sampleHistory(8, { 0: 'down', 1: 'down', 2: 'down', 4: 'down', 5: 'down' }, 90),
     },
   ],
 };
