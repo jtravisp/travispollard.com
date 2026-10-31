@@ -20,6 +20,7 @@ import checker
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"  # keep-alive, so redirects can reuse the connection
     connections_seen = set()
+    requests_seen = []
 
     def _send(self, code, headers=()):
         self.send_response(code)
@@ -30,7 +31,11 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):  # noqa: N802 - http.server's naming
         type(self).connections_seen.add(self.client_address)
-        if self.path == "/ok":
+        type(self).requests_seen.append(self.path)
+        if self.path == "/flaky":
+            # Fails the first request, succeeds the second: one blip.
+            self._send(503 if type(self).requests_seen.count("/flaky") % 2 else 200)
+        elif self.path == "/ok":
             self._send(200)
         elif self.path == "/redirect":
             self._send(302, [("Location", "/ok")])
@@ -55,6 +60,12 @@ def base_url():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()
+
+
+@pytest.fixture(autouse=True)
+def no_retry_delay(monkeypatch):
+    # Not time.sleep: the test server's /slow handlers need the real one.
+    monkeypatch.setattr(checker, "RETRY_DELAY_S", 0)
 
 
 def target(url, id_="svc"):
@@ -143,6 +154,32 @@ def test_unreachable_is_down_not_an_exception():
     assert result["http_code"] is None
     assert result["response_time_ms"] is None
     assert result["error"].startswith("request failed")
+
+
+def test_a_single_failure_is_retried_and_not_down(base_url):
+    _Handler.requests_seen.clear()
+    result = checker.check(target(f"{base_url}/flaky"), timeout=5)
+    assert result["status"] == "operational"
+    assert result["http_code"] == 200
+    assert result["retried"] is True
+    assert result["first_error"] == "HTTP 503"
+    assert "error" not in result
+    assert _Handler.requests_seen == ["/flaky", "/flaky"]
+
+
+def test_down_on_both_attempts_is_down(base_url):
+    _Handler.requests_seen.clear()
+    result = checker.check(target(f"{base_url}/broken"), timeout=5)
+    assert result["status"] == "down"
+    assert result["retried"] is True
+    assert _Handler.requests_seen == ["/broken", "/broken"]
+
+
+def test_a_healthy_or_slow_check_is_not_retried(base_url):
+    _Handler.requests_seen.clear()
+    assert "retried" not in checker.check(target(f"{base_url}/ok"), timeout=5)
+    assert "retried" not in checker.check(target(f"{base_url}/very-slow"), timeout=5)
+    assert _Handler.requests_seen == ["/ok", "/very-slow"]
 
 
 def test_checks_run_concurrently(base_url):

@@ -138,9 +138,10 @@ resource "aws_lambda_function" "status_checker" {
   # as well, but a starved CPU still slows everything it does. Runs are
   # shorter at 512 MB, so the GB-seconds cost barely moves.
   memory_size = 512
-  # Targets run concurrently with a 10 s connection timeout each; 60 s leaves
-  # room for every one of them to time out and the writes to still land.
-  timeout = 60
+  # Targets run concurrently with a 10 s connection timeout each, and a down
+  # target is tried a second time 5 s later (RETRY_DELAY_S); 90 s leaves room
+  # for every one of them to time out twice and the writes to still land.
+  timeout = 90
 
   environment {
     variables = {
@@ -184,6 +185,8 @@ resource "aws_lambda_permission" "status_checker_events" {
 #
 # The checker publishes here when a service changes state: once when it goes
 # down, once when it recovers -- not every ten minutes while it stays down.
+# "Down" means two failed attempts a few seconds apart within one run, so a
+# single dropped connection does not page.
 # The previous states live in status-history.json, written with S3 conditional
 # writes, so two overlapping runs cannot both send the same alert.
 #
