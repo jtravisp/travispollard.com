@@ -40,6 +40,10 @@ export type ServiceCheck = {
   cert_days_remaining: number | null;
   /** Present only when something went wrong: a short, human-readable reason. */
   error?: string;
+  /** Present only when the first attempt was down and this is the second. */
+  retried?: boolean;
+  /** With retried: why the first attempt failed. */
+  first_error?: string;
   /**
    * Share of checks in the last 30 days that were not down; null before the
    * first check. Absent (with daily_history) on a run that could not read its

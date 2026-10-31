@@ -31,7 +31,8 @@ Configuration, from the environment (set by Terraform):
 The history is read-modify-written with S3 conditional writes (IfMatch on the
 ETag read, IfNoneMatch on first creation), so overlapping runs retry instead of
 overwriting each other. Alerts go out when a service changes state -- down, or
-back up -- not on every run while it stays down.
+back up -- not on every run while it stays down. A service only counts as down
+if a second attempt, RETRY_DELAY_S later, fails too.
 
 The thresholds below must match frontend/content/status.ts, which renders what
 this decides; the names are the same so a grep finds both.
@@ -57,6 +58,9 @@ HISTORY_DAYS = 30
 # check makes the day "down": an outage is an outage, and the uptime
 # percentage says how long it lasted.
 DEGRADED_DAY_SHARE = 0.10
+
+# A down result is re-measured once after this many seconds before it counts.
+RETRY_DELAY_S = 5
 
 MAX_REDIRECTS = 5
 MAX_BODY_BYTES = 2_000_000
@@ -177,8 +181,19 @@ def measure(url: str, timeout: float) -> dict:
 
 
 def check(target: dict, timeout: float) -> dict:
-    """One target's current result, in status.json's per-service shape."""
+    """One target's current result, in status.json's per-service shape.
+
+    A check that comes back down is measured once more after RETRY_DELAY_S,
+    and the second result is the one recorded. A single dropped handshake at a
+    CDN edge is not an outage, and without this it emailed DOWN and RECOVERED
+    ten minutes apart; a site that is really down fails both attempts.
+    """
     m = measure(target["url"], timeout)
+    retried = classify(m["http_code"], m["response_time_ms"], m["error"]) == "down"
+    first_error = m["error"] or f"HTTP {m['http_code']}"
+    if retried:
+        time.sleep(RETRY_DELAY_S)
+        m = measure(target["url"], timeout)
     result = {
         "id": target["id"],
         "name": target["name"],
@@ -191,6 +206,10 @@ def check(target: dict, timeout: float) -> dict:
     }
     if m["error"]:
         result["error"] = m["error"]
+    if retried:
+        result["retried"] = True
+        # Why the first attempt failed: the only trace of a blip the retry hid.
+        result["first_error"] = first_error
     return result
 
 
@@ -483,6 +502,7 @@ def handler(event, context, s3_client=None, sns_client=None, today: date | None 
                 },
                 "history_updated": history is not None,
                 "history_attempts": attempts,
+                "retried": {s["id"]: s["first_error"] for s in services if s.get("retried")},
                 "alerts": [f"{kind}:{s['id']}" for kind, s in events],
                 "alert_sent": alerted,
                 "botocore": sdk,
